@@ -1,0 +1,11 @@
+app/build/
+app/.dart_tool/
+app/.flutter-plugins*
+app/web/
+app/ios/
+app/android/
+app/linux/
+app/macos/
+app/windows/
+app/.idea/
+*.iml

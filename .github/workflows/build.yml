@@ -1,0 +1,43 @@
+name: JamJot CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      # Generate platform folders (web/ios/android) that aren't kept in the repo
+      - run: flutter create . --project-name jamjot --org app.jamjot --platforms web,ios,android
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter build web --release --base-href /jamjot/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/build/web
+
+  deploy-preview:
+    if: github.ref == 'refs/heads/main'
+    needs: build-web
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
