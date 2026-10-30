@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
+import '../../widgets/jamjot_card.dart';
 
 void _showHowAccountsWork(BuildContext context) {
   final text = Theme.of(context).textTheme;
@@ -126,9 +127,18 @@ class TitleScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
           child: Column(
             children: [
+              // Sign in, tucked at the top for returning families & teachers.
+              Align(
+                alignment: Alignment.topRight,
+                child: TextButton(
+                  onPressed: () => context.go('/signin'),
+                  child: const Text('Sign in',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
               const Spacer(),
               // Erika's mascot, with a little welcome dance.
-              const DancingNote(size: 230),
+              const DancingNote(size: 200),
               const SizedBox(height: 20),
               Text('JamJot',
                   style: text.displayMedium?.copyWith(
@@ -158,27 +168,22 @@ class TitleScreen extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              FilledButton(
-                onPressed: () => context.go('/signin?create=1'),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: const BoxDecoration(
-                            color: JamJotColors.marigold,
-                            shape: BoxShape.circle),
-                        child: const Icon(Icons.play_arrow,
-                            color: JamJotColors.ink, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text("Let's play"),
-                    ]),
+              JamJotCard(
+                emoji: '🧑‍🧒',
+                tint: JamJotColors.blueberryTint,
+                title: 'I am a family grown-up',
+                subtitle:
+                    'Set up kid profiles inside one account — connect a teacher or studio anytime.',
+                onTap: () => context.go('/signin?create=1&role=family'),
               ),
-              const SizedBox(height: 10),
-              OutlinedButton(
-                onPressed: () => context.go('/signin'),
-                child: const Text('I already have an account'),
+              const SizedBox(height: 12),
+              JamJotCard(
+                emoji: '🎻',
+                tint: JamJotColors.marigoldTint,
+                title: 'I teach music',
+                subtitle:
+                    'On my own, running a studio, or joining one — all start here.',
+                onTap: () => context.go('/signin?create=1&role=teacher'),
               ),
               const SizedBox(height: 6),
               TextButton(

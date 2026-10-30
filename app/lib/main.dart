@@ -64,6 +64,7 @@ final _router = GoRouter(
       builder: (_, state) => SignInScreen(
         startInCreateMode: state.uri.queryParameters['create'] == '1',
         emailJustConfirmed: state.uri.queryParameters['confirmed'] == '1',
+        intendedRole: state.uri.queryParameters['role'],
       ),
     ),
     GoRoute(path: '/gate', builder: (_, __) => const GateScreen()),

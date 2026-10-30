@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 
 /// Decides where a freshly signed-in person goes: onboarding if their
@@ -29,7 +30,16 @@ class _GateScreenState extends ConsumerState<GateScreen> {
     final teacher = await ref.read(myTeacherProvider.future);
     if (!mounted) return;
     if (students.isEmpty && teacher == null) {
-      context.go('/onboarding');
+      // Brand-new account: honor the role they picked on the landing page.
+      final intended = JamJotBackend
+          .client.auth.currentUser?.userMetadata?['intended_role'];
+      if (intended == 'family') {
+        context.go('/add-student');
+      } else if (intended == 'teacher') {
+        context.go('/teacher-setup');
+      } else {
+        context.go('/onboarding');
+      }
     } else {
       context.go('/profiles');
     }

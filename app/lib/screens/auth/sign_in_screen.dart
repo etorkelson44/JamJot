@@ -9,10 +9,15 @@ class SignInScreen extends StatefulWidget {
     super.key,
     this.startInCreateMode = false,
     this.emailJustConfirmed = false,
+    this.intendedRole,
   });
 
   final bool startInCreateMode;
   final bool emailJustConfirmed;
+
+  /// 'family' or 'teacher' when they picked a card on the landing page —
+  /// remembered through sign-up so onboarding can skip the question.
+  final String? intendedRole;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -47,7 +52,11 @@ class _SignInScreenState extends State<SignInScreen> {
         final res = await auth.signUp(
           email: _email.text.trim(),
           password: _password.text,
-          data: {'full_name': _name.text.trim()},
+          data: {
+            'full_name': _name.text.trim(),
+            if (widget.intendedRole != null)
+              'intended_role': widget.intendedRole,
+          },
         );
         if (res.session == null) {
           setState(() => _notice =
