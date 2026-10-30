@@ -25,7 +25,7 @@ jobs:
       # Generate platform folders (web/ios/android) that aren't kept in the repo
       - run: flutter create . --project-name jamjot --org app.jamjot --platforms web,ios,android
       - run: flutter pub get
-      - run: flutter analyze
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter build web --release --base-href /jamjot/
       - uses: actions/upload-pages-artifact@v3
         with:

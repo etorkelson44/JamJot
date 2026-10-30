@@ -75,7 +75,7 @@ ThemeData buildJamJotTheme() {
         letterSpacing: -0.5,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: Colors.white,
       elevation: 0,
       shape: RoundedRectangleBorder(
