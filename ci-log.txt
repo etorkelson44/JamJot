@@ -1,0 +1,10 @@
+Analyzing app...                                                
+
+   info • 'anonKey' is deprecated and shouldn't be used. Use publishableKey instead. anonKey will be removed in a future major version. Try replacing the use of the deprecated member with the replacement • lib/services/supabase_service.dart:10:41 • deprecated_member_use
+warning • The asset directory 'assets/mascot/' doesn't exist. Try creating the directory or fixing the path to the directory • pubspec.yaml:26:7 • asset_directory_does_not_exist
+warning • The asset directory 'assets/berries/' doesn't exist. Try creating the directory or fixing the path to the directory • pubspec.yaml:27:7 • asset_directory_does_not_exist
+warning • The asset directory 'assets/market/' doesn't exist. Try creating the directory or fixing the path to the directory • pubspec.yaml:28:7 • asset_directory_does_not_exist
+warning • The asset directory 'assets/backgrounds/' doesn't exist. Try creating the directory or fixing the path to the directory • pubspec.yaml:29:7 • asset_directory_does_not_exist
+  error • The name 'MyApp' isn't a class. Try correcting the name to match an existing class • test/widget_test.dart:16:35 • creation_with_non_type
+
+6 issues found. (ran in 8.1s)
