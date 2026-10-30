@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../theme/jamjot_theme.dart';
-import '../../widgets/jar_logo.dart';
+import '../../widgets/dancing_note.dart';
 
 class TitleScreen extends StatelessWidget {
   const TitleScreen({super.key});
@@ -17,12 +17,8 @@ class TitleScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              // Erika's mascot! Falls back to the code-drawn jar if missing.
-              Image.asset(
-                'assets/mascot/note.png',
-                height: 230,
-                errorBuilder: (_, __, ___) => const JarLogo(size: 220),
-              ),
+              // Erika's mascot, with a little welcome dance.
+              const DancingNote(size: 230),
               const SizedBox(height: 20),
               Text('JamJot',
                   style: text.displayMedium?.copyWith(

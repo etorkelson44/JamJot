@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/dancing_note.dart';
 import '../../widgets/jamjot_card.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -63,6 +64,8 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           if (isKid) ...[
+            const Center(child: DancingNote(size: 140)),
+            const SizedBox(height: 16),
             JamJotCard(
               emoji: '🎻',
               title: (active['instruments'] as List?)?.join(' · ') ?? 'Music',
