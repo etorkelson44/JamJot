@@ -20,7 +20,7 @@ class MarketScreen extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Text(
-                'The farmers' market — stands, berries, and My Shelf — opens when rewards go live.',
+                "The farmers' market — stands, berries, and My Shelf — opens when rewards go live.",
                 textAlign: TextAlign.center,
                 style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
               ),
