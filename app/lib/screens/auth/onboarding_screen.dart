@@ -32,19 +32,25 @@ class OnboardingScreen extends StatelessWidget {
                   JamJotCard(
                     emoji: '🧑‍🧒',
                     tint: JamJotColors.blueberryTint,
-                    title: 'I am a parent or caregiver',
+                    title: 'I am a family grown-up',
                     subtitle:
-                        'Set up profiles for my kids and cheer on their practice.',
+                        'Parent, guardian, or caregiver. Set up kid profiles inside this account — connect a teacher or studio later with their invite.',
                     onTap: () => context.go('/add-student'),
                   ),
                   const SizedBox(height: 16),
                   JamJotCard(
                     emoji: '🎻',
                     tint: JamJotColors.marigoldTint,
-                    title: 'I am a music teacher',
+                    title: 'I teach music',
                     subtitle:
-                        'Build lessons and assignments, and hear real practice.',
+                        'On my own, running a studio, or joining one — all start here.',
                     onTap: () => context.go('/teacher-setup'),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Good to know: kids never need their own accounts or emails. They live as profiles inside a grown-up account, each protected by a PIN.',
+                    style:
+                        text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
                   ),
                 ],
               ),

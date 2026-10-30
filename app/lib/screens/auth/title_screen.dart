@@ -4,6 +4,116 @@ import 'package:go_router/go_router.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
 
+void _showHowAccountsWork(BuildContext context) {
+  final text = Theme.of(context).textTheme;
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: JamJotColors.cream,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      side: JamJotShape.border,
+    ),
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('How JamJot accounts work',
+                style:
+                    text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            const _ExplainRow(
+              emoji: '🧑‍🧒',
+              tint: JamJotColors.blueberryTint,
+              title: 'Families',
+              body:
+                  'One grown-up account runs the whole family. Kids do not need their own accounts — they get profiles inside yours, each protected by a PIN. Grandparents and other caregivers join by invite. Works great with a teacher or on your own.',
+            ),
+            const SizedBox(height: 12),
+            const _ExplainRow(
+              emoji: '🎻',
+              tint: JamJotColors.marigoldTint,
+              title: 'Teachers',
+              body:
+                  'One account whether you teach independently or as part of a studio. You connect with your students by sending families a simple invite link.',
+            ),
+            const SizedBox(height: 12),
+            const _ExplainRow(
+              emoji: '🏫',
+              tint: JamJotColors.plumTint,
+              title: 'Studios',
+              body:
+                  'The studio owner creates the studio, then teachers join it with an invite. Families connect using the studio code and pick their teacher.',
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Whichever you are, start with "Let\'s play" — the app asks one simple question after sign-up and takes it from there.',
+              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Got it'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _ExplainRow extends StatelessWidget {
+  const _ExplainRow({
+    required this.emoji,
+    required this.tint,
+    required this.title,
+    required this.body,
+  });
+
+  final String emoji;
+  final Color tint;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: tint,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: JamJotColors.ink, width: 2),
+          ),
+          child: Text(emoji, style: const TextStyle(fontSize: 20)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style:
+                      text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text(body,
+                  style:
+                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class TitleScreen extends StatelessWidget {
   const TitleScreen({super.key});
 
@@ -69,6 +179,11 @@ class TitleScreen extends StatelessWidget {
               OutlinedButton(
                 onPressed: () => context.go('/signin'),
                 child: const Text('I already have an account'),
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: () => _showHowAccountsWork(context),
+                child: const Text('How do accounts work?'),
               ),
             ],
           ),
