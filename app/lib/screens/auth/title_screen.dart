@@ -17,7 +17,12 @@ class TitleScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              const JarLogo(size: 220),
+              // Erika's mascot! Falls back to the code-drawn jar if missing.
+              Image.asset(
+                'assets/mascot/note.png',
+                height: 230,
+                errorBuilder: (_, __, ___) => const JarLogo(size: 220),
+              ),
               const SizedBox(height: 20),
               Text('JamJot',
                   style: text.displayMedium?.copyWith(
