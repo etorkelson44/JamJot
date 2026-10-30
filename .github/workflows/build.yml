@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -25,9 +25,29 @@ jobs:
       # Generate platform folders (web/ios/android) that aren't kept in the repo
       - run: flutter create . --project-name jamjot --org app.jamjot --platforms web,ios,android
       - run: flutter pub get
-      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - run: flutter build web --release --base-href /JamJot/
+      - id: compile
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          { flutter analyze --no-fatal-infos --no-fatal-warnings \
+            && flutter build web --release --base-href /JamJot/ ; } 2>&1 | tee /tmp/ci.txt
+      - name: Publish failure log to ci-logs branch
+        if: steps.compile.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST repos/${{ github.repository }}/git/refs \
+            -f ref=refs/heads/ci-logs -f sha=${{ github.sha }} 2>/dev/null || true
+          SHA_ARG=$(gh api "repos/${{ github.repository }}/contents/ci-log.txt?ref=ci-logs" --jq '.sha' 2>/dev/null || true)
+          if [ -n "$SHA_ARG" ]; then EXTRA="-f sha=$SHA_ARG"; else EXTRA=""; fi
+          tail -c 60000 /tmp/ci.txt > /tmp/ci-tail.txt
+          gh api -X PUT repos/${{ github.repository }}/contents/ci-log.txt \
+            -f message="ci: failure log for ${{ github.sha }}" \
+            -f content="$(base64 -w0 /tmp/ci-tail.txt)" \
+            -f branch=ci-logs $EXTRA
+          exit 1
       - uses: actions/upload-pages-artifact@v3
+        if: steps.compile.outcome == 'success'
         with:
           path: app/build/web
 
