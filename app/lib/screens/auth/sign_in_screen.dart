@@ -5,9 +5,14 @@ import '../../services/supabase_service.dart';
 import '../../theme/jamjot_theme.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key, this.startInCreateMode = false});
+  const SignInScreen({
+    super.key,
+    this.startInCreateMode = false,
+    this.emailJustConfirmed = false,
+  });
 
   final bool startInCreateMode;
+  final bool emailJustConfirmed;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -92,6 +97,32 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (widget.emailJustConfirmed && !_creating) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE7F3EA),
+                          borderRadius: BorderRadius.circular(14),
+                          border:
+                              Border.all(color: JamJotColors.ink, width: 2),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle,
+                                color: JamJotColors.leaf),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Your email is confirmed! Sign in below to get started.',
+                                style: text.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     Text(
                       _creating
                           ? 'Welcome to JamJot!'

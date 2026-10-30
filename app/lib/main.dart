@@ -17,9 +17,21 @@ import 'screens/shell.dart';
 import 'services/supabase_service.dart';
 import 'theme/jamjot_theme.dart';
 
+/// True when the app was opened from the email-confirmation link.
+bool _cameFromEmailConfirmation = false;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Peek at the launch URL before Supabase consumes it.
+  _cameFromEmailConfirmation = Uri.base.toString().contains('type=signup');
   await JamJotBackend.init();
+  if (_cameFromEmailConfirmation) {
+    // The link signs people in automatically; we want them to sign in
+    // themselves from a friendly "email confirmed" page instead.
+    try {
+      await JamJotBackend.client.auth.signOut();
+    } catch (_) {/* fine — they simply were not signed in */}
+  }
   runApp(const ProviderScope(child: JamJotApp()));
 }
 
@@ -33,7 +45,9 @@ class _AuthRefresh extends ChangeNotifier {
 }
 
 final _router = GoRouter(
-  initialLocation: JamJotBackend.signedIn ? '/gate' : '/',
+  initialLocation: _cameFromEmailConfirmation
+      ? '/signin?confirmed=1'
+      : (JamJotBackend.signedIn ? '/gate' : '/'),
   refreshListenable: _AuthRefresh(),
   redirect: (context, state) {
     final signedIn = JamJotBackend.signedIn;
@@ -49,6 +63,7 @@ final _router = GoRouter(
       path: '/signin',
       builder: (_, state) => SignInScreen(
         startInCreateMode: state.uri.queryParameters['create'] == '1',
+        emailJustConfirmed: state.uri.queryParameters['confirmed'] == '1',
       ),
     ),
     GoRoute(path: '/gate', builder: (_, __) => const GateScreen()),
