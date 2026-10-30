@@ -48,7 +48,7 @@ class TitleScreen extends StatelessWidget {
               ),
               const Spacer(),
               FilledButton(
-                onPressed: () => context.go('/home'),
+                onPressed: () => context.go('/signin?create=1'),
                 child: Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
@@ -66,7 +66,7 @@ class TitleScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               OutlinedButton(
-                onPressed: () => context.go('/home'), // TODO: sign-in flow
+                onPressed: () => context.go('/signin'),
                 child: const Text('I already have an account'),
               ),
             ],
