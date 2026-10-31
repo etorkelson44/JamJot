@@ -12,6 +12,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
+import '../../widgets/score_frame.dart';
 
 enum _Phase { starting, practicing, saving, celebrate, micDenied, error }
 
@@ -48,6 +49,31 @@ class _PracticeSessionScreenState
   /// Stamps for the clip currently rolling.
   DateTime? _clipStartedAt;
   int _clipStartSoundMs = 0;
+
+  /// Signed sheet-music links, fetched once per song.
+  final Map<String, Future<String?>> _scoreUrls = {};
+
+  Future<String?> _scoreUrlFor(Map<String, dynamic> song) {
+    final id = song['id'] as String;
+    return _scoreUrls[id] ??= () async {
+      final scoreId = song['score_id'] as String?;
+      if (scoreId == null) return null;
+      try {
+        final score = await JamJotBackend.client
+            .from('scores')
+            .select('original_path')
+            .eq('id', scoreId)
+            .maybeSingle();
+        final path = score?['original_path'] as String?;
+        if (path == null) return null;
+        return JamJotBackend.client.storage
+            .from('scores')
+            .createSignedUrl(path, 3600 * 6);
+      } catch (_) {
+        return null;
+      }
+    }();
+  }
 
   /// What each finished song earned & how the kid rated it (for the list).
   final Map<String, String> _ratings = {};
@@ -889,24 +915,48 @@ class _PracticeSessionScreenState
         _liveBanner(text),
         Expanded(
           child: Container(
-            alignment: Alignment.center,
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: JamJotColors.outline, width: 2),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('🎼', style: TextStyle(fontSize: 44)),
-                const SizedBox(height: 6),
-                Text(
-                  'Sheet music shows here once\nscores are uploaded',
-                  textAlign: TextAlign.center,
-                  style:
-                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
-                ),
-              ],
+            child: FutureBuilder<String?>(
+              future: _scoreUrlFor(song),
+              builder: (context, snap) {
+                if (snap.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final url = snap.data;
+                if (url == null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('🎼', style: TextStyle(fontSize: 44)),
+                        const SizedBox(height: 6),
+                        Text(
+                          'No sheet music attached to this song yet',
+                          textAlign: TextAlign.center,
+                          style: text.bodySmall
+                              ?.copyWith(color: JamJotColors.inkSoft),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                final lower = url.split('?').first.toLowerCase();
+                final isImage = lower.endsWith('.png') ||
+                    lower.endsWith('.jpg') ||
+                    lower.endsWith('.jpeg');
+                if (isImage) {
+                  return InteractiveViewer(
+                    maxScale: 5,
+                    child: Center(child: Image.network(url)),
+                  );
+                }
+                return buildScoreFrame(url);
+              },
             ),
           ),
         ),
