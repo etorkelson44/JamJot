@@ -24,6 +24,7 @@ import 'screens/practice/practice_session_screen.dart';
 import 'screens/profile/my_profile_screen.dart';
 import 'screens/profile/profile_picker_screen.dart';
 import 'screens/shell.dart';
+import 'services/session_flags.dart';
 import 'services/supabase_service.dart';
 import 'theme/jamjot_theme.dart';
 
@@ -53,6 +54,18 @@ Future<void> main() async {
       launch.contains('access_denied') ||
       launch.contains('error_code');
   await JamJotBackend.init();
+  // "Stay signed in" was unchecked and the browser was closed since:
+  // end the session now, before anything renders.
+  if (JamJotBackend.signedIn &&
+      !keepSignedIn &&
+      !thisTabSignedIn &&
+      !_cameFromEmailConfirmation &&
+      !_cameFromPasswordRecovery) {
+    try {
+      await JamJotBackend.client.auth.signOut();
+    } catch (_) {}
+  }
+  if (JamJotBackend.signedIn) markThisTabSignedIn();
   if (_cameFromEmailConfirmation && !_cameFromPasswordRecovery) {
     // The link signs people in automatically; we want them to sign in
     // themselves from a friendly "email confirmed" page instead.

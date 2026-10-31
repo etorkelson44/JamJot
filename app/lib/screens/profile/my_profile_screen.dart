@@ -22,6 +22,51 @@ final myGuardianRowsProvider =
   return rows.cast<Map<String, dynamic>>();
 });
 
+/// All the places this account is signed in right now.
+final mySessionsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final res = await JamJotBackend.client.functions
+      .invoke('manage-sessions', body: {'action': 'list'});
+  final data = res.data as Map<String, dynamic>? ?? {};
+  return ((data['sessions'] as List?) ?? []).cast<Map<String, dynamic>>();
+});
+
+/// Turns a browser's technical self-description into plain words.
+String describeUserAgent(String? ua) {
+  if (ua == null || ua.isEmpty) return 'Unknown device';
+  String device;
+  if (ua.contains('iPhone')) {
+    device = 'iPhone';
+  } else if (ua.contains('iPad')) {
+    device = 'iPad';
+  } else if (ua.contains('Android')) {
+    device = 'Android';
+  } else if (ua.contains('Mac OS') || ua.contains('Macintosh')) {
+    device = 'Mac';
+  } else if (ua.contains('Windows')) {
+    device = 'Windows PC';
+  } else if (ua.contains('Linux')) {
+    device = 'Linux';
+  } else {
+    device = 'Device';
+  }
+  String browser;
+  if (ua.contains('Edg/')) {
+    browser = 'Edge';
+  } else if (ua.contains('OPR/') || ua.contains('Opera')) {
+    browser = 'Opera';
+  } else if (ua.contains('Chrome/') && !ua.contains('Chromium')) {
+    browser = 'Chrome';
+  } else if (ua.contains('Firefox/')) {
+    browser = 'Firefox';
+  } else if (ua.contains('Safari/')) {
+    browser = 'Safari';
+  } else {
+    browser = 'Browser';
+  }
+  return '$browser on $device';
+}
+
 /// Account settings: who I am, how I sign in, and where I stand with each kid.
 class MyProfileScreen extends ConsumerStatefulWidget {
   const MyProfileScreen({super.key});
@@ -286,6 +331,107 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                 ),
               ),
             ]),
+            const SizedBox(height: 18),
+            Text('Where I\'m signed in',
+                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text(
+              'Every browser and device where this account is active. Sign out of any you don\'t recognize (it takes effect within the hour).',
+              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+            ),
+            const SizedBox(height: 8),
+            Consumer(builder: (context, ref, _) {
+              final sessionsAsync = ref.watch(mySessionsProvider);
+              final sessions = sessionsAsync.valueOrNull;
+              if (sessions == null) {
+                return sessionsAsync.hasError
+                    ? Text('Could not load sign-ins right now.',
+                        style: text.bodySmall
+                            ?.copyWith(color: JamJotColors.inkSoft))
+                    : const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Center(
+                            child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2))),
+                      );
+              }
+              return Column(children: [
+                for (final s in sessions) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: s['current'] == true
+                              ? JamJotColors.blueberry
+                              : JamJotColors.ink,
+                          width: 2),
+                    ),
+                    child: Row(children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              Flexible(
+                                child: Text(
+                                  describeUserAgent(
+                                      s['user_agent'] as String?),
+                                  style: text.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                              if (s['current'] == true)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 6),
+                                  child: Text('• this device',
+                                      style: TextStyle(
+                                          color: JamJotColors.blueberry,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12)),
+                                ),
+                            ]),
+                            Text(
+                              '${(s['ip'] as String?) ?? 'unknown network'} • last active ${DateFormat('MMM d, h:mm a').format(DateTime.parse(s['last_active'] as String).toLocal())}',
+                              style: text.bodySmall
+                                  ?.copyWith(color: JamJotColors.inkSoft),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (s['current'] != true)
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              await JamJotBackend.client.functions.invoke(
+                                  'manage-sessions',
+                                  body: {
+                                    'action': 'revoke',
+                                    'session_id': s['id'],
+                                  });
+                              ref.invalidate(mySessionsProvider);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'Signed out of that device.')));
+                              }
+                            } catch (_) {}
+                          },
+                          child: const Text('Sign out',
+                              style: TextStyle(
+                                  color: JamJotColors.recording)),
+                        ),
+                    ]),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ]);
+            }),
             const SizedBox(height: 18),
             Text('My grown-up PIN',
                 style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),

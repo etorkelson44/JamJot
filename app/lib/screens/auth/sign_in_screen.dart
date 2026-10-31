@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../services/session_flags.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/jamjot_theme.dart';
 
@@ -32,6 +33,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final _password = TextEditingController();
   late bool _creating = widget.startInCreateMode;
   bool _busy = false;
+  bool _staySignedIn = true;
   String? _notice;
 
   @override
@@ -71,6 +73,8 @@ class _SignInScreenState extends State<SignInScreen> {
           password: _password.text,
         );
       }
+      setKeepSignedIn(_staySignedIn);
+      markThisTabSignedIn();
       if (mounted) context.go('/gate');
     } catch (e) {
       setState(() => _notice = _friendly(e.toString()));
@@ -197,7 +201,18 @@ class _SignInScreenState extends State<SignInScreen> {
                           ? 'At least 8 characters, please'
                           : null,
                     ),
-                    const SizedBox(height: 20),
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text('Stay signed in on this browser'),
+                      subtitle: const Text(
+                          'Uncheck on shared or public computers.'),
+                      value: _staySignedIn,
+                      onChanged: (v) =>
+                          setState(() => _staySignedIn = v ?? true),
+                    ),
+                    const SizedBox(height: 8),
                     if (_notice != null) ...[
                       Container(
                         padding: const EdgeInsets.all(12),
