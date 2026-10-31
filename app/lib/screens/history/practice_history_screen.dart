@@ -10,7 +10,7 @@ import '../../theme/jamjot_theme.dart';
 /// Past practice sessions for one student — the same truth for everyone:
 /// kids browse their own, caregivers and teachers see it as the report.
 final practiceHistoryProvider = FutureProvider.autoDispose
-    .family<List<Map<String, dynamic>>, String>((ref, studentId) async {
+    .family<Map<String, dynamic>, String>((ref, studentId) async {
   final rows = await JamJotBackend.client
       .from('sessions')
       .select('*, session_segments(*, assignments(title))')
@@ -18,7 +18,26 @@ final practiceHistoryProvider = FutureProvider.autoDispose
       .not('ended_at', 'is', null)
       .order('started_at', ascending: false)
       .limit(30);
-  return rows.cast<Map<String, dynamic>>();
+  // What each song earned, so summaries can show it.
+  final rewards = <String, String>{};
+  for (final table in ['berry_ledger', 'fan_ledger']) {
+    final ledger = await JamJotBackend.client
+        .from(table)
+        .select('session_id, assignment_id, amount')
+        .eq('student_id', studentId);
+    final emoji = table == 'berry_ledger' ? '🫐' : '🕶️';
+    for (final r in ledger) {
+      if (r['assignment_id'] == null) continue;
+      final key = '${r['session_id']}/${r['assignment_id']}';
+      rewards[key] =
+          '${rewards[key] ?? ''} $emoji+${(r['amount'] as num).toInt()}'
+              .trim();
+    }
+  }
+  return {
+    'sessions': rows.cast<Map<String, dynamic>>(),
+    'rewards': rewards,
+  };
 });
 
 class PracticeHistoryScreen extends ConsumerWidget {
@@ -57,7 +76,10 @@ class PracticeHistoryScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => const Center(
               child: Text('Could not load practices. Pull to retry.')),
-          data: (sessions) {
+          data: (bundle) {
+            final sessions =
+                (bundle['sessions'] as List).cast<Map<String, dynamic>>();
+            final rewards = bundle['rewards'] as Map<String, String>;
             if (sessions.isEmpty) {
               return Center(
                 child: Padding(
@@ -75,8 +97,10 @@ class PracticeHistoryScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(20),
               itemCount: sessions.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, i) =>
-                  _SessionCard(session: sessions[i], onListen: _listen),
+              itemBuilder: (context, i) => _SessionCard(
+                  session: sessions[i],
+                  rewards: rewards,
+                  onListen: _listen),
             );
           },
         ),
@@ -86,9 +110,11 @@ class PracticeHistoryScreen extends ConsumerWidget {
 }
 
 class _SessionCard extends StatelessWidget {
-  const _SessionCard({required this.session, required this.onListen});
+  const _SessionCard(
+      {required this.session, required this.rewards, required this.onListen});
 
   final Map<String, dynamic> session;
+  final Map<String, String> rewards;
   final Future<void> Function(BuildContext, String) onListen;
 
   static const _ratings = {
@@ -108,8 +134,8 @@ class _SessionCard extends StatelessWidget {
     final audioPath = session['audio_path'] as String?;
     final segments = ((session['session_segments'] as List?) ?? [])
         .cast<Map<String, dynamic>>()
-        .where((s) => s['completed'] == true)
-        .toList();
+      ..sort((a, b) => (b['completed'] == true ? 1 : 0)
+          .compareTo(a['completed'] == true ? 1 : 0));
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -140,35 +166,67 @@ class _SessionCard extends StatelessWidget {
           ),
           if (segments.isNotEmpty) ...[
             const SizedBox(height: 10),
-            for (final seg in segments)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '🎼 ${(seg['assignments'] as Map?)?['title'] ?? 'Free play'}',
-                        style: text.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+            for (final seg in segments) ...[
+              Builder(builder: (context) {
+                final title = (seg['assignments'] as Map?)?['title'] ??
+                    'Free play';
+                final clips =
+                    ((seg['audio_paths'] as List?) ?? []).cast<String>();
+                final rating = _ratings[
+                    (seg['goal_results'] as Map?)?['self_rating']];
+                final extra = (seg['goal_results'] as Map?)
+                        ?['extra_practice'] ==
+                    true;
+                final inProgress = seg['completed'] != true;
+                final rewardText = rewards[
+                    '${session['id']}/${seg['assignment_id']}'];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text('🎼 $title',
+                                style: text.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                          Text(
+                            '${((seg['seconds'] as num?)?.toInt() ?? 0) ~/ 60} min',
+                            style: text.bodySmall,
+                          ),
+                        ],
                       ),
-                    ),
-                    Text(
-                      '${((seg['seconds'] as num?)?.toInt() ?? 0) ~/ 60} min',
-                      style: text.bodySmall,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _ratings[(seg['goal_results']
-                              as Map?)?['self_rating']] ??
-                          ((seg['goal_results'] as Map?)?['extra_practice'] ==
-                                  true
-                              ? '➕ extra practice'
-                              : ''),
-                      style: text.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
+                      Wrap(
+                        spacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (rating != null)
+                            Text(rating, style: text.bodySmall),
+                          if (extra)
+                            Text('➕ extra practice', style: text.bodySmall),
+                          if (inProgress && !extra && rating == null)
+                            Text('⏳ in progress',
+                                style: text.bodySmall?.copyWith(
+                                    color: JamJotColors.inkSoft)),
+                          if (rewardText != null && !extra)
+                            Text(rewardText, style: text.bodySmall),
+                          for (var c = 0; c < clips.length; c++)
+                            ActionChip(
+                              avatar: const Icon(Icons.play_arrow, size: 16),
+                              label: Text(clips.length == 1
+                                  ? 'Listen'
+                                  : 'Clip ${c + 1}'),
+                              onPressed: () => onListen(context, clips[c]),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
           ],
           if (audioPath != null) ...[
             const SizedBox(height: 8),

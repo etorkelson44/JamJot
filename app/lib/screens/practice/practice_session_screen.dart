@@ -38,7 +38,15 @@ class _PracticeSessionScreenState
 
   /// Is the mic actively recording right now (record button pressed)?
   bool _live = false;
-  bool _recorderStarted = false;
+  bool _meterStarted = false;
+
+  /// Uploaded clips not yet attached to a saved song summary,
+  /// keyed by song id ('_freeplay' for no-song recording).
+  final Map<String, List<String>> _pendingClips = {};
+
+  /// What each finished song earned & how the kid rated it (for the list).
+  final Map<String, String> _ratings = {};
+  final Map<String, String> _awardsLabel = {};
 
   /// Sound-counted milliseconds, total and for the open song.
   int _soundMsTotal = 0;
@@ -89,12 +97,50 @@ class _PracticeSessionScreenState
       _songs = (lesson?['assignments'] as List?)
               ?.cast<Map<String, dynamic>>() ??
           [];
-      final row = await JamJotBackend.client
+      // Coming back on the same day? Reopen today's session and keep adding.
+      final now = DateTime.now();
+      final dayStart = DateTime(now.year, now.month, now.day);
+      final existing = await JamJotBackend.client
           .from('sessions')
-          .insert({'student_id': student['id']})
-          .select()
-          .single();
-      _sessionId = row['id'] as String;
+          .select('*, session_segments(*)')
+          .eq('student_id', student['id'])
+          .gte('started_at', dayStart.toUtc().toIso8601String())
+          .order('started_at', ascending: false)
+          .limit(1);
+      if (existing.isNotEmpty) {
+        final session = existing.first;
+        _sessionId = session['id'] as String;
+        var segmentMs = 0;
+        for (final seg in (session['session_segments'] as List? ?? [])
+            .cast<Map<String, dynamic>>()) {
+          final aid = seg['assignment_id'] as String?;
+          final ms = (((seg['seconds'] as num?)?.toInt()) ?? 0) * 1000;
+          segmentMs += ms;
+          if (aid != null) {
+            _soundMsBySong[aid] = (_soundMsBySong[aid] ?? 0) + ms;
+            _bankedMs[aid] = (_bankedMs[aid] ?? 0) + ms;
+            final rating =
+                (seg['goal_results'] as Map?)?['self_rating'] as String?;
+            if (seg['completed'] == true && rating != null) {
+              _done.add(aid);
+              _ratings[aid] = rating;
+            }
+          }
+        }
+        final storedMs =
+            (((session['total_seconds'] as num?)?.toInt()) ?? 0) * 1000;
+        _soundMsTotal = storedMs > segmentMs ? storedMs : segmentMs;
+        await JamJotBackend.client
+            .from('sessions')
+            .update({'ended_at': null}).eq('id', _sessionId!);
+      } else {
+        final row = await JamJotBackend.client
+            .from('sessions')
+            .insert({'student_id': student['id']})
+            .select()
+            .single();
+        _sessionId = row['id'] as String;
+      }
       setState(() => _phase = _Phase.practicing);
     } catch (_) {
       setState(() => _phase = _Phase.error);
@@ -103,30 +149,30 @@ class _PracticeSessionScreenState
 
   Future<void> _toggleLive() async {
     if (_live) {
-      // Stop: pause the recorder and the sound counting.
+      // Stop: close out this clip and upload it to its song.
       _sampler?.cancel();
-      try {
-        await _recorder.pause();
-      } catch (_) {}
       setState(() => _live = false);
+      try {
+        final url = await _recorder.stop();
+        if (url != null) await _uploadClip(url);
+      } catch (_) {}
       return;
     }
-    // Start (or resume) listening & recording.
+    // Start listening & recording a fresh clip.
     try {
-      if (!_recorderStarted) {
-        final hasMic = await _recorder.hasPermission();
+      final hasMic = await _recorder.hasPermission();
+      if (!_meterStarted) {
         final meterOk = await _meter.start();
         if (!hasMic || !meterOk) {
           setState(() => _phase = _Phase.micDenied);
           return;
         }
-        await _recorder.start(const RecordConfig(), path: '');
-        _recorderStarted = true;
-      } else {
-        try {
-          await _recorder.resume();
-        } catch (_) {}
+        _meterStarted = true;
+      } else if (!hasMic) {
+        setState(() => _phase = _Phase.micDenied);
+        return;
       }
+      await _recorder.start(const RecordConfig(), path: '');
       // Sample the room 5x a second; count the slices that have sound.
       _sampler = Timer.periodic(const Duration(milliseconds: 200), (_) {
         final loud = _meter.level > _threshold;
@@ -144,6 +190,30 @@ class _PracticeSessionScreenState
     } catch (_) {
       setState(() => _phase = _Phase.error);
     }
+  }
+
+  /// Uploads one finished clip and files it under the song it belongs to.
+  Future<void> _uploadClip(String blobUrl) async {
+    final student = ref.read(activeStudentProvider);
+    if (student == null || _sessionId == null) return;
+    try {
+      final bytes = (await http.get(Uri.parse(blobUrl))).bodyBytes;
+      if (bytes.isEmpty) return;
+      final songKey = (_openSong?['id'] as String?) ?? '_freeplay';
+      final path =
+          '${student['id']}/$_sessionId/$songKey-${DateTime.now().millisecondsSinceEpoch}.webm';
+      await JamJotBackend.client.storage.from('recordings').uploadBinary(
+            path,
+            bytes,
+            fileOptions: const FileOptions(contentType: 'audio/webm'),
+          );
+      (_pendingClips[songKey] ??= []).add(path);
+    } catch (_) {/* stats still count even if a clip fails to upload */}
+  }
+
+  List<String> _takeClips(String songKey) {
+    final clips = _pendingClips.remove(songKey) ?? [];
+    return clips;
   }
 
   /// Stop pressed on a song page: pause, confirm, rate, reward.
@@ -298,10 +368,12 @@ class _PracticeSessionScreenState
             'seconds': _songSeconds(id),
             'completed': true,
             'goal_results': {'self_rating': rating},
+            'audio_paths': _takeClips(id),
           })
           .select()
           .single();
       _bankedMs[id] = _soundMsBySong[id] ?? 0;
+      _ratings[id] = rating;
       final res = await JamJotBackend.client.functions.invoke('award-song',
           body: {
             'session_id': _sessionId,
@@ -313,6 +385,7 @@ class _PracticeSessionScreenState
       fans = (data['fans'] as num?)?.toInt() ?? 0;
       _earnedBerries += berries;
       _earnedFans += fans;
+      _awardsLabel[id] = '🫐+$berries 🕶️+$fans';
     } catch (_) {/* rewards settle at session end if this hiccups */}
     if (!mounted) return;
     await showDialog<void>(
@@ -369,6 +442,7 @@ class _PracticeSessionScreenState
             'seconds': extraSeconds,
             'completed': true,
             'goal_results': {'extra_practice': true},
+            'audio_paths': _takeClips(id),
           })
           .select()
           .single();
@@ -408,39 +482,47 @@ class _PracticeSessionScreenState
   }
 
   Future<void> _finish() async {
+    // Close any clip still rolling, so it gets uploaded to its song.
+    if (_live) await _toggleLive();
     setState(() => _phase = _Phase.saving);
     _sampler?.cancel();
-    String? recordingUrl;
-    try {
-      if (_recorderStarted) recordingUrl = await _recorder.stop();
-    } catch (_) {}
     _meter.stop();
-
-    // Save the session's recording so grown-ups and teachers can listen.
-    String? audioPath;
-    final student = ref.read(activeStudentProvider);
-    if (recordingUrl != null && student != null) {
-      try {
-        final bytes =
-            (await http.get(Uri.parse(recordingUrl))).bodyBytes;
-        if (bytes.isNotEmpty) {
-          audioPath = '${student['id']}/$_sessionId.webm';
-          await JamJotBackend.client.storage.from('recordings').uploadBinary(
-                audioPath,
-                bytes,
-                fileOptions: const FileOptions(contentType: 'audio/webm'),
-              );
-        }
-      } catch (_) {
-        audioPath = null; // the stats still save even if audio upload fails
-      }
-    }
+    _meterStarted = false;
 
     try {
+      // Unfinished songs keep their progress & clips as in-progress summaries.
+      for (final song in _songs) {
+        final id = song['id'] as String;
+        if (_done.contains(id)) continue;
+        final freshSeconds =
+            ((_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0)) ~/ 1000;
+        final clips = _takeClips(id);
+        if (freshSeconds < 5 && clips.isEmpty) continue;
+        await JamJotBackend.client.from('session_segments').insert({
+          'session_id': _sessionId,
+          'assignment_id': id,
+          'kind': 'playing',
+          'seconds': freshSeconds,
+          'completed': false,
+          'audio_paths': clips,
+        });
+        _bankedMs[id] = _soundMsBySong[id] ?? 0;
+      }
+      // Free play (recording with no song open) is kept too.
+      final freeClips = _takeClips('_freeplay');
+      if (freeClips.isNotEmpty) {
+        await JamJotBackend.client.from('session_segments').insert({
+          'session_id': _sessionId,
+          'kind': 'free_play',
+          'seconds': 0,
+          'completed': false,
+          'audio_paths': freeClips,
+        });
+      }
+
       await JamJotBackend.client.from('sessions').update({
         'ended_at': DateTime.now().toUtc().toIso8601String(),
         'total_seconds': _activeSeconds,
-        if (audioPath != null) 'audio_path': audioPath,
       }).eq('id', _sessionId!);
       final res = await JamJotBackend.client.functions
           .invoke('award-practice', body: {'session_id': _sessionId});
@@ -674,15 +756,30 @@ class _PracticeSessionScreenState
                       ],
                       if (practiced.isNotEmpty) header('✅ Practiced'),
                       for (final song in practiced) ...[
-                        _SongTile(
-                          title: song['title'] as String,
-                          note: song['song_note'] as String? ?? '',
-                          minutes:
-                              (song['suggested_minutes'] as num?)?.toInt(),
-                          spentSeconds: _songSeconds(song['id'] as String),
-                          done: true,
-                          onTap: () => setState(() => _openSong = song),
-                        ),
+                        Builder(builder: (context) {
+                          final id = song['id'] as String;
+                          const ratingLabels = {
+                            'got_it': '🌟 Got it down',
+                            'getting_there': '👍 Getting there',
+                            'working_on_it': '💪 Working on it',
+                          };
+                          final parts = [
+                            if (_ratings[id] != null)
+                              ratingLabels[_ratings[id]] ?? '',
+                            if (_awardsLabel[id] != null) _awardsLabel[id]!,
+                          ];
+                          return _SongTile(
+                            title: song['title'] as String,
+                            note: parts.isEmpty
+                                ? (song['song_note'] as String? ?? '')
+                                : parts.join(' • '),
+                            minutes:
+                                (song['suggested_minutes'] as num?)?.toInt(),
+                            spentSeconds: _songSeconds(id),
+                            done: true,
+                            onTap: () => setState(() => _openSong = song),
+                          );
+                        }),
                         const SizedBox(height: 10),
                       ],
                     ],
@@ -694,7 +791,7 @@ class _PracticeSessionScreenState
         const SizedBox(height: 8),
         OutlinedButton(
           onPressed: _finish,
-          child: const Text("I'm done practicing"),
+          child: const Text('Finish & save practice session'),
         ),
       ],
     );
