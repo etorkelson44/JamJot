@@ -18,27 +18,8 @@ Future<List<PickedFolderFile>> pickFolderFiles() async {
 
   input.addEventListener(
     'change',
-    ((web.Event _) async {
-      final files = input.files;
-      final out = <PickedFolderFile>[];
-      if (files != null) {
-        for (var i = 0; i < files.length; i++) {
-          final f = files.item(i)!;
-          // Skip hidden files like .DS_Store.
-          if (f.name.startsWith('.')) continue;
-          try {
-            final buf = await f.arrayBuffer().toDart;
-            final bytes = buf.toDart.asUint8List();
-            final rel = f.webkitRelativePath;
-            out.add(PickedFolderFile(
-              name: f.name,
-              relativePath: rel.isEmpty ? f.name : rel,
-              bytes: bytes,
-            ));
-          } catch (_) {/* unreadable file: skip it */}
-        }
-      }
-      if (!completer.isCompleted) completer.complete(out);
+    ((web.Event _) {
+      _readAll(input, completer);
     }).toJS,
   );
   input.addEventListener(
@@ -49,4 +30,28 @@ Future<List<PickedFolderFile>> pickFolderFiles() async {
   );
   input.click();
   return completer.future;
+}
+
+Future<void> _readAll(web.HTMLInputElement input,
+    Completer<List<PickedFolderFile>> completer) async {
+  final files = input.files;
+  final out = <PickedFolderFile>[];
+  if (files != null) {
+    for (var i = 0; i < files.length; i++) {
+      final f = files.item(i)!;
+      // Skip hidden files like .DS_Store.
+      if (f.name.startsWith('.')) continue;
+      try {
+        final buf = await f.arrayBuffer().toDart;
+        final bytes = buf.toDart.asUint8List();
+        final rel = f.webkitRelativePath;
+        out.add(PickedFolderFile(
+          name: f.name,
+          relativePath: rel.isEmpty ? f.name : rel,
+          bytes: bytes,
+        ));
+      } catch (_) {/* unreadable file: skip it */}
+    }
+  }
+  if (!completer.isCompleted) completer.complete(out);
 }
