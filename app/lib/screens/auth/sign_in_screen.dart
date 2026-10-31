@@ -9,11 +9,13 @@ class SignInScreen extends StatefulWidget {
     super.key,
     this.startInCreateMode = false,
     this.emailJustConfirmed = false,
+    this.linkExpired = false,
     this.intendedRole,
   });
 
   final bool startInCreateMode;
   final bool emailJustConfirmed;
+  final bool linkExpired;
 
   /// 'family' or 'teacher' when they picked a card on the landing page —
   /// remembered through sign-up so onboarding can skip the question.
@@ -106,6 +108,23 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (widget.linkExpired && !_creating) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: JamJotColors.marigoldTint,
+                          borderRadius: BorderRadius.circular(14),
+                          border:
+                              Border.all(color: JamJotColors.ink, width: 2),
+                        ),
+                        child: Text(
+                          'That confirmation link had already been used or expired. Good news: if you clicked it before, your email is probably confirmed — just sign in below. If it says your email is not confirmed yet, create your account again with the same email and a fresh link will be sent.',
+                          style: text.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     if (widget.emailJustConfirmed && !_creating) ...[
                       Container(
                         padding: const EdgeInsets.all(14),

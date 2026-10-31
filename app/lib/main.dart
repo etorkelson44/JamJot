@@ -27,10 +27,22 @@ import 'theme/jamjot_theme.dart';
 /// True when the app was opened from the email-confirmation link.
 bool _cameFromEmailConfirmation = false;
 
+/// True when the link had already been used or had expired.
+bool _confirmationLinkStale = false;
+
+/// Where a confirmation landing should take people.
+String _confirmationLanding() => _confirmationLinkStale
+    ? '/signin?expired=1'
+    : (_cameFromEmailConfirmation ? '/signin?confirmed=1' : '/');
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Peek at the launch URL before Supabase consumes it.
-  _cameFromEmailConfirmation = Uri.base.toString().contains('type=signup');
+  final launch = Uri.base.toString();
+  _cameFromEmailConfirmation = launch.contains('type=signup');
+  _confirmationLinkStale = launch.contains('otp_expired') ||
+      launch.contains('access_denied') ||
+      launch.contains('error_code');
   await JamJotBackend.init();
   if (_cameFromEmailConfirmation) {
     // The link signs people in automatically; we want them to sign in
@@ -52,13 +64,24 @@ class _AuthRefresh extends ChangeNotifier {
 }
 
 final _router = GoRouter(
-  initialLocation: _cameFromEmailConfirmation
-      ? '/signin?confirmed=1'
+  initialLocation: (_cameFromEmailConfirmation || _confirmationLinkStale)
+      ? _confirmationLanding()
       : (JamJotBackend.signedIn ? '/gate' : '/'),
   refreshListenable: _AuthRefresh(),
+  // The confirmation link arrives carrying security tokens as a strange
+  // address the router does not know — land those on the sign-in page
+  // instead of a broken screen.
+  onException: (_, state, router) =>
+      router.go(_confirmationLanding()),
   redirect: (context, state) {
-    final signedIn = JamJotBackend.signedIn;
     final loc = state.matchedLocation;
+    // Token-bearing or error-bearing launch addresses → sign-in landing.
+    if (loc.contains('access_token') ||
+        loc.contains('error_code') ||
+        loc.contains('otp_expired')) {
+      return _confirmationLanding();
+    }
+    final signedIn = JamJotBackend.signedIn;
     const public = {'/', '/signin', '/invite'};
     if (!signedIn && !public.contains(loc)) return '/';
     if (signedIn && (loc == '/' || loc == '/signin')) return '/gate';
@@ -71,6 +94,7 @@ final _router = GoRouter(
       builder: (_, state) => SignInScreen(
         startInCreateMode: state.uri.queryParameters['create'] == '1',
         emailJustConfirmed: state.uri.queryParameters['confirmed'] == '1',
+        linkExpired: state.uri.queryParameters['expired'] == '1',
         intendedRole: state.uri.queryParameters['role'],
       ),
     ),
