@@ -7,6 +7,7 @@ import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
 import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
 import '../../widgets/jamjot_card.dart';
+import '../../widgets/letter_avatar.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -40,20 +41,7 @@ class HomeScreen extends ConsumerWidget {
               IconButton(
                 tooltip: 'Switch profile',
                 onPressed: () => context.go('/profiles'),
-                icon: Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isKid
-                        ? JamJotColors.marigoldTint
-                        : JamJotColors.blueberryTint,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: JamJotColors.ink, width: 2),
-                  ),
-                  child: Text(isKid ? '🎵' : '🧑',
-                      style: const TextStyle(fontSize: 18)),
-                ),
+                icon: LetterAvatar(name: greetingName, size: 40),
               ),
             ],
           ),
@@ -180,8 +168,10 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   for (final kid in students) ...[
                     JamJotCard(
-                      emoji: '🧒',
-                      tint: JamJotColors.blueberryTint,
+                      emoji: (kid['display_name'] as String).isEmpty
+                          ? '?'
+                          : (kid['display_name'] as String)[0].toUpperCase(),
+                      tint: JamJotColors.neutral,
                       title: kid['display_name'] as String,
                       subtitle:
                           '${(kid['instruments'] as List?)?.join(' · ') ?? 'Music'} — practice list, lessons, history & chat',

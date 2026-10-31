@@ -8,6 +8,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
+import '../../widgets/letter_avatar.dart';
 import '../../widgets/pin_dialog.dart' show askForNewPin;
 import '../history/practice_history_screen.dart' show PracticeHistoryList;
 import '../library/library_screen.dart' show showCreateLessonDialog;
@@ -83,17 +84,8 @@ class _OverviewTab extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: JamJotColors.marigoldTint,
-                shape: BoxShape.circle,
-                border: Border.all(color: JamJotColors.ink, width: 2),
-              ),
-              child: const Text('🎵', style: TextStyle(fontSize: 26)),
-            ),
+            LetterAvatar(
+                name: kid['display_name'] as String? ?? '?', size: 56),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

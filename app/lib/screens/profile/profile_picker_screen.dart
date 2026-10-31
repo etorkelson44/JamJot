@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/letter_avatar.dart';
 import '../../widgets/pin_dialog.dart';
 
 class ProfilePickerScreen extends ConsumerWidget {
@@ -166,19 +167,15 @@ class ProfilePickerScreen extends ConsumerWidget {
                 alignment: WrapAlignment.center,
                 children: [
                   _ProfileTile(
-                    emoji: '🧑',
                     label: (grownUpName == null || grownUpName.isEmpty)
                         ? 'Grown-up'
                         : grownUpName.split(' ').first,
-                    tint: JamJotColors.blueberryTint,
                     locked: kidIsActive && profile?['app_pin_hash'] != null,
                     onTap: () => _pickGrownUp(context, ref, profile),
                   ),
                   for (final kid in students)
                     _ProfileTile(
-                      emoji: '🎵',
                       label: kid['display_name'] as String,
-                      tint: JamJotColors.marigoldTint,
                       locked: kidIsActive &&
                           active['id'] != kid['id'] &&
                           kid['pin_hash'] != null,
@@ -186,9 +183,7 @@ class ProfilePickerScreen extends ConsumerWidget {
                     ),
                   if (!kidIsActive)
                     _ProfileTile(
-                      emoji: '➕',
-                      label: 'Add a kid',
-                      tint: JamJotColors.plumTint,
+                      label: '+ Add a kid',
                       onTap: () => context.go('/add-student'),
                     ),
                 ],
@@ -211,16 +206,12 @@ class ProfilePickerScreen extends ConsumerWidget {
 
 class _ProfileTile extends StatelessWidget {
   const _ProfileTile({
-    required this.emoji,
     required this.label,
-    required this.tint,
     required this.onTap,
     this.locked = false,
   });
 
-  final String emoji;
   final String label;
-  final Color tint;
   final VoidCallback onTap;
   final bool locked;
 
@@ -242,17 +233,8 @@ class _ProfileTile extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: tint,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: JamJotColors.ink, width: 2),
-                  ),
-                  child: Text(emoji, style: const TextStyle(fontSize: 32)),
-                ),
+                LetterAvatar(
+                    name: label.startsWith('+') ? '+' : label, size: 72),
                 const SizedBox(height: 10),
                 Text(
                   label,

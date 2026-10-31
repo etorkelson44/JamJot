@@ -335,8 +335,10 @@ class TeachingScreen extends ConsumerWidget {
                   else
                     for (final s in roster) ...[
                       JamJotCard(
-                        emoji: '🧒',
-                        tint: JamJotColors.blueberryTint,
+                        emoji: (s['display_name'] as String).isEmpty
+                            ? '?'
+                            : (s['display_name'] as String)[0].toUpperCase(),
+                        tint: JamJotColors.neutral,
                         title: s['display_name'] as String,
                         subtitle: s['enrollment_instrument'] as String?,
                       ),
