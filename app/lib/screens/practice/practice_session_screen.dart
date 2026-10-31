@@ -55,6 +55,10 @@ class _PracticeSessionScreenState
   int _songsDone = 0;
   bool _goalMet = false;
 
+  // Rewards collected song-by-song during this session.
+  int _earnedBerries = 0;
+  int _earnedFans = 0;
+
   int get _activeSeconds => _soundMsTotal ~/ 1000;
   int _songSeconds(String id) => (_soundMsBySong[id] ?? 0) ~/ 1000;
 
@@ -134,13 +138,114 @@ class _PracticeSessionScreenState
     }
   }
 
-  Future<void> _markSongDone(Map<String, dynamic> song) async {
+  /// Stop pressed on a song page: pause, confirm, rate, reward.
+  Future<void> _stopAndMaybeFinishSong(Map<String, dynamic> song) async {
     final id = song['id'] as String;
-    if (_done.contains(id)) return;
+    if (_live) await _toggleLive(); // pause the mic while we talk
+    if (!mounted) return;
+
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text('Done with ${song['title']}?'),
+        content: Text(
+            'You made ${_fmt(_songSeconds(id))} of real sound on this one. All finished, or keep going?'),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).pop('keep'),
+            child: const Text('Keep practicing'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop('done'),
+            style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+            child: const Text("I'm done!"),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'keep') {
+      await _toggleLive(); // recording picks right back up
+      return;
+    }
+    if (choice != 'done') return; // dismissed: stay paused on the song page
+
+    final rating = await _askRating(song['title'] as String);
+    if (!mounted) return;
+    if (rating == null) {
+      await _toggleLive();
+      return;
+    }
+    await _completeSong(song, rating);
+  }
+
+  Future<String?> _askRating(String title) {
+    Widget option(BuildContext context, String emoji, String label,
+        String value, Color tint) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: tint,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: JamJotColors.ink, width: 2),
+          ),
+          child: InkWell(
+            onTap: () => Navigator.of(context).pop(value),
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 22)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: Text(label,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700))),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: const Text('How did that feel?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            option(context, '🌟', 'I got it down!', 'got_it',
+                JamJotColors.marigoldTint),
+            option(context, '👍', 'Getting there', 'getting_there',
+                JamJotColors.blueberryTint),
+            option(context, '💪', 'Still working on nailing it',
+                'working_on_it', JamJotColors.plumTint),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _completeSong(Map<String, dynamic> song, String rating) async {
+    final id = song['id'] as String;
     setState(() {
       _done.add(id);
       _openSong = null;
     });
+    var berries = 0;
+    var fans = 0;
     try {
       await JamJotBackend.client.from('session_segments').insert({
         'session_id': _sessionId,
@@ -148,16 +253,50 @@ class _PracticeSessionScreenState
         'kind': 'playing',
         'seconds': _songSeconds(id),
         'completed': true,
+        'goal_results': {'self_rating': rating},
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          duration: const Duration(seconds: 2),
-          content: Text('🎉 ${song['title']} done — fans are gathering!'),
-        ));
-      }
-    } catch (_) {
-      if (mounted) setState(() => _done.remove(id));
-    }
+      final res = await JamJotBackend.client.functions.invoke('award-song',
+          body: {'session_id': _sessionId, 'assignment_id': id});
+      final data = res.data as Map<String, dynamic>? ?? {};
+      berries = (data['berries'] as num?)?.toInt() ?? 0;
+      fans = (data['fans'] as num?)?.toInt() ?? 0;
+      _earnedBerries += berries;
+      _earnedFans += fans;
+    } catch (_) {/* rewards settle at session end if this hiccups */}
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text('🎉 ${song['title']} done!'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (berries > 0)
+              Text('🫐 +$berries berries',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w700)),
+            if (fans > 0)
+              Text('🕶️ +$fans fans join your crowd!',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w700)),
+            if (berries == 0 && fans == 0)
+              const Text('Saved! Your rewards tally up at the end.'),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+            child: const Text('Keep jamming'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _finish() async {
@@ -177,17 +316,18 @@ class _PracticeSessionScreenState
       final data = res.data as Map<String, dynamic>? ?? {};
       setState(() {
         _minutes = (data['minutes'] as num?)?.toInt() ?? _activeSeconds ~/ 60;
-        _berries = (data['berries'] as num?)?.toInt() ?? 0;
-        _fans = (data['fans'] as num?)?.toInt() ?? 0;
-        _songsDone = (data['songs'] as num?)?.toInt() ?? _done.length;
+        _berries =
+            ((data['berries'] as num?)?.toInt() ?? 0) + _earnedBerries;
+        _fans = _earnedFans;
+        _songsDone = _done.length;
         _goalMet = data['goal_met'] == true;
         _phase = _Phase.celebrate;
       });
     } catch (_) {
       setState(() {
         _minutes = _activeSeconds ~/ 60;
-        _berries = 0;
-        _fans = 0;
+        _berries = _earnedBerries;
+        _fans = _earnedFans;
         _songsDone = _done.length;
         _goalMet = false;
         _phase = _Phase.celebrate;
@@ -373,24 +513,50 @@ class _PracticeSessionScreenState
                         ?.copyWith(color: JamJotColors.inkSoft),
                   ),
                 )
-              : ListView(
-                  children: [
-                    for (final song in _songs) ...[
-                      _SongTile(
-                        title: song['title'] as String,
-                        note: song['song_note'] as String? ?? '',
-                        minutes:
-                            (song['suggested_minutes'] as num?)?.toInt(),
-                        spentSeconds: _songSeconds(song['id'] as String),
-                        done: _done.contains(song['id']),
-                        onTap: _done.contains(song['id'])
-                            ? null
-                            : () => setState(() => _openSong = song),
-                      ),
-                      const SizedBox(height: 10),
+              : Builder(builder: (context) {
+                  final nextUp = _songs
+                      .where((s) => !_done.contains(s['id']))
+                      .toList();
+                  final practiced = _songs
+                      .where((s) => _done.contains(s['id']))
+                      .toList();
+                  Widget header(String label) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8, top: 4),
+                        child: Text(label,
+                            style: text.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700)),
+                      );
+                  return ListView(
+                    children: [
+                      if (nextUp.isNotEmpty) header('🎵 Next up'),
+                      for (final song in nextUp) ...[
+                        _SongTile(
+                          title: song['title'] as String,
+                          note: song['song_note'] as String? ?? '',
+                          minutes:
+                              (song['suggested_minutes'] as num?)?.toInt(),
+                          spentSeconds: _songSeconds(song['id'] as String),
+                          done: false,
+                          onTap: () => setState(() => _openSong = song),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      if (practiced.isNotEmpty) header('✅ Practiced'),
+                      for (final song in practiced) ...[
+                        _SongTile(
+                          title: song['title'] as String,
+                          note: song['song_note'] as String? ?? '',
+                          minutes:
+                              (song['suggested_minutes'] as num?)?.toInt(),
+                          spentSeconds: _songSeconds(song['id'] as String),
+                          done: true,
+                          onTap: () => setState(() => _openSong = song),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                     ],
-                  ],
-                ),
+                  );
+                }),
         ),
         const SizedBox(height: 8),
         _recordButton(),
@@ -478,12 +644,37 @@ class _PracticeSessionScreenState
           ),
         ],
         const SizedBox(height: 10),
-        _recordButton(),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: () => _markSongDone(song),
-          child: const Text('Done with this song'),
-        ),
+        if (_done.contains(id)) ...[
+          // Already finished — extra practice is always welcome.
+          _recordButton(),
+          const SizedBox(height: 8),
+          Text('Already finished today — extra practice still counts! ✅',
+              textAlign: TextAlign.center,
+              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+        ] else if (_live) ...[
+          FilledButton(
+            onPressed: () => _stopAndMaybeFinishSong(song),
+            style:
+                FilledButton.styleFrom(backgroundColor: JamJotColors.recording),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.stop, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Stop'),
+              ],
+            ),
+          ),
+        ] else ...[
+          _recordButton(),
+          if (_songSeconds(id) > 0) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => _stopAndMaybeFinishSong(song),
+              child: const Text('Done with this song'),
+            ),
+          ],
+        ],
       ],
     );
   }
