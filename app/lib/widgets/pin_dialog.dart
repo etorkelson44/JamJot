@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/supabase_service.dart';
 import '../state/app_state.dart';
 import '../theme/jamjot_theme.dart';
 
@@ -100,11 +101,15 @@ class _PinDialog extends StatefulWidget {
 
 class _PinDialogState extends State<_PinDialog> {
   final _pin = TextEditingController();
+  final _password = TextEditingController();
   bool _wrong = false;
+  bool _passwordMode = false;
+  bool _busy = false;
 
   @override
   void dispose() {
     _pin.dispose();
+    _password.dispose();
     super.dispose();
   }
 
@@ -116,6 +121,35 @@ class _PinDialogState extends State<_PinDialog> {
     }
   }
 
+  /// Forgot the PIN? The account password proves it's really a grown-up.
+  Future<void> _checkPassword() async {
+    final email = JamJotBackend.client.auth.currentUser?.email;
+    if (email == null) return;
+    setState(() {
+      _busy = true;
+      _wrong = false;
+    });
+    try {
+      await JamJotBackend.client.auth.signInWithPassword(
+        email: email,
+        password: _password.text,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Unlocked with your password — set a fresh PIN in Account settings!')));
+        Navigator.of(context).pop(true);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _wrong = true;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -123,26 +157,50 @@ class _PinDialogState extends State<_PinDialog> {
         borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
         side: JamJotShape.border,
       ),
-      title: Text(widget.title),
+      title: Text(_passwordMode ? 'Grown-up password' : widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
-            controller: _pin,
-            autofocus: true,
-            obscureText: true,
-            keyboardType: TextInputType.number,
-            maxLength: 4,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 24, letterSpacing: 8),
-            decoration: const InputDecoration(counterText: ''),
-            onSubmitted: (_) => _check(),
-          ),
+          if (_passwordMode) ...[
+            const Text(
+                'Type the password you sign in to JamJot with — only a grown-up knows it.'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _password,
+              autofocus: true,
+              obscureText: true,
+              decoration:
+                  const InputDecoration(labelText: 'Account password'),
+              onSubmitted: (_) => _checkPassword(),
+            ),
+          ] else
+            TextField(
+              controller: _pin,
+              autofocus: true,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, letterSpacing: 8),
+              decoration: const InputDecoration(counterText: ''),
+              onSubmitted: (_) => _check(),
+            ),
           if (_wrong)
             const Padding(
               padding: EdgeInsets.only(top: 8),
               child: Text('Hmm, that is not it. Try again!',
                   style: TextStyle(color: JamJotColors.recording)),
+            ),
+          if (!_passwordMode)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => setState(() {
+                  _passwordMode = true;
+                  _wrong = false;
+                }),
+                child: const Text('I forgot my PIN'),
+              ),
             ),
         ],
       ),
@@ -152,9 +210,10 @@ class _PinDialogState extends State<_PinDialog> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: _check,
+          onPressed:
+              _busy ? null : (_passwordMode ? _checkPassword : _check),
           style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
-          child: const Text('Unlock'),
+          child: Text(_busy ? '…' : 'Unlock'),
         ),
       ],
     );
