@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../services/supabase_service.dart';
+
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
 
@@ -11,7 +13,18 @@ class OnboardingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Getting set up')),
+      appBar: AppBar(
+        title: const Text('Getting set up'),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await JamJotBackend.client.auth.signOut();
+              if (context.mounted) context.go('/');
+            },
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
