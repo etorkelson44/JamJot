@@ -14,11 +14,22 @@ class ProfilePickerScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, Map<String, dynamic>? profile) async {
     final active = ref.read(activeStudentProvider);
     final pinHash = profile?['app_pin_hash'] as String?;
-    // Leaving a kid profile requires the grown-up PIN, if one is set.
-    if (active != null && pinHash != null) {
-      final ok = await askForPin(context,
-          title: 'Grown-up PIN', pinHash: pinHash);
-      if (!ok) return;
+    // Leaving a kid profile ALWAYS requires the grown-up PIN.
+    if (active != null) {
+      if (pinHash != null) {
+        final ok = await askForPin(context,
+            title: 'Grown-up PIN', pinHash: pinHash);
+        if (!ok) return;
+      }
+      // Legacy account without a PIN: let them through once, then make
+      // them set one right away so the door locks behind them.
+      ref.read(activeStudentProvider.notifier).state = null;
+      await rememberActiveStudent(null);
+      if (context.mounted && pinHash == null) {
+        await _setGrownUpPin(context, ref, required: true);
+      }
+      if (context.mounted) context.go('/home');
+      return;
     }
     ref.read(activeStudentProvider.notifier).state = null;
     await rememberActiveStudent(null);
@@ -29,29 +40,47 @@ class ProfilePickerScreen extends ConsumerWidget {
       Map<String, dynamic> kid, Map<String, dynamic>? profile) async {
     final active = ref.read(activeStudentProvider);
     final kidPinHash = kid['pin_hash'] as String?;
-    // Switching from one kid to another requires the target kid's PIN
-    // (or the grown-up PIN). From the grown-up, it is free.
-    if (active != null && active['id'] != kid['id'] && kidPinHash != null) {
-      final ok = await askForPin(context,
-          title: "${kid['display_name']}'s PIN", pinHash: kidPinHash);
-      if (!ok) return;
+    final grownUpPinHash = profile?['app_pin_hash'] as String?;
+    if (active == null) {
+      // Grown-up entering a kid profile: free — but only once the
+      // grown-up PIN exists, so kids can never wander back out.
+      if (grownUpPinHash == null) {
+        final set = await _setGrownUpPin(context, ref, required: true);
+        if (!set || !context.mounted) return;
+      }
+    } else if (active['id'] != kid['id']) {
+      // Sibling switch: the target kid's PIN opens their profile —
+      // or the grown-up PIN when that kid has none.
+      if (kidPinHash != null) {
+        final ok = await askForPin(context,
+            title: "${kid['display_name']}'s PIN", pinHash: kidPinHash);
+        if (!ok) return;
+      } else if (grownUpPinHash != null) {
+        final ok = await askForPin(context,
+            title: 'Grown-up PIN', pinHash: grownUpPinHash);
+        if (!ok) return;
+      }
     }
+    if (!context.mounted) return;
     ref.read(activeStudentProvider.notifier).state = kid;
     await rememberActiveStudent(kid['id'] as String);
     if (context.mounted) context.go('/home');
   }
 
-  Future<void> _setGrownUpPin(
-      BuildContext context, WidgetRef ref) async {
+  Future<bool> _setGrownUpPin(BuildContext context, WidgetRef ref,
+      {bool required = false}) async {
     final controller = TextEditingController();
     final pin = await showDialog<String>(
       context: context,
+      barrierDismissible: !required,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
           side: JamJotShape.border,
         ),
-        title: const Text('Set your grown-up PIN'),
+        title: Text(required
+            ? 'First, set your grown-up PIN'
+            : 'Set your grown-up PIN'),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -76,7 +105,7 @@ class ProfilePickerScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (pin == null || pin.length != 4) return;
+    if (pin == null || pin.length != 4) return false;
     final uid = JamJotBackend.client.auth.currentUser!.id;
     await JamJotBackend.client
         .from('profiles')
@@ -87,6 +116,7 @@ class ProfilePickerScreen extends ConsumerWidget {
         const SnackBar(content: Text('PIN saved. Kids now need it to reach your profile.')),
       );
     }
+    return true;
   }
 
   @override

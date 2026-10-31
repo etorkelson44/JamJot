@@ -228,6 +228,31 @@ class _SignInScreenState extends State<SignInScreen> {
                           ? 'I already have an account'
                           : 'I need to create an account'),
                     ),
+                    if (!_creating)
+                      TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () async {
+                                final addr = _email.text.trim();
+                                if (!addr.contains('@')) {
+                                  setState(() => _notice =
+                                      'Type your email above first, then tap "Forgot password" again.');
+                                  return;
+                                }
+                                try {
+                                  await JamJotBackend.client.auth
+                                      .resetPasswordForEmail(addr,
+                                          redirectTo:
+                                              'https://etorkelson44.github.io/JamJot/');
+                                  setState(() => _notice =
+                                      'Check your email — a reset link is on its way. It brings you right back here to pick a new password.');
+                                } catch (_) {
+                                  setState(() => _notice =
+                                      'Could not send the reset email just now. Try again?');
+                                }
+                              },
+                        child: const Text('Forgot my password'),
+                      ),
                   ],
                 ),
               ),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'screens/auth/add_student_screen.dart';
 import 'screens/auth/gate_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
+import 'screens/auth/reset_password_screen.dart';
 import 'screens/auth/sign_in_screen.dart';
 import 'screens/auth/teacher_setup_screen.dart';
 import 'screens/auth/title_screen.dart';
@@ -32,21 +33,27 @@ bool _cameFromEmailConfirmation = false;
 /// True when the link had already been used or had expired.
 bool _confirmationLinkStale = false;
 
+/// True when opened from a forgot-password email (keeps its session!).
+bool _cameFromPasswordRecovery = false;
+
 /// Where a confirmation landing should take people.
-String _confirmationLanding() => _confirmationLinkStale
-    ? '/signin?expired=1'
-    : (_cameFromEmailConfirmation ? '/signin?confirmed=1' : '/');
+String _confirmationLanding() => _cameFromPasswordRecovery
+    ? '/reset-password'
+    : _confirmationLinkStale
+        ? '/signin?expired=1'
+        : (_cameFromEmailConfirmation ? '/signin?confirmed=1' : '/');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Peek at the launch URL before Supabase consumes it.
   final launch = Uri.base.toString();
   _cameFromEmailConfirmation = launch.contains('type=signup');
+  _cameFromPasswordRecovery = launch.contains('type=recovery');
   _confirmationLinkStale = launch.contains('otp_expired') ||
       launch.contains('access_denied') ||
       launch.contains('error_code');
   await JamJotBackend.init();
-  if (_cameFromEmailConfirmation) {
+  if (_cameFromEmailConfirmation && !_cameFromPasswordRecovery) {
     // The link signs people in automatically; we want them to sign in
     // themselves from a friendly "email confirmed" page instead.
     try {
@@ -66,7 +73,9 @@ class _AuthRefresh extends ChangeNotifier {
 }
 
 final _router = GoRouter(
-  initialLocation: (_cameFromEmailConfirmation || _confirmationLinkStale)
+  initialLocation: (_cameFromEmailConfirmation ||
+          _confirmationLinkStale ||
+          _cameFromPasswordRecovery)
       ? _confirmationLanding()
       : (JamJotBackend.signedIn ? '/gate' : '/'),
   refreshListenable: _AuthRefresh(),
@@ -116,7 +125,10 @@ final _router = GoRouter(
     GoRoute(path: '/teaching', builder: (_, __) => const TeachingScreen()),
     GoRoute(path: '/messages', builder: (_, __) => const MessagesScreen()),
     GoRoute(
-        path: '/my-profile', builder: (_, __) => const MyProfileScreen()),
+        path: '/account', builder: (_, __) => const MyProfileScreen()),
+    GoRoute(
+        path: '/reset-password',
+        builder: (_, __) => const ResetPasswordScreen()),
     GoRoute(
       path: '/kid',
       builder: (_, state) => KidDetailScreen(

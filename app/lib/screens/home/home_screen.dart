@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
+import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
 import '../../widgets/jamjot_card.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -130,6 +131,7 @@ class HomeScreen extends ConsumerWidget {
                   '/history?student=${active['id']}&name=${Uri.encodeComponent(active['display_name'] as String)}'),
             ),
           ] else ...[
+            const PermissionChangeNotices(),
             Consumer(builder: (context, ref, _) {
               final teacher = ref.watch(myTeacherProvider).valueOrNull;
               if (teacher == null) return const SizedBox.shrink();
@@ -192,11 +194,12 @@ class HomeScreen extends ConsumerWidget {
               );
             }),
             JamJotCard(
-              emoji: '🧑',
-              title: 'My profile',
-              subtitle: 'Your name, phone, and how each kid\'s page shows you.',
+              emoji: '⚙️',
+              title: 'Account settings',
+              subtitle:
+                  'Your name, phone, password, and your role for each kid.',
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/my-profile'),
+              onTap: () => context.go('/account'),
             ),
             const SizedBox(height: 12),
             const JamJotCard(
