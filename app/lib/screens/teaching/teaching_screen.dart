@@ -180,7 +180,9 @@ class TeachingScreen extends ConsumerWidget {
                           child: OutlinedButton(
                             onPressed: () => showCreateLessonDialog(
                                 context, ref,
-                                student: s),
+                                student: s,
+                                enrollmentId:
+                                    s['enrollment_id'] as String?),
                             child: const Text('Assign lesson'),
                           ),
                         ),

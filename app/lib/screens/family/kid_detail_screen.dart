@@ -24,9 +24,6 @@ class KidDetailScreen extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final name = kid['display_name'] as String;
-    final chats = ref.watch(myChatsProvider).valueOrNull ?? [];
-    final kidChat =
-        chats.where((c) => c['student_name'] == name).firstOrNull;
     final berries =
         ref.watch(berryBalanceProvider(studentId)).valueOrNull;
     final fans = ref.watch(fanTotalProvider(studentId)).valueOrNull;
@@ -87,50 +84,127 @@ class KidDetailScreen extends ConsumerWidget {
                   _statChip('⏱️ ${progress['today_minutes']} min today'),
               ],
             ),
-            const SizedBox(height: 20),
-            JamJotCard(
-              emoji: '🎼',
-              tint: JamJotColors.blueberryTint,
-              title: 'Practice list',
-              subtitle: 'This week\'s songs, notes, and goals.',
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go(
-                  '/lesson-builder?student=$studentId&name=${Uri.encodeComponent(name)}'),
-            ),
-            const SizedBox(height: 12),
-            JamJotCard(
-              emoji: '🪄',
-              tint: JamJotColors.marigoldTint,
-              title: 'Assign a lesson',
-              subtitle: 'Build from your library, set goals & the start date.',
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => showCreateLessonDialog(context, ref, student: kid),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             JamJotCard(
               emoji: '📼',
               title: 'Practice history',
-              subtitle: 'Sessions, song ratings, and recordings.',
+              subtitle: 'All sessions, every teacher — ratings & recordings.',
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go(
                   '/history?student=$studentId&name=${Uri.encodeComponent(name)}'),
             ),
-            if (kidChat != null) ...[
-              const SizedBox(height: 12),
-              JamJotCard(
-                emoji: '💬',
-                tint: JamJotColors.blueberryTint,
-                title: 'Chat with ${kidChat['teacher_name']}',
-                subtitle: kidChat['instrument'] as String?,
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.go(
-                    '/chat?enrollment=${kidChat['enrollment_id']}&title=${Uri.encodeComponent('$name × ${kidChat['teacher_name']}')}&primary=${kidChat['i_am_primary'] == true ? 1 : 0}&teacher=${kidChat['teacher_profile_id']}'),
-              ),
-            ],
+            const SizedBox(height: 20),
+            // One section per teacher connection, each kept separate.
+            Consumer(builder: (context, ref, _) {
+              final enrollments = ref
+                      .watch(kidEnrollmentsProvider(studentId))
+                      .valueOrNull ??
+                  [];
+              final chats = ref.watch(myChatsProvider).valueOrNull ?? [];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final e in enrollments) ...[
+                    _sectionHeader(
+                      context,
+                      '🎻 ${(e['teachers'] as Map?)?['display_name'] ?? 'Teacher'} • ${e['instrument']}',
+                    ),
+                    _sectionCards(
+                      context,
+                      ref,
+                      kid: kid,
+                      name: name,
+                      enrollmentId: e['id'] as String,
+                      sectionLabel:
+                          '${(e['teachers'] as Map?)?['display_name'] ?? 'Teacher'} (${e['instrument']})',
+                      chat: chats
+                          .where((c) =>
+                              c['enrollment_id'] == e['id'])
+                          .firstOrNull,
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  _sectionHeader(context, '🏡 Family-run practice'),
+                  _sectionCards(
+                    context,
+                    ref,
+                    kid: kid,
+                    name: name,
+                    enrollmentId: null,
+                    sectionLabel: 'Family-run',
+                    chat: null,
+                  ),
+                ],
+              );
+            }),
           ],
         ),
       ),
     );
+  }
+
+  Widget _sectionHeader(BuildContext context, String label) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Text(label,
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700)),
+      );
+
+  Widget _sectionCards(
+    BuildContext context,
+    WidgetRef ref, {
+    required Map<String, dynamic> kid,
+    required String name,
+    required String? enrollmentId,
+    required String sectionLabel,
+    required Map<String, dynamic>? chat,
+  }) {
+    final enrollParam = enrollmentId == null
+        ? ''
+        : '&enrollment=$enrollmentId&section=${Uri.encodeComponent(sectionLabel)}';
+    return Column(children: [
+      JamJotCard(
+        emoji: '🎼',
+        tint: JamJotColors.blueberryTint,
+        title: 'Practice list',
+        subtitle: 'Songs, notes, and goals for $sectionLabel.',
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.go(
+            '/lesson-builder?student=$studentId&name=${Uri.encodeComponent(name)}$enrollParam'),
+      ),
+      const SizedBox(height: 10),
+      JamJotCard(
+        emoji: '🪄',
+        tint: JamJotColors.marigoldTint,
+        title: 'Assign a lesson',
+        subtitle: 'From your library, with goals & a start date.',
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => showCreateLessonDialog(context, ref,
+            student: kid, enrollmentId: enrollmentId),
+      ),
+      if (chat != null) ...[
+        const SizedBox(height: 10),
+        JamJotCard(
+          emoji: '💬',
+          title: 'Chat with ${chat['teacher_name']}',
+          subtitle: chat['instrument'] as String?,
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.go(
+              '/chat?enrollment=${chat['enrollment_id']}&title=${Uri.encodeComponent('$name × ${chat['teacher_name']}')}&primary=${chat['i_am_primary'] == true ? 1 : 0}&teacher=${chat['teacher_profile_id']}'),
+        ),
+      ],
+      if (enrollmentId != null) ...[
+        const SizedBox(height: 10),
+        JamJotCard(
+          emoji: '🧺',
+          tint: JamJotColors.plumTint,
+          title: 'Teacher\'s market stand',
+          subtitle: 'Rewards this teacher stocks — opens with the Market.',
+        ),
+      ],
+    ]);
   }
 
   Widget _statChip(String label) => Container(

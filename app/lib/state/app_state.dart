@@ -81,8 +81,49 @@ final fanTotalProvider =
   return total;
 });
 
-/// The student's current lesson: the newest one whose assigned date has
-/// arrived (future-dated lessons wait their turn), with its assignments.
+/// A kid's active teacher connections (one per teacher × instrument).
+final kidEnrollmentsProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, String>((ref, studentId) async {
+  final rows = await JamJotBackend.client
+      .from('enrollments')
+      .select('id, instrument, teachers(display_name, profile_id)')
+      .eq('student_id', studentId)
+      .eq('status', 'active');
+  return rows.cast<Map<String, dynamic>>();
+});
+
+/// The newest arrived lesson for one connection ('family' = no teacher).
+final lessonForEnrollmentProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>?, (String, String?)>((ref, key) async {
+  final (studentId, enrollmentId) = key;
+  var query = JamJotBackend.client
+      .from('lessons')
+      .select('*, assignments(*)')
+      .eq('student_id', studentId);
+  query = enrollmentId == null
+      ? query.isFilter('enrollment_id', null)
+      : query.eq('enrollment_id', enrollmentId);
+  final rows =
+      await query.order('created_at', ascending: false).limit(10);
+  final today = DateTime.now();
+  for (final r in rows) {
+    final ws = r['week_start'] as String?;
+    if (ws == null || !DateTime.parse(ws).isAfter(today)) {
+      final lesson = Map<String, dynamic>.from(r);
+      final assignments = (lesson['assignments'] as List? ?? [])
+          .cast<Map<String, dynamic>>()
+        ..sort((a, b) => (a['order_idx'] as int? ?? 0)
+            .compareTo(b['order_idx'] as int? ?? 0));
+      lesson['assignments'] = assignments;
+      return lesson;
+    }
+  }
+  return null;
+});
+
+/// The kid's combined practice for today: the newest arrived lesson from
+/// EACH connection (every teacher, plus family-run), merged into one list.
+/// Goals use the highest asked of the kid; assignments carry their source.
 final currentLessonProvider =
     FutureProvider.family<Map<String, dynamic>?, String>((ref, studentId) async {
   final rows = await JamJotBackend.client
@@ -90,25 +131,55 @@ final currentLessonProvider =
       .select('*, assignments(*)')
       .eq('student_id', studentId)
       .order('created_at', ascending: false)
-      .limit(10);
+      .limit(25);
   if (rows.isEmpty) return null;
   final today = DateTime.now();
-  Map<String, dynamic>? pick;
+  final newestPerConnection = <String, Map<String, dynamic>>{};
   for (final r in rows) {
     final ws = r['week_start'] as String?;
-    if (ws == null || !DateTime.parse(ws).isAfter(today)) {
-      pick = Map<String, dynamic>.from(r);
-      break;
-    }
+    if (ws != null && DateTime.parse(ws).isAfter(today)) continue;
+    final key = (r['enrollment_id'] as String?) ?? 'family';
+    newestPerConnection.putIfAbsent(key, () => Map<String, dynamic>.from(r));
   }
-  if (pick == null) return null;
-  final lesson = pick;
-  final assignments = (lesson['assignments'] as List? ?? [])
-      .cast<Map<String, dynamic>>()
-    ..sort((a, b) =>
-        (a['order_idx'] as int? ?? 0).compareTo(b['order_idx'] as int? ?? 0));
-  lesson['assignments'] = assignments;
-  return lesson;
+  if (newestPerConnection.isEmpty) return null;
+
+  // Label each lesson's songs with where they came from.
+  final enrollments = await ref.watch(kidEnrollmentsProvider(studentId).future);
+  final labels = {
+    for (final e in enrollments)
+      e['id'] as String:
+          (e['teachers'] as Map?)?['display_name'] as String? ?? 'Teacher',
+  };
+
+  final merged = <Map<String, dynamic>>[];
+  var goalDays = 0;
+  var goalMinutes = 0;
+  final notes = <String>[];
+  for (final entry in newestPerConnection.entries) {
+    final l = entry.value;
+    final source = entry.key == 'family' ? null : labels[entry.key];
+    final assignments = (l['assignments'] as List? ?? [])
+        .cast<Map<String, dynamic>>()
+      ..sort((a, b) => (a['order_idx'] as int? ?? 0)
+          .compareTo(b['order_idx'] as int? ?? 0));
+    for (final a in assignments) {
+      merged.add({...a, if (source != null) 'source': source});
+    }
+    final gd = (l['goal_days'] as num?)?.toInt() ?? 0;
+    final gm = (l['goal_minutes'] as num?)?.toInt() ?? 0;
+    if (gd > goalDays) goalDays = gd;
+    if (gm > goalMinutes) goalMinutes = gm;
+    final note = (l['lesson_note'] as String?)?.trim() ?? '';
+    if (note.isNotEmpty) notes.add(source == null ? note : '$source: $note');
+  }
+  final first = newestPerConnection.values.first;
+  return {
+    ...first,
+    'assignments': merged,
+    'goal_days': goalDays == 0 ? 4 : goalDays,
+    'goal_minutes': goalMinutes == 0 ? 15 : goalMinutes,
+    'lesson_note': notes.join(' • '),
+  };
 });
 
 /// Practice progress this week: {'days': n, 'today_minutes': m}.

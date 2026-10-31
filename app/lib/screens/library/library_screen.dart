@@ -534,16 +534,20 @@ class _CreateAssignmentDialogState
 /// The full create-lesson flow. When [student] is given (from a student's
 /// profile), the student step is folded into one page and auto-assigned.
 Future<void> showCreateLessonDialog(BuildContext context, WidgetRef ref,
-    {Map<String, dynamic>? student}) {
+    {Map<String, dynamic>? student, String? enrollmentId}) {
   return showDialog<void>(
     context: context,
-    builder: (_) => _CreateLessonDialog(student: student),
+    builder: (_) =>
+        _CreateLessonDialog(student: student, enrollmentId: enrollmentId),
   );
 }
 
 class _CreateLessonDialog extends ConsumerStatefulWidget {
-  const _CreateLessonDialog({this.student});
+  const _CreateLessonDialog({this.student, this.enrollmentId});
   final Map<String, dynamic>? student;
+
+  /// Which connection the assigned lessons belong to (null = family-run).
+  final String? enrollmentId;
 
   @override
   ConsumerState<_CreateLessonDialog> createState() =>
@@ -606,6 +610,8 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               'goal_minutes': int.tryParse(plan.minutes.text.trim()) ?? 15,
               'week_start':
                   DateFormat('yyyy-MM-dd').format(plan.assignOn),
+              if (widget.enrollmentId != null)
+                'enrollment_id': widget.enrollmentId,
             })
             .select()
             .single();

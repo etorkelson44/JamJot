@@ -821,7 +821,13 @@ class _PracticeSessionScreenState
                       for (final song in nextUp) ...[
                         _SongTile(
                           title: song['title'] as String,
-                          note: song['song_note'] as String? ?? '',
+                          note: [
+                            if (song['source'] != null)
+                              '🎻 ${song['source']}',
+                            if ((song['song_note'] as String? ?? '')
+                                .isNotEmpty)
+                              song['song_note'] as String,
+                          ].join(' • '),
                           minutes:
                               (song['suggested_minutes'] as num?)?.toInt(),
                           spentSeconds: _songSeconds(song['id'] as String),

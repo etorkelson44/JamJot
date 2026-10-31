@@ -10,11 +10,20 @@ import '../../widgets/jamjot_card.dart';
 /// Where a grown-up (parent now; teachers use the same rules) builds the
 /// current practice list for one student.
 class LessonBuilderScreen extends ConsumerStatefulWidget {
-  const LessonBuilderScreen(
-      {super.key, required this.studentId, required this.studentName});
+  const LessonBuilderScreen({
+    super.key,
+    required this.studentId,
+    required this.studentName,
+    this.enrollmentId,
+    this.sectionLabel,
+  });
 
   final String studentId;
   final String studentName;
+
+  /// Which connection this list belongs to (null = family-run practice).
+  final String? enrollmentId;
+  final String? sectionLabel;
 
   @override
   ConsumerState<LessonBuilderScreen> createState() =>
@@ -25,8 +34,9 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
   bool _busy = false;
 
   Future<Map<String, dynamic>> _ensureLesson() async {
-    final existing =
-        await ref.read(currentLessonProvider(widget.studentId).future);
+    final existing = await ref.read(
+        lessonForEnrollmentProvider((widget.studentId, widget.enrollmentId))
+            .future);
     if (existing != null) return existing;
     final uid = JamJotBackend.client.auth.currentUser!.id;
     final lesson = await JamJotBackend.client
@@ -35,10 +45,13 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
           'student_id': widget.studentId,
           'created_by': uid,
           'title': 'This week',
+          if (widget.enrollmentId != null) 'enrollment_id': widget.enrollmentId,
         })
         .select()
         .single();
     ref.invalidate(currentLessonProvider(widget.studentId));
+    ref.invalidate(
+        lessonForEnrollmentProvider((widget.studentId, widget.enrollmentId)));
     return lesson;
   }
 
@@ -93,6 +106,8 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
       'goal_minutes': int.tryParse(minutes.text.trim()) ?? 15,
     }).eq('id', lesson['id']);
     ref.invalidate(currentLessonProvider(widget.studentId));
+    ref.invalidate(
+        lessonForEnrollmentProvider((widget.studentId, widget.enrollmentId)));
   }
 
   Future<void> _addSong() async {
@@ -158,6 +173,8 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
         'order_idx': count,
       });
       ref.invalidate(currentLessonProvider(widget.studentId));
+    ref.invalidate(
+        lessonForEnrollmentProvider((widget.studentId, widget.enrollmentId)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -169,11 +186,14 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
         .delete()
         .eq('id', assignmentId);
     ref.invalidate(currentLessonProvider(widget.studentId));
+    ref.invalidate(
+        lessonForEnrollmentProvider((widget.studentId, widget.enrollmentId)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final lessonAsync = ref.watch(currentLessonProvider(widget.studentId));
+    final lessonAsync = ref.watch(
+        lessonForEnrollmentProvider((widget.studentId, widget.enrollmentId)));
     final text = Theme.of(context).textTheme;
     final lesson = lessonAsync.valueOrNull;
     final assignments =
@@ -181,7 +201,9 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("${widget.studentName}'s practice list"),
+        title: Text(widget.sectionLabel == null
+            ? "${widget.studentName}'s practice list"
+            : "${widget.studentName} — ${widget.sectionLabel}"),
         leading: BackButton(onPressed: () => context.go('/home')),
       ),
       body: SafeArea(

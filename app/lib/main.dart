@@ -145,6 +145,8 @@ final _router = GoRouter(
       builder: (_, state) => LessonBuilderScreen(
         studentId: state.uri.queryParameters['student'] ?? '',
         studentName: state.uri.queryParameters['name'] ?? 'Student',
+        enrollmentId: state.uri.queryParameters['enrollment'],
+        sectionLabel: state.uri.queryParameters['section'],
       ),
     ),
     StatefulShellRoute.indexedStack(
