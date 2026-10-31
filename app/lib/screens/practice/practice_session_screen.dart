@@ -53,6 +53,10 @@ class _PracticeSessionScreenState
   final Map<String, int> _soundMsBySong = {};
   final Set<String> _done = {};
 
+  /// Wall-clock recording time (sound or silence) per song & banked markers.
+  final Map<String, int> _wallMsBySong = {};
+  final Map<String, int> _bankedWallMs = {};
+
   /// Loudness gate: room must be louder than this to count.
   static const _threshold = 0.035;
 
@@ -127,6 +131,10 @@ class _PracticeSessionScreenState
           if (aid != null) {
             _soundMsBySong[aid] = (_soundMsBySong[aid] ?? 0) + ms;
             _bankedMs[aid] = (_bankedMs[aid] ?? 0) + ms;
+            final wallMs =
+                (((seg['wall_seconds'] as num?)?.toInt()) ?? 0) * 1000;
+            _wallMsBySong[aid] = (_wallMsBySong[aid] ?? 0) + wallMs;
+            _bankedWallMs[aid] = (_bankedWallMs[aid] ?? 0) + wallMs;
             final rating =
                 (seg['goal_results'] as Map?)?['self_rating'] as String?;
             if (seg['completed'] == true && rating != null) {
@@ -184,9 +192,13 @@ class _PracticeSessionScreenState
       // Sample the room 5x a second; count the slices that have sound.
       _sampler = Timer.periodic(const Duration(milliseconds: 200), (_) {
         final loud = _meter.level > _threshold;
+        final open = _openSong;
+        if (open != null) {
+          final id = open['id'] as String;
+          _wallMsBySong[id] = (_wallMsBySong[id] ?? 0) + 200;
+        }
         if (loud) {
           _soundMsTotal += 200;
-          final open = _openSong;
           if (open != null) {
             final id = open['id'] as String;
             _soundMsBySong[id] = (_soundMsBySong[id] ?? 0) + 200;
@@ -377,10 +389,13 @@ class _PracticeSessionScreenState
             'completed': true,
             'goal_results': {'self_rating': rating},
             'audio_paths': _takeClips(id),
+            'wall_seconds':
+                ((_wallMsBySong[id] ?? 0) - (_bankedWallMs[id] ?? 0)) ~/ 1000,
           })
           .select()
           .single();
       _bankedMs[id] = _soundMsBySong[id] ?? 0;
+      _bankedWallMs[id] = _wallMsBySong[id] ?? 0;
       _ratings[id] = rating;
       final res = await JamJotBackend.client.functions.invoke('award-song',
           body: {
@@ -451,10 +466,13 @@ class _PracticeSessionScreenState
             'completed': true,
             'goal_results': {'extra_practice': true},
             'audio_paths': _takeClips(id),
+            'wall_seconds':
+                ((_wallMsBySong[id] ?? 0) - (_bankedWallMs[id] ?? 0)) ~/ 1000,
           })
           .select()
           .single();
       _bankedMs[id] = _soundMsBySong[id] ?? 0;
+      _bankedWallMs[id] = _wallMsBySong[id] ?? 0;
       final res = await JamJotBackend.client.functions.invoke('award-song',
           body: {
             'session_id': _sessionId,
@@ -513,8 +531,11 @@ class _PracticeSessionScreenState
           'seconds': freshSeconds,
           'completed': false,
           'audio_paths': clips,
+          'wall_seconds':
+              ((_wallMsBySong[id] ?? 0) - (_bankedWallMs[id] ?? 0)) ~/ 1000,
         });
         _bankedMs[id] = _soundMsBySong[id] ?? 0;
+        _bankedWallMs[id] = _wallMsBySong[id] ?? 0;
       }
       // Free play (recording with no song open) is kept too.
       final freeClips = _takeClips('_freeplay');
@@ -825,11 +846,22 @@ class _PracticeSessionScreenState
                   style: text.titleLarge
                       ?.copyWith(fontWeight: FontWeight.w700)),
             ),
-            Text(
-              target == null
-                  ? _fmt(_songSeconds(id))
-                  : '${_fmt(_songSeconds(id))} / $target min',
-              style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  target == null
+                      ? _fmt(_songSeconds(id))
+                      : '${_fmt(_songSeconds(id))} / $target min',
+                  style:
+                      text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  '${_fmt((_wallMsBySong[id] ?? 0) ~/ 1000)} recorded',
+                  style:
+                      text.labelSmall?.copyWith(color: JamJotColors.inkSoft),
+                ),
+              ],
             ),
           ],
         ),

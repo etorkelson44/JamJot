@@ -192,10 +192,21 @@ class _SessionCard extends StatelessWidget {
                                 style: text.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.w600)),
                           ),
-                          Text(
-                            '${((seg['seconds'] as num?)?.toInt() ?? 0) ~/ 60} min',
-                            style: text.bodySmall,
-                          ),
+                          Builder(builder: (context) {
+                            final soundMin =
+                                ((seg['seconds'] as num?)?.toInt() ?? 0) ~/
+                                    60;
+                            final wallMin =
+                                ((seg['wall_seconds'] as num?)?.toInt() ??
+                                        0) ~/
+                                    60;
+                            return Text(
+                              wallMin > 0
+                                  ? '$soundMin min sound • $wallMin min recorded'
+                                  : '$soundMin min',
+                              style: text.bodySmall,
+                            );
+                          }),
                         ],
                       ),
                       Wrap(
