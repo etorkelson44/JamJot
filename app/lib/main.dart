@@ -76,6 +76,9 @@ Future<void> main() async {
   runApp(const ProviderScope(child: JamJotApp()));
 }
 
+/// Whether the launch-time routing decision has been made.
+bool _bootRouted = false;
+
 /// Pokes the router whenever sign-in state changes.
 class _AuthRefresh extends ChangeNotifier {
   _AuthRefresh() {
@@ -99,6 +102,17 @@ final _router = GoRouter(
       router.go(_confirmationLanding()),
   redirect: (context, state) {
     final loc = state.matchedLocation;
+    // On every fresh app launch, land on the profile picker — even when the
+    // browser tries to restore whatever page was open last time.
+    if (!_bootRouted) {
+      _bootRouted = true;
+      if (JamJotBackend.signedIn &&
+          loc != '/gate' &&
+          loc != '/invite' &&
+          loc != '/reset-password') {
+        return '/gate';
+      }
+    }
     // Token-bearing or error-bearing launch addresses → sign-in landing.
     if (loc.contains('access_token') ||
         loc.contains('error_code') ||
