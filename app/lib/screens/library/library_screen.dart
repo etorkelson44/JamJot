@@ -155,11 +155,13 @@ Future<int> uploadScoreFiles(
 
 /// Picks a whole FOLDER; every file keeps its place inside it, so the
 /// library mirrors the computer's organization under [folder].
-Future<int> uploadScoreFolder(
-    BuildContext context, WidgetRef ref, {String folder = ''}) async {
+Future<int> uploadScoreFolder(BuildContext context, WidgetRef ref,
+    {String folder = '',
+    void Function(int done, int total)? onProgress}) async {
   final files = await pickFolderFiles();
   var count = 0;
   for (final f in files) {
+    onProgress?.call(count, files.length);
     final rel = f.relativePath;
     final slash = rel.lastIndexOf('/');
     final sub = slash <= 0 ? '' : rel.substring(0, slash);
@@ -194,17 +196,24 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
 
   List<String> get _crumbs => _path.isEmpty ? [] : _path.split('/');
 
+  /// Live text shown in the banner while an upload runs.
+  String? _progress;
+
   Future<void> _busyAction(Future<int> Function() run, String what) async {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(SnackBar(
-        duration: const Duration(days: 1),
-        content: Text('Uploading $what…')));
+    setState(() => _progress = 'Reading $what…');
     final count = await run();
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(SnackBar(
+    if (!mounted) return;
+    setState(() => _progress = null);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(count == 0
-            ? 'Nothing was uploaded.'
+            ? 'No usable music files found to upload.'
             : '$count file${count == 1 ? '' : 's'} added! 🎉')));
+  }
+
+  void _reportProgress(int done, int total) {
+    if (mounted) {
+      setState(() => _progress = 'Uploading ${done + 1} of $total…');
+    }
   }
 
   Future<String?> _askName(String title, {String initial = ''}) async {
@@ -335,6 +344,25 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
             hint: 'Search all music & books…',
             onChanged: (v) => setState(() => _query = v)),
         const SizedBox(height: 12),
+        if (_progress != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: JamJotColors.blueberryTint,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: JamJotColors.ink, width: 2),
+            ),
+            child: Row(children: [
+              const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+              const SizedBox(width: 10),
+              Expanded(child: Text(_progress!)),
+            ]),
+          ),
+          const SizedBox(height: 10),
+        ],
         if (!searching) ...[
           // Breadcrumbs.
           Wrap(
@@ -365,8 +393,9 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
             if (folderPickingSupported)
               FilledButton.icon(
                 onPressed: () => _busyAction(
-                    () => uploadScoreFolder(context, ref, folder: _path),
-                    'folder'),
+                    () => uploadScoreFolder(context, ref,
+                        folder: _path, onProgress: _reportProgress),
+                    'the folder'),
                 icon: const Icon(Icons.drive_folder_upload, size: 18),
                 label: const Text('Upload a folder'),
               ),

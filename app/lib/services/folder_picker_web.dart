@@ -7,8 +7,14 @@ import 'folder_picker.dart';
 
 bool get folderPickingSupported => true;
 
-/// Opens the browser's folder picker and reads every file inside,
-/// keeping each one's path within the chosen folder.
+/// File types the library understands; everything else is left untouched.
+const _allowed = {'pdf', 'png', 'jpg', 'jpeg', 'xml', 'musicxml', 'mxl'};
+
+/// Skip anything over 25 MB — bigger than any sheet-music scan.
+const _maxBytes = 25 * 1024 * 1024;
+
+/// Opens the browser's folder picker and reads only the usable music
+/// files inside, keeping each one's path within the chosen folder.
 Future<List<PickedFolderFile>> pickFolderFiles() async {
   final input =
       web.document.createElement('input') as web.HTMLInputElement;
@@ -41,6 +47,11 @@ Future<void> _readAll(web.HTMLInputElement input,
       final f = files.item(i)!;
       // Skip hidden files like .DS_Store.
       if (f.name.startsWith('.')) continue;
+      // Only music-type files, and nothing enormous.
+      final dot = f.name.lastIndexOf('.');
+      final ext = dot < 0 ? '' : f.name.substring(dot + 1).toLowerCase();
+      if (!_allowed.contains(ext)) continue;
+      if (f.size > _maxBytes) continue;
       try {
         final buf = await f.arrayBuffer().toDart;
         final bytes = buf.toDart.asUint8List();
