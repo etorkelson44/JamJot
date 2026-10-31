@@ -15,8 +15,17 @@
   <meta name="theme-color" content="#FAF6EE">
   <title>JamJot</title>
   <style>
-    html, body {
+    html {
       height: 100%;
+      overflow: hidden;
+    }
+    body {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      /* Dynamic viewport height: follows Safari's toolbars & banners live. */
+      height: 100dvh;
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -26,6 +35,19 @@
   </style>
 </head>
 <body>
+  <script>
+    // Safari announces banner/keyboard size changes on visualViewport but
+    // not always as a window resize — relay them so the app re-measures.
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function () {
+        window.dispatchEvent(new Event('resize'));
+      });
+    }
+    // Belt & suspenders: re-measure when the tab becomes visible again.
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) window.dispatchEvent(new Event('resize'));
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
