@@ -10,6 +10,22 @@ import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
 import '../library/library_screen.dart' show showCreateLessonDialog;
 
+/// Pending change requests on events this teacher owns.
+final changeRequestsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final rows = await JamJotBackend.client
+      .from('event_change_requests')
+      .select('*, calendar_events(title, starts_at)')
+      .eq('status', 'pending')
+      .order('created_at', ascending: false);
+  final uid = JamJotBackend.client.auth.currentUser?.id;
+  // RLS already limits to mine-or-requested-by-me; keep only mine-to-answer.
+  return rows
+      .cast<Map<String, dynamic>>()
+      .where((r) => r['requested_by'] != uid)
+      .toList();
+});
+
 /// The teacher's home base: invite families, see the roster, teach.
 class TeachingScreen extends ConsumerWidget {
   const TeachingScreen({super.key});
@@ -252,6 +268,59 @@ class TeachingScreen extends ConsumerWidget {
                     icon: const Icon(Icons.qr_code_2),
                     label: const Text('My teacher code (QR & link)'),
                   ),
+                  Consumer(builder: (context, ref, _) {
+                    final requests =
+                        ref.watch(changeRequestsProvider).valueOrNull ?? [];
+                    if (requests.isEmpty) return const SizedBox.shrink();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 20),
+                        Text('Change requests',
+                            style: text.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 8),
+                        for (final r in requests) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: JamJotColors.marigoldTint,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                  color: JamJotColors.ink, width: 2),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${(r['request_kind'] as String?)?.toUpperCase() ?? ''} — ${(r['calendar_events'] as Map?)?['title'] ?? 'Event'}',
+                                  style: text.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700),
+                                ),
+                                if ((r['note'] as String?)?.isNotEmpty ==
+                                    true)
+                                  Text(r['note'] as String,
+                                      style: text.bodySmall),
+                                Row(children: [
+                                  TextButton(
+                                    onPressed: () async {
+                                      await JamJotBackend.client
+                                          .from('event_change_requests')
+                                          .update({'status': 'handled'}).eq(
+                                              'id', r['id']);
+                                      ref.invalidate(changeRequestsProvider);
+                                    },
+                                    child: const Text('Mark handled'),
+                                  ),
+                                ]),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ],
+                    );
+                  }),
                   const SizedBox(height: 20),
                   Text('My students',
                       style: text.titleMedium
