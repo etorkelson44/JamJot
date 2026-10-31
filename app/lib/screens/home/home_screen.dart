@@ -105,6 +105,15 @@ class HomeScreen extends ConsumerWidget {
                 tint: JamJotColors.marigoldTint,
               );
             }),
+            const SizedBox(height: 12),
+            JamJotCard(
+              emoji: '📼',
+              title: 'My practices',
+              subtitle: 'Listen back and see how far you have come.',
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go(
+                  '/history?student=${active['id']}&name=${Uri.encodeComponent(active['display_name'] as String)}'),
+            ),
           ] else ...[
             Consumer(builder: (context, ref, _) {
               final students =
@@ -121,6 +130,16 @@ class HomeScreen extends ConsumerWidget {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.go(
                           '/lesson-builder?student=${kid['id']}&name=${Uri.encodeComponent(kid['display_name'] as String)}'),
+                    ),
+                    const SizedBox(height: 12),
+                    JamJotCard(
+                      emoji: '📼',
+                      title: "${kid['display_name']}'s practice history",
+                      subtitle:
+                          'Sessions, song ratings, and the recordings to listen back.',
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.go(
+                          '/history?student=${kid['id']}&name=${Uri.encodeComponent(kid['display_name'] as String)}'),
                     ),
                     const SizedBox(height: 12),
                   ],

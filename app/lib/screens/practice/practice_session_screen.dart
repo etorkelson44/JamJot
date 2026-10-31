@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:record/record.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 
 import '../../services/sound_meter.dart';
 import '../../services/supabase_service.dart';
@@ -408,14 +410,37 @@ class _PracticeSessionScreenState
   Future<void> _finish() async {
     setState(() => _phase = _Phase.saving);
     _sampler?.cancel();
+    String? recordingUrl;
     try {
-      if (_recorderStarted) await _recorder.stop();
+      if (_recorderStarted) recordingUrl = await _recorder.stop();
     } catch (_) {}
     _meter.stop();
+
+    // Save the session's recording so grown-ups and teachers can listen.
+    String? audioPath;
+    final student = ref.read(activeStudentProvider);
+    if (recordingUrl != null && student != null) {
+      try {
+        final bytes =
+            (await http.get(Uri.parse(recordingUrl))).bodyBytes;
+        if (bytes.isNotEmpty) {
+          audioPath = '${student['id']}/$_sessionId.webm';
+          await JamJotBackend.client.storage.from('recordings').uploadBinary(
+                audioPath,
+                bytes,
+                fileOptions: const FileOptions(contentType: 'audio/webm'),
+              );
+        }
+      } catch (_) {
+        audioPath = null; // the stats still save even if audio upload fails
+      }
+    }
+
     try {
       await JamJotBackend.client.from('sessions').update({
         'ended_at': DateTime.now().toUtc().toIso8601String(),
         'total_seconds': _activeSeconds,
+        if (audioPath != null) 'audio_path': audioPath,
       }).eq('id', _sessionId!);
       final res = await JamJotBackend.client.functions
           .invoke('award-practice', body: {'session_id': _sessionId});

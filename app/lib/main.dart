@@ -9,6 +9,7 @@ import 'screens/auth/sign_in_screen.dart';
 import 'screens/auth/teacher_setup_screen.dart';
 import 'screens/auth/title_screen.dart';
 import 'screens/calendar/calendar_screen.dart';
+import 'screens/history/practice_history_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/lessons/lesson_builder_screen.dart';
 import 'screens/market/market_screen.dart';
@@ -81,6 +82,13 @@ final _router = GoRouter(
     GoRoute(
         path: '/practice-session',
         builder: (_, __) => const PracticeSessionScreen()),
+    GoRoute(
+      path: '/history',
+      builder: (_, state) => PracticeHistoryScreen(
+        studentId: state.uri.queryParameters['student'] ?? '',
+        studentName: state.uri.queryParameters['name'] ?? 'My',
+      ),
+    ),
     GoRoute(
       path: '/lesson-builder',
       builder: (_, state) => LessonBuilderScreen(
