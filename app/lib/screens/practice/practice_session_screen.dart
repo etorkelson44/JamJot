@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 
@@ -14,7 +15,7 @@ import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
 import '../../widgets/score_frame.dart';
 
-enum _Phase { starting, practicing, saving, celebrate, micDenied, error }
+enum _Phase { starting, practicing, saving, celebrate, micDenied, error, closed }
 
 class PracticeSessionScreen extends ConsumerStatefulWidget {
   const PracticeSessionScreen({super.key});
@@ -131,7 +132,7 @@ class _PracticeSessionScreenState
       final cutoff = await ref
           .read(practiceCutoffProvider(student['id'] as String).future);
       if (cutoff != null) {
-        if (mounted) context.go('/practice');
+        if (mounted) setState(() => _phase = _Phase.closed);
         return;
       }
       final lesson = await ref
@@ -151,8 +152,11 @@ class _PracticeSessionScreenState
           .order('started_at', ascending: false)
           .limit(1);
       if (existing.isNotEmpty) {
+        // A session from earlier today: show its progress; recording
+        // again reopens it (see _ensureSession).
         final session = existing.first;
         _sessionId = session['id'] as String;
+        _sessionSaved = session['ended_at'] != null;
         var segmentMs = 0;
         for (final seg in (session['session_segments'] as List? ?? [])
             .cast<Map<String, dynamic>>()) {
@@ -177,20 +181,34 @@ class _PracticeSessionScreenState
         final storedMs =
             (((session['total_seconds'] as num?)?.toInt()) ?? 0) * 1000;
         _soundMsTotal = storedMs > segmentMs ? storedMs : segmentMs;
-        await JamJotBackend.client
-            .from('sessions')
-            .update({'ended_at': null}).eq('id', _sessionId!);
-      } else {
-        final row = await JamJotBackend.client
-            .from('sessions')
-            .insert({'student_id': student['id']})
-            .select()
-            .single();
-        _sessionId = row['id'] as String;
       }
+      // No session row is created yet — that happens the moment a song's
+      // Record button is pressed for the first time (_ensureSession).
       setState(() => _phase = _Phase.practicing);
     } catch (_) {
       setState(() => _phase = _Phase.error);
+    }
+  }
+
+  /// True when today's session exists but was already saved once.
+  bool _sessionSaved = false;
+
+  /// Creates (or reopens) today's session the moment recording begins.
+  Future<void> _ensureSession() async {
+    final student = ref.read(activeStudentProvider);
+    if (student == null) return;
+    if (_sessionId == null) {
+      final row = await JamJotBackend.client
+          .from('sessions')
+          .insert({'student_id': student['id']})
+          .select()
+          .single();
+      _sessionId = row['id'] as String;
+    } else if (_sessionSaved) {
+      await JamJotBackend.client
+          .from('sessions')
+          .update({'ended_at': null}).eq('id', _sessionId!);
+      _sessionSaved = false;
     }
   }
 
@@ -219,6 +237,7 @@ class _PracticeSessionScreenState
         setState(() => _phase = _Phase.micDenied);
         return;
       }
+      await _ensureSession();
       await _recorder.start(const RecordConfig(), path: '');
       _clipStartedAt = DateTime.now();
       _clipStartSoundMs = _soundMsTotal;
@@ -611,6 +630,7 @@ class _PracticeSessionScreenState
         _songsDone = _done.length;
         _goalMet = data['goal_met'] == true;
         _phase = _Phase.celebrate;
+        _sessionSaved = true;
       });
     } catch (_) {
       setState(() {
@@ -620,6 +640,7 @@ class _PracticeSessionScreenState
         _songsDone = _done.length;
         _goalMet = false;
         _phase = _Phase.celebrate;
+        _sessionSaved = true;
       });
     }
   }
@@ -667,6 +688,17 @@ class _PracticeSessionScreenState
             setState(() => _phase = _Phase.starting);
             _begin();
           },
+        );
+      case _Phase.closed:
+        body = Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              '🌙 This week\'s practice is all tucked in — your teacher is preparing your lesson sheet. See you at your lesson!',
+              textAlign: TextAlign.center,
+              style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
         );
       case _Phase.practicing:
         body = _openSong == null ? _buildSongList(text) : _buildSongPage(text);
@@ -773,9 +805,58 @@ class _PracticeSessionScreenState
     );
   }
 
+  Widget _lessonScheduleCards(TextTheme text) {
+    final student = ref.watch(activeStudentProvider);
+    if (student == null) return const SizedBox.shrink();
+    final sched = ref
+        .watch(lessonScheduleProvider(student['id'] as String))
+        .valueOrNull;
+    Widget card(String emoji, String label, Map<String, dynamic>? ev) {
+      final teacher =
+          (ev?['teachers'] as Map?)?['display_name'] as String?;
+      final when = ev == null
+          ? null
+          : DateFormat('EEE, MMM d • h:mm a')
+              .format(DateTime.parse(ev['starts_at'] as String).toLocal());
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: JamJotColors.ink, width: 1.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$emoji $label',
+                  style: text.labelSmall
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                ev == null
+                    ? 'Not scheduled yet'
+                    : '$when${teacher != null ? '\nwith $teacher' : ''}',
+                style: text.labelSmall
+                    ?.copyWith(color: JamJotColors.inkSoft),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Row(children: [
+      card('🎒', 'Last lesson', sched?['last']),
+      const SizedBox(width: 8),
+      card('📅', 'Next lesson', sched?['next']),
+    ]);
+  }
+
   Widget _buildSongList(TextTheme text) {
     return Column(
       children: [
+        _lessonScheduleCards(text),
+        const SizedBox(height: 10),
         _goalsHeader(text),
         const SizedBox(height: 10),
         _liveBanner(text),
@@ -796,7 +877,7 @@ class _PracticeSessionScreenState
           child: _songs.isEmpty
               ? Center(
                   child: Text(
-                    'No songs assigned yet — free play!\nTap Record and make some music; sound minutes still count.',
+                    'No songs assigned yet!\nAsk your grown-up or teacher to add this week\'s songs.',
                     textAlign: TextAlign.center,
                     style: text.titleSmall
                         ?.copyWith(color: JamJotColors.inkSoft),
@@ -869,12 +950,24 @@ class _PracticeSessionScreenState
                 }),
         ),
         const SizedBox(height: 8),
-        _recordButton(),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: _finish,
-          child: const Text('Finish & save practice session'),
-        ),
+        // Recording lives inside each song — tap one to start.
+        if (_sessionId != null && !_sessionSaved)
+          FilledButton(
+            onPressed: _finish,
+            child: const Text('Finish & save practice session'),
+          )
+        else if (_sessionSaved)
+          Text(
+            'Today\'s practice is saved — tap any song to add more before midnight. ✅',
+            textAlign: TextAlign.center,
+            style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+          )
+        else
+          Text(
+            'Tap a song to see its music and start recording. 🎵',
+            textAlign: TextAlign.center,
+            style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+          ),
       ],
     );
   }
@@ -1100,6 +1193,11 @@ class _PracticeSessionScreenState
         FilledButton(
           onPressed: () => context.go('/home'),
           child: const Text('Back to my stage'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () => setState(() => _phase = _Phase.practicing),
+          child: const Text('Keep practicing today'),
         ),
       ],
     );

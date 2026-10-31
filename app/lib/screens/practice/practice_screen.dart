@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
-import '../../widgets/dancing_note.dart';
+import 'practice_session_screen.dart';
 
+/// The Practice tab. For kids it IS the practice home: lessons, goals,
+/// and the day's songs — recording starts inside each song.
 class PracticeScreen extends ConsumerWidget {
   const PracticeScreen({super.key});
 
@@ -47,93 +49,7 @@ class PracticeScreen extends ConsumerWidget {
       );
     }
 
-    return SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Column(
-              children: [
-                const DancingNote(size: 150),
-                const SizedBox(height: 12),
-                Text('Ready, ${active['display_name']}?',
-                    style: text.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: JamJotColors.marigoldTint,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: JamJotColors.ink, width: 2),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.mic, color: JamJotColors.recording),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Starting turns on listening & recording until you tap "I\'m done".',
-                          style: text.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Practice 15 minutes or more to fill your session goal and earn berries!',
-                  textAlign: TextAlign.center,
-                  style:
-                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
-                ),
-                const SizedBox(height: 20),
-                Consumer(builder: (context, ref, _) {
-                  final cutoff = ref
-                      .watch(practiceCutoffProvider(active['id'] as String))
-                      .valueOrNull;
-                  if (cutoff != null) {
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: JamJotColors.blueberryTint,
-                        borderRadius: BorderRadius.circular(14),
-                        border:
-                            Border.all(color: JamJotColors.ink, width: 2),
-                      ),
-                      child: Text(
-                        '🌙 This week\'s practice is all tucked in — your teacher is preparing your lesson sheet. See you at your lesson!',
-                        textAlign: TextAlign.center,
-                        style: text.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    );
-                  }
-                  final today = ref
-                      .watch(weeklyProgressProvider(active['id'] as String))
-                      .valueOrNull;
-                  final practicedToday = (today?['today_minutes'] ?? 0) > 0;
-                  return FilledButton(
-                    onPressed: () => context.go('/practice-session'),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.play_arrow),
-                        const SizedBox(width: 8),
-                        Text(practicedToday
-                            ? "Add to today's practice"
-                            : 'Start practicing'),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    // The kid's practice home, keyed so switching kids resets it fully.
+    return PracticeSessionScreen(key: ValueKey(active['id']));
   }
 }

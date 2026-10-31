@@ -182,6 +182,38 @@ final currentLessonProvider =
   };
 });
 
+/// A student's last and next scheduled lessons (from the calendar).
+final lessonScheduleProvider = FutureProvider.autoDispose
+    .family<Map<String, Map<String, dynamic>?>, String>((ref, studentId) async {
+  final rows = await JamJotBackend.client
+      .from('event_students')
+      .select(
+          'calendar_events(kind, title, starts_at, teachers(display_name))')
+      .eq('student_id', studentId);
+  final now = DateTime.now();
+  Map<String, dynamic>? last;
+  Map<String, dynamic>? next;
+  DateTime? lastAt;
+  DateTime? nextAt;
+  for (final r in rows) {
+    final ev = r['calendar_events'] as Map<String, dynamic>?;
+    if (ev == null || ev['kind'] != 'lesson') continue;
+    final at = DateTime.parse(ev['starts_at'] as String).toLocal();
+    if (at.isBefore(now)) {
+      if (lastAt == null || at.isAfter(lastAt)) {
+        lastAt = at;
+        last = ev;
+      }
+    } else {
+      if (nextAt == null || at.isBefore(nextAt)) {
+        nextAt = at;
+        next = ev;
+      }
+    }
+  }
+  return {'last': last, 'next': next};
+});
+
 /// Practice progress this week: {'days': n, 'today_minutes': m}.
 final weeklyProgressProvider =
     FutureProvider.family<Map<String, int>, String>((ref, studentId) async {
