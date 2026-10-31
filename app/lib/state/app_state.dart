@@ -136,6 +136,50 @@ final weeklyProgressProvider =
   return {'days': days.length, 'today_minutes': todaySeconds ~/ 60};
 });
 
+/// Chats I belong to: one per enrollment (teacher + student + permitted
+/// caregivers). Caregivers without messaging permission see nothing.
+final myChatsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final uid = JamJotBackend.client.auth.currentUser?.id;
+  if (uid == null) return [];
+  final enrollments = await JamJotBackend.client
+      .from('enrollments')
+      .select(
+          'id, instrument, status, students(id, display_name), teachers(id, display_name, profile_id)')
+      .eq('status', 'active');
+  final guards = await JamJotBackend.client
+      .from('guardianships')
+      .select('student_id, is_primary, can_message')
+      .eq('profile_id', uid);
+  final byStudent = {for (final g in guards) g['student_id'] as String: g};
+  final activeKid = ref.watch(activeStudentProvider);
+
+  final chats = <Map<String, dynamic>>[];
+  for (final e in enrollments) {
+    final student = e['students'] as Map<String, dynamic>?;
+    final teacher = e['teachers'] as Map<String, dynamic>?;
+    if (student == null || teacher == null) continue;
+    final sid = student['id'] as String;
+    final iAmTeacher = teacher['profile_id'] == uid;
+    final guard = byStudent[sid];
+    final iMayMessage = iAmTeacher ||
+        (guard != null &&
+            (guard['is_primary'] == true || guard['can_message'] == true));
+    if (!iMayMessage) continue;
+    // In kid mode, only the active kid's chats show.
+    if (activeKid != null && activeKid['id'] != sid) continue;
+    chats.add({
+      'enrollment_id': e['id'],
+      'student_name': student['display_name'],
+      'teacher_name': teacher['display_name'],
+      'teacher_profile_id': teacher['profile_id'],
+      'instrument': e['instrument'],
+      'i_am_primary': guard?['is_primary'] == true,
+    });
+  }
+  return chats;
+});
+
 /// An invite token waiting to be redeemed after sign-in.
 String? pendingInviteToken;
 

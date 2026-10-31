@@ -107,6 +107,21 @@ class HomeScreen extends ConsumerWidget {
               );
             }),
             const SizedBox(height: 12),
+            Consumer(builder: (context, ref, _) {
+              final chats = ref.watch(myChatsProvider).valueOrNull ?? [];
+              if (chats.isEmpty) return const SizedBox.shrink();
+              return Column(children: [
+                JamJotCard(
+                  emoji: '💬',
+                  tint: JamJotColors.blueberryTint,
+                  title: 'Messages',
+                  subtitle: 'Chat with your teacher (grown-ups can see it).',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.go('/messages'),
+                ),
+                const SizedBox(height: 12),
+              ]);
+            }),
             JamJotCard(
               emoji: '📼',
               title: 'My practices',
@@ -128,6 +143,21 @@ class HomeScreen extends ConsumerWidget {
                       'Invite families, see your students, assign lessons.',
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.go('/teaching'),
+                ),
+                const SizedBox(height: 12),
+              ]);
+            }),
+            Consumer(builder: (context, ref, _) {
+              final chats = ref.watch(myChatsProvider).valueOrNull ?? [];
+              if (chats.isEmpty) return const SizedBox.shrink();
+              return Column(children: [
+                JamJotCard(
+                  emoji: '💬',
+                  tint: JamJotColors.blueberryTint,
+                  title: 'Messages',
+                  subtitle: 'One chat per student–teacher connection.',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.go('/messages'),
                 ),
                 const SizedBox(height: 12),
               ]);

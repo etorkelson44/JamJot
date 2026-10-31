@@ -14,6 +14,7 @@ import 'screens/home/home_screen.dart';
 import 'screens/lessons/lesson_builder_screen.dart';
 import 'screens/invite/invite_screen.dart';
 import 'screens/library/library_screen.dart';
+import 'screens/messages/messages_screen.dart';
 import 'screens/teaching/teaching_screen.dart';
 import 'screens/market/market_screen.dart';
 import 'screens/practice/practice_screen.dart';
@@ -87,6 +88,16 @@ final _router = GoRouter(
         builder: (_, __) => const PracticeSessionScreen()),
     GoRoute(path: '/library', builder: (_, __) => const LibraryScreen()),
     GoRoute(path: '/teaching', builder: (_, __) => const TeachingScreen()),
+    GoRoute(path: '/messages', builder: (_, __) => const MessagesScreen()),
+    GoRoute(
+      path: '/chat',
+      builder: (_, state) => ChatScreen(
+        enrollmentId: state.uri.queryParameters['enrollment'] ?? '',
+        title: state.uri.queryParameters['title'] ?? 'Chat',
+        iAmPrimary: state.uri.queryParameters['primary'] == '1',
+        teacherProfileId: state.uri.queryParameters['teacher'] ?? '',
+      ),
+    ),
     GoRoute(
       path: '/invite',
       builder: (_, state) =>
