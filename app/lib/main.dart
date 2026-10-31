@@ -9,6 +9,7 @@ import 'screens/auth/sign_in_screen.dart';
 import 'screens/auth/teacher_setup_screen.dart';
 import 'screens/auth/title_screen.dart';
 import 'screens/calendar/calendar_screen.dart';
+import 'screens/family/kid_detail_screen.dart';
 import 'screens/history/practice_history_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/lessons/lesson_builder_screen.dart';
@@ -113,6 +114,11 @@ final _router = GoRouter(
     GoRoute(path: '/library', builder: (_, __) => const LibraryScreen()),
     GoRoute(path: '/teaching', builder: (_, __) => const TeachingScreen()),
     GoRoute(path: '/messages', builder: (_, __) => const MessagesScreen()),
+    GoRoute(
+      path: '/kid',
+      builder: (_, state) => KidDetailScreen(
+          studentId: state.uri.queryParameters['student'] ?? ''),
+    ),
     GoRoute(
       path: '/chat',
       builder: (_, state) => ChatScreen(

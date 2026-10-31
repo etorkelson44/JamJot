@@ -6,7 +6,6 @@ import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
 import '../../widgets/jamjot_card.dart';
-import '../library/library_screen.dart' show showCreateLessonDialog;
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -179,35 +178,13 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   for (final kid in students) ...[
                     JamJotCard(
-                      emoji: '🎼',
+                      emoji: '🧒',
                       tint: JamJotColors.blueberryTint,
-                      title: "${kid['display_name']}'s practice list",
+                      title: kid['display_name'] as String,
                       subtitle:
-                          'Add this week\'s songs — they earn fans & berries for finishing them.',
+                          '${(kid['instruments'] as List?)?.join(' · ') ?? 'Music'} — practice list, lessons, history & chat',
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.go(
-                          '/lesson-builder?student=${kid['id']}&name=${Uri.encodeComponent(kid['display_name'] as String)}'),
-                    ),
-                    const SizedBox(height: 12),
-                    JamJotCard(
-                      emoji: '🪄',
-                      tint: JamJotColors.marigoldTint,
-                      title: "Assign ${kid['display_name']} a lesson",
-                      subtitle:
-                          'Build from your library and set goals & the start date.',
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () =>
-                          showCreateLessonDialog(context, ref, student: kid),
-                    ),
-                    const SizedBox(height: 12),
-                    JamJotCard(
-                      emoji: '📼',
-                      title: "${kid['display_name']}'s practice history",
-                      subtitle:
-                          'Sessions, song ratings, and the recordings to listen back.',
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.go(
-                          '/history?student=${kid['id']}&name=${Uri.encodeComponent(kid['display_name'] as String)}'),
+                      onTap: () => context.go('/kid?student=${kid['id']}'),
                     ),
                     const SizedBox(height: 12),
                   ],
