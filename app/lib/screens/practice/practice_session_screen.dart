@@ -45,6 +45,12 @@ class _PracticeSessionScreenState
 
   /// Loudness gate: room must be louder than this to count.
   static const _threshold = 0.035;
+
+  /// Minimum real-sound time to finish a song (or bank extra practice).
+  static const _minSongSeconds = 120;
+
+  /// Sound-ms already paid out per song (so repeats earn on NEW time only).
+  final Map<String, int> _bankedMs = {};
   bool _soundNow = false;
   Timer? _sampler;
 
@@ -143,6 +149,40 @@ class _PracticeSessionScreenState
     final id = song['id'] as String;
     if (_live) await _toggleLive(); // pause the mic while we talk
     if (!mounted) return;
+
+    // Not enough real sound yet? Encourage, don't finish.
+    if (_songSeconds(id) < _minSongSeconds) {
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+            side: JamJotShape.border,
+          ),
+          title: const Text('Almost there!'),
+          content: Text(
+              'A song needs at least 2 minutes of real sound to finish — you are at ${_fmt(_songSeconds(id))} of 02:00. Keep going, you have got this!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop('back'),
+              child: const Text('Back to my songs'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop('keep'),
+              style: FilledButton.styleFrom(minimumSize: const Size(140, 44)),
+              child: const Text('Keep practicing'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (choice == 'keep') {
+        await _toggleLive();
+      } else if (choice == 'back') {
+        setState(() => _openSong = null);
+      }
+      return;
+    }
 
     final choice = await showDialog<String>(
       context: context,
@@ -247,16 +287,25 @@ class _PracticeSessionScreenState
     var berries = 0;
     var fans = 0;
     try {
-      await JamJotBackend.client.from('session_segments').insert({
-        'session_id': _sessionId,
-        'assignment_id': id,
-        'kind': 'playing',
-        'seconds': _songSeconds(id),
-        'completed': true,
-        'goal_results': {'self_rating': rating},
-      });
+      final seg = await JamJotBackend.client
+          .from('session_segments')
+          .insert({
+            'session_id': _sessionId,
+            'assignment_id': id,
+            'kind': 'playing',
+            'seconds': _songSeconds(id),
+            'completed': true,
+            'goal_results': {'self_rating': rating},
+          })
+          .select()
+          .single();
+      _bankedMs[id] = _soundMsBySong[id] ?? 0;
       final res = await JamJotBackend.client.functions.invoke('award-song',
-          body: {'session_id': _sessionId, 'assignment_id': id});
+          body: {
+            'session_id': _sessionId,
+            'assignment_id': id,
+            'segment_id': seg['id'],
+          });
       final data = res.data as Map<String, dynamic>? ?? {};
       berries = (data['berries'] as num?)?.toInt() ?? 0;
       fans = (data['fans'] as num?)?.toInt() ?? 0;
@@ -297,6 +346,63 @@ class _PracticeSessionScreenState
         ],
       ),
     );
+  }
+
+  /// Extra practice on an already-finished song: every fresh 2+ minutes of
+  /// sound can be banked for bonus fans.
+  Future<void> _bankExtra(Map<String, dynamic> song) async {
+    final id = song['id'] as String;
+    final extraMs = (_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0);
+    final extraSeconds = extraMs ~/ 1000;
+    if (extraSeconds < _minSongSeconds) return;
+    if (_live) await _toggleLive();
+    var fans = 0;
+    try {
+      final seg = await JamJotBackend.client
+          .from('session_segments')
+          .insert({
+            'session_id': _sessionId,
+            'assignment_id': id,
+            'kind': 'playing',
+            'seconds': extraSeconds,
+            'completed': true,
+            'goal_results': {'extra_practice': true},
+          })
+          .select()
+          .single();
+      _bankedMs[id] = _soundMsBySong[id] ?? 0;
+      final res = await JamJotBackend.client.functions.invoke('award-song',
+          body: {
+            'session_id': _sessionId,
+            'assignment_id': id,
+            'segment_id': seg['id'],
+          });
+      final data = res.data as Map<String, dynamic>? ?? {};
+      fans = (data['fans'] as num?)?.toInt() ?? 0;
+      _earnedFans += fans;
+    } catch (_) {}
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: const Text('🎉 Extra practice banked!'),
+        content: Text(fans > 0
+            ? '🕶️ +$fans bonus fans for coming back to this song!'
+            : 'Saved! Your rewards tally up at the end.'),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+            child: const Text('Keep jamming'),
+          ),
+        ],
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   Future<void> _finish() async {
@@ -645,12 +751,24 @@ class _PracticeSessionScreenState
         ],
         const SizedBox(height: 10),
         if (_done.contains(id)) ...[
-          // Already finished — extra practice is always welcome.
+          // Already finished — fresh 2-minute chunks earn bonus fans.
           _recordButton(),
           const SizedBox(height: 8),
-          Text('Already finished today — extra practice still counts! ✅',
+          Builder(builder: (context) {
+            final extraSec =
+                ((_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0)) ~/ 1000;
+            if (extraSec >= _minSongSeconds) {
+              return OutlinedButton(
+                onPressed: () => _bankExtra(song),
+                child: const Text('Bank extra practice (+5 fans!)'),
+              );
+            }
+            return Text(
+              'Finished ✅ — ${_fmt(extraSec)} / 02:00 of extra practice toward bonus fans',
               textAlign: TextAlign.center,
-              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+            );
+          }),
         ] else if (_live) ...[
           FilledButton(
             onPressed: () => _stopAndMaybeFinishSong(song),
