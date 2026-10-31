@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show UserAttributes;
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/pin_dialog.dart' show askForNewPin;
 
 /// My guardianship rows (with each kid's name).
 final myGuardianRowsProvider =
@@ -91,6 +92,22 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _changeMyPin() async {
+    final pin = await askForNewPin(context, title: 'My new grown-up PIN');
+    if (pin == null) return;
+    try {
+      final uid = JamJotBackend.client.auth.currentUser!.id;
+      await JamJotBackend.client
+          .from('profiles')
+          .update({'app_pin_hash': hashPin(pin)}).eq('id', uid);
+      ref.invalidate(myProfileProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('PIN updated!')));
+      }
+    } catch (_) {}
   }
 
   Future<void> _changePassword() async {
@@ -269,6 +286,22 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                 ),
               ),
             ]),
+            const SizedBox(height: 18),
+            Text('My grown-up PIN',
+                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text(
+              'The 4-digit code that guards your profile from the kids. Forgot it? No problem — you\'re signed in with your password, so just set a new one here.',
+              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: _changeMyPin,
+              child: Text(
+                  (profile?['app_pin_hash'] != null)
+                      ? 'Change my PIN'
+                      : 'Set my PIN'),
+            ),
             const SizedBox(height: 22),
             if (rows.isNotEmpty) ...[
               Text('My kids',

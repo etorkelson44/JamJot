@@ -8,6 +8,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
+import '../../widgets/pin_dialog.dart' show askForNewPin;
 import '../history/practice_history_screen.dart' show PracticeHistoryList;
 import '../library/library_screen.dart' show showCreateLessonDialog;
 
@@ -124,6 +125,33 @@ class _OverviewTab extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 20),
+        if (kid['is_primary'] == true)
+          JamJotCard(
+            emoji: '🔢',
+            tint: JamJotColors.blueberryTint,
+            title: (kid['pin_hash'] != null)
+                ? "Change ${kid['display_name']}'s PIN"
+                : "Set ${kid['display_name']}'s PIN",
+            subtitle:
+                'Their 4-digit code keeps siblings out. Forgot it? Just set a new one here.',
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              final pin = await askForNewPin(context,
+                  title: "${kid['display_name']}'s new PIN");
+              if (pin == null) return;
+              try {
+                await JamJotBackend.client
+                    .from('students')
+                    .update({'pin_hash': hashPin(pin)}).eq('id', studentId);
+                ref.invalidate(myStudentsProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('PIN updated!')));
+                }
+              } catch (_) {}
+            },
+          ),
+        const SizedBox(height: 12),
         Text(
           'The Teachers tab holds each teacher connection (and your family-run practice) separately; Practices shows every session with recordings; Caregivers manages who helps and what they can do.',
           style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),

@@ -14,6 +14,80 @@ Future<bool> askForPin(BuildContext context,
   return ok ?? false;
 }
 
+/// Asks for a new 4-digit PIN (typed twice). Returns it, or null if cancelled.
+Future<String?> askForNewPin(BuildContext context,
+    {required String title}) async {
+  final first = TextEditingController();
+  final second = TextEditingController();
+  String? error;
+  return showDialog<String>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text(title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: first,
+              autofocus: true,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, letterSpacing: 8),
+              decoration: const InputDecoration(
+                  counterText: '', hintText: '4 digits'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: second,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, letterSpacing: 8),
+              decoration: const InputDecoration(
+                  counterText: '', hintText: 'same 4 digits again'),
+            ),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(error!,
+                    style: const TextStyle(color: JamJotColors.recording)),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (first.text.trim().length != 4) {
+                setState(() => error = 'The PIN needs exactly 4 digits.');
+                return;
+              }
+              if (first.text.trim() != second.text.trim()) {
+                setState(() => error = 'Those two do not match.');
+                return;
+              }
+              Navigator.of(context).pop(first.text.trim());
+            },
+            style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _PinDialog extends StatefulWidget {
   const _PinDialog({required this.title, required this.pinHash});
 
