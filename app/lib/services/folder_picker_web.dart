@@ -13,19 +13,50 @@ const _allowed = {'pdf', 'png', 'jpg', 'jpeg', 'xml', 'musicxml', 'mxl'};
 /// Skip anything over 25 MB — bigger than any sheet-music scan.
 const _maxBytes = 25 * 1024 * 1024;
 
-/// Opens the browser's folder picker and reads only the usable music
-/// files inside, keeping each one's path within the chosen folder.
-Future<List<PickedFolderFile>> pickFolderFiles() async {
+/// Patience per file: plenty for iCloud to download it on demand.
+const _readTimeout = Duration(seconds: 90);
+
+/// Opens the browser's folder picker and hands back lazy handles for the
+/// usable music files inside — nothing is read until each is uploaded.
+Future<List<FolderFileHandle>> pickFolderFiles() async {
   final input =
       web.document.createElement('input') as web.HTMLInputElement;
   input.type = 'file';
   input.setAttribute('webkitdirectory', '');
-  final completer = Completer<List<PickedFolderFile>>();
+  final completer = Completer<List<FolderFileHandle>>();
 
   input.addEventListener(
     'change',
     ((web.Event _) {
-      _readAll(input, completer);
+      final files = input.files;
+      final out = <FolderFileHandle>[];
+      if (files != null) {
+        for (var i = 0; i < files.length; i++) {
+          final f = files.item(i)!;
+          if (f.name.startsWith('.')) continue;
+          final dot = f.name.lastIndexOf('.');
+          final ext =
+              dot < 0 ? '' : f.name.substring(dot + 1).toLowerCase();
+          if (!_allowed.contains(ext)) continue;
+          if (f.size > _maxBytes) continue;
+          final rel = f.webkitRelativePath;
+          out.add(FolderFileHandle(
+            name: f.name,
+            relativePath: rel.isEmpty ? f.name : rel,
+            size: f.size,
+            read: () async {
+              try {
+                final buf =
+                    await f.arrayBuffer().toDart.timeout(_readTimeout);
+                return buf.toDart.asUint8List();
+              } catch (_) {
+                return null;
+              }
+            },
+          ));
+        }
+      }
+      if (!completer.isCompleted) completer.complete(out);
     }).toJS,
   );
   input.addEventListener(
@@ -36,38 +67,4 @@ Future<List<PickedFolderFile>> pickFolderFiles() async {
   );
   input.click();
   return completer.future;
-}
-
-Future<void> _readAll(web.HTMLInputElement input,
-    Completer<List<PickedFolderFile>> completer) async {
-  final files = input.files;
-  final out = <PickedFolderFile>[];
-  if (files != null) {
-    for (var i = 0; i < files.length; i++) {
-      final f = files.item(i)!;
-      // Skip hidden files like .DS_Store.
-      if (f.name.startsWith('.')) continue;
-      // Only music-type files, and nothing enormous.
-      final dot = f.name.lastIndexOf('.');
-      final ext = dot < 0 ? '' : f.name.substring(dot + 1).toLowerCase();
-      if (!_allowed.contains(ext)) continue;
-      if (f.size > _maxBytes) continue;
-      try {
-        // A file that can't be read in 20s (e.g. an iCloud placeholder
-        // that never downloads) is skipped instead of freezing everything.
-        final buf = await f
-            .arrayBuffer()
-            .toDart
-            .timeout(const Duration(seconds: 20));
-        final bytes = buf.toDart.asUint8List();
-        final rel = f.webkitRelativePath;
-        out.add(PickedFolderFile(
-          name: f.name,
-          relativePath: rel.isEmpty ? f.name : rel,
-          bytes: bytes,
-        ));
-      } catch (_) {/* unreadable file: skip it */}
-    }
-  }
-  if (!completer.isCompleted) completer.complete(out);
 }

@@ -155,14 +155,24 @@ Future<int> uploadScoreFiles(
 
 /// Picks a whole FOLDER; every file keeps its place inside it, so the
 /// library mirrors the computer's organization under [folder].
-Future<int> uploadScoreFolder(BuildContext context, WidgetRef ref,
+Future<String> uploadScoreFolder(BuildContext context, WidgetRef ref,
     {String folder = '',
-    void Function(int done, int total)? onProgress}) async {
-  final files = await pickFolderFiles();
-  var count = 0;
-  for (final f in files) {
-    onProgress?.call(count, files.length);
-    final rel = f.relativePath;
+    void Function(String status)? onProgress}) async {
+  final handles = await pickFolderFiles();
+  if (handles.isEmpty) return 'No usable music files found in that folder.';
+  var added = 0;
+  var skipped = 0;
+  for (var i = 0; i < handles.length; i++) {
+    final h = handles[i];
+    onProgress?.call(
+        'Uploading ${i + 1} of ${handles.length} — ${h.name}…');
+    // Reading triggers iCloud to download the file if it isn't local yet.
+    final bytes = await h.read();
+    if (bytes == null || bytes.isEmpty) {
+      skipped++;
+      continue;
+    }
+    final rel = h.relativePath;
     final slash = rel.lastIndexOf('/');
     final sub = slash <= 0 ? '' : rel.substring(0, slash);
     final target = [
@@ -171,12 +181,17 @@ Future<int> uploadScoreFolder(BuildContext context, WidgetRef ref,
     ].join('/');
     try {
       await _saveScoreBytes(ref,
-          fileName: f.name, bytes: f.bytes, folder: target);
-      count++;
-    } catch (_) {}
+          fileName: h.name, bytes: bytes, folder: target);
+      added++;
+    } catch (_) {
+      skipped++;
+    }
   }
-  if (count > 0) ref.invalidate(libraryScoresProvider);
-  return count;
+  if (added > 0) ref.invalidate(libraryScoresProvider);
+  if (skipped == 0) {
+    return '$added file${added == 1 ? '' : 's'} added! 🎉';
+  }
+  return '$added added • $skipped skipped (could not be read — if they live in iCloud, open the folder in Finder and choose "Download Now", then try those again).';
 }
 
 class _FilesTab extends ConsumerStatefulWidget {
@@ -208,12 +223,6 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
         content: Text(count == 0
             ? 'No usable music files found to upload.'
             : '$count file${count == 1 ? '' : 's'} added! 🎉')));
-  }
-
-  void _reportProgress(int done, int total) {
-    if (mounted) {
-      setState(() => _progress = 'Uploading ${done + 1} of $total…');
-    }
   }
 
   Future<String?> _askName(String title, {String initial = ''}) async {
@@ -392,10 +401,18 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
             ),
             if (folderPickingSupported)
               FilledButton.icon(
-                onPressed: () => _busyAction(
-                    () => uploadScoreFolder(context, ref,
-                        folder: _path, onProgress: _reportProgress),
-                    'the folder'),
+                onPressed: () async {
+                  setState(() => _progress = 'Choosing folder…');
+                  final message = await uploadScoreFolder(context, ref,
+                      folder: _path,
+                      onProgress: (st) {
+                        if (mounted) setState(() => _progress = st);
+                      });
+                  if (!mounted) return;
+                  setState(() => _progress = null);
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text(message)));
+                },
                 icon: const Icon(Icons.drive_folder_upload, size: 18),
                 label: const Text('Upload a folder'),
               ),
