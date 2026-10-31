@@ -6,6 +6,7 @@ import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
 import '../../widgets/jamjot_card.dart';
+import '../library/library_screen.dart' show showCreateLessonDialog;
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -115,6 +116,16 @@ class HomeScreen extends ConsumerWidget {
                   '/history?student=${active['id']}&name=${Uri.encodeComponent(active['display_name'] as String)}'),
             ),
           ] else ...[
+            JamJotCard(
+              emoji: '📚',
+              tint: JamJotColors.plumTint,
+              title: 'My Library',
+              subtitle:
+                  'Your music files, saved assignments, and lesson templates.',
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/library'),
+            ),
+            const SizedBox(height: 12),
             Consumer(builder: (context, ref, _) {
               final students =
                   ref.watch(myStudentsProvider).valueOrNull ?? [];
@@ -130,6 +141,17 @@ class HomeScreen extends ConsumerWidget {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.go(
                           '/lesson-builder?student=${kid['id']}&name=${Uri.encodeComponent(kid['display_name'] as String)}'),
+                    ),
+                    const SizedBox(height: 12),
+                    JamJotCard(
+                      emoji: '🪄',
+                      tint: JamJotColors.marigoldTint,
+                      title: "Assign ${kid['display_name']} a lesson",
+                      subtitle:
+                          'Build from your library and set goals & the start date.',
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          showCreateLessonDialog(context, ref, student: kid),
                     ),
                     const SizedBox(height: 12),
                     JamJotCard(

@@ -81,7 +81,8 @@ final fanTotalProvider =
   return total;
 });
 
-/// The student's current lesson (most recent), with its assignments.
+/// The student's current lesson: the newest one whose assigned date has
+/// arrived (future-dated lessons wait their turn), with its assignments.
 final currentLessonProvider =
     FutureProvider.family<Map<String, dynamic>?, String>((ref, studentId) async {
   final rows = await JamJotBackend.client
@@ -89,9 +90,19 @@ final currentLessonProvider =
       .select('*, assignments(*)')
       .eq('student_id', studentId)
       .order('created_at', ascending: false)
-      .limit(1);
+      .limit(10);
   if (rows.isEmpty) return null;
-  final lesson = Map<String, dynamic>.from(rows.first);
+  final today = DateTime.now();
+  Map<String, dynamic>? pick;
+  for (final r in rows) {
+    final ws = r['week_start'] as String?;
+    if (ws == null || !DateTime.parse(ws).isAfter(today)) {
+      pick = Map<String, dynamic>.from(r);
+      break;
+    }
+  }
+  if (pick == null) return null;
+  final lesson = pick;
   final assignments = (lesson['assignments'] as List? ?? [])
       .cast<Map<String, dynamic>>()
     ..sort((a, b) =>
@@ -124,6 +135,53 @@ final weeklyProgressProvider =
   }
   return {'days': days.length, 'today_minutes': todaySeconds ~/ 60};
 });
+
+/// My uploaded music files (scores bucket rows).
+final libraryScoresProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final uid = JamJotBackend.client.auth.currentUser?.id;
+  if (uid == null) return [];
+  final rows = await JamJotBackend.client
+      .from('scores')
+      .select()
+      .eq('owner_id', uid)
+      .order('created_at', ascending: false);
+  return rows.cast<Map<String, dynamic>>();
+});
+
+/// My saved assignment templates.
+final savedAssignmentsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final uid = JamJotBackend.client.auth.currentUser?.id;
+  if (uid == null) return [];
+  final rows = await JamJotBackend.client
+      .from('saved_assignments')
+      .select()
+      .eq('owner_id', uid)
+      .order('created_at', ascending: false);
+  return rows.cast<Map<String, dynamic>>();
+});
+
+/// My saved lesson templates.
+final savedLessonsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final uid = JamJotBackend.client.auth.currentUser?.id;
+  if (uid == null) return [];
+  final rows = await JamJotBackend.client
+      .from('saved_lessons')
+      .select()
+      .eq('owner_id', uid)
+      .order('created_at', ascending: false);
+  return rows.cast<Map<String, dynamic>>();
+});
+
+/// Loose search: every typed word must appear somewhere in the text.
+bool looseMatch(String query, String text) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return true;
+  final t = text.toLowerCase();
+  return q.split(RegExp(r'\s+')).every(t.contains);
+}
 
 /// Is practice closed right now because a lesson is coming up and the
 /// teacher's weekly sheet has been finalized? (Night-before cutoff.)
