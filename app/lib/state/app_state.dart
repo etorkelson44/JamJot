@@ -67,6 +67,39 @@ final berryBalanceProvider =
   return total;
 });
 
+/// A student's permanent fan total.
+final fanTotalProvider =
+    FutureProvider.family<int, String>((ref, studentId) async {
+  final rows = await JamJotBackend.client
+      .from('fan_ledger')
+      .select('amount')
+      .eq('student_id', studentId);
+  var total = 0;
+  for (final r in rows) {
+    total += (r['amount'] as num).toInt();
+  }
+  return total;
+});
+
+/// The student's current lesson (most recent), with its assignments.
+final currentLessonProvider =
+    FutureProvider.family<Map<String, dynamic>?, String>((ref, studentId) async {
+  final rows = await JamJotBackend.client
+      .from('lessons')
+      .select('*, assignments(*)')
+      .eq('student_id', studentId)
+      .order('created_at', ascending: false)
+      .limit(1);
+  if (rows.isEmpty) return null;
+  final lesson = Map<String, dynamic>.from(rows.first);
+  final assignments = (lesson['assignments'] as List? ?? [])
+      .cast<Map<String, dynamic>>()
+    ..sort((a, b) =>
+        (a['order_idx'] as int? ?? 0).compareTo(b['order_idx'] as int? ?? 0));
+  lesson['assignments'] = assignments;
+  return lesson;
+});
+
 /// Remember the active kid across app restarts (best effort).
 Future<void> rememberActiveStudent(String? studentId) async {
   final uid = JamJotBackend.client.auth.currentUser?.id;

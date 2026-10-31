@@ -29,7 +29,13 @@ class _PracticeSessionScreenState
   Timer? _ticker;
   int _minutes = 0;
   int _berries = 0;
+  int _fans = 0;
+  int _songsDone = 0;
   bool _goalMet = false;
+
+  List<Map<String, dynamic>> _songs = [];
+  final Set<String> _done = {};
+  int _lastMarkSeconds = 0;
 
   @override
   void initState() {
@@ -44,6 +50,11 @@ class _PracticeSessionScreenState
       return;
     }
     try {
+      final lesson = await ref
+          .read(currentLessonProvider(student['id'] as String).future);
+      _songs = (lesson?['assignments'] as List?)
+              ?.cast<Map<String, dynamic>>() ??
+          [];
       final hasMic = await _recorder.hasPermission();
       if (!hasMic) {
         setState(() => _phase = _Phase.micDenied);
@@ -65,6 +76,31 @@ class _PracticeSessionScreenState
     }
   }
 
+  Future<void> _markSongDone(Map<String, dynamic> song) async {
+    final id = song['id'] as String;
+    if (_done.contains(id)) return;
+    setState(() => _done.add(id));
+    final spent = _seconds - _lastMarkSeconds;
+    _lastMarkSeconds = _seconds;
+    try {
+      await JamJotBackend.client.from('session_segments').insert({
+        'session_id': _sessionId,
+        'assignment_id': id,
+        'kind': 'playing',
+        'seconds': spent,
+        'completed': true,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text('🎉 ${song['title']} done — fans are gathering!'),
+        ));
+      }
+    } catch (_) {
+      if (mounted) setState(() => _done.remove(id));
+    }
+  }
+
   Future<void> _finish() async {
     setState(() => _phase = _Phase.saving);
     _ticker?.cancel();
@@ -82,6 +118,8 @@ class _PracticeSessionScreenState
       setState(() {
         _minutes = (data['minutes'] as num?)?.toInt() ?? _seconds ~/ 60;
         _berries = (data['berries'] as num?)?.toInt() ?? 0;
+        _fans = (data['fans'] as num?)?.toInt() ?? 0;
+        _songsDone = (data['songs'] as num?)?.toInt() ?? _done.length;
         _goalMet = data['goal_met'] == true;
         _phase = _Phase.celebrate;
       });
@@ -148,25 +186,50 @@ class _PracticeSessionScreenState
           children: [
             const SizedBox(height: 8),
             const _RecordingBanner(),
-            const Spacer(),
-            const DancingNote(size: 150),
-            const SizedBox(height: 16),
-            Text(_clock,
-                style: text.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w700, letterSpacing: 2)),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const DancingNote(size: 72),
+                const SizedBox(width: 16),
+                Text(_clock,
+                    style: text.displayMedium?.copyWith(
+                        fontWeight: FontWeight.w700, letterSpacing: 2)),
+              ],
+            ),
             Text('Keep the music coming, $name!',
                 style:
-                    text.titleMedium?.copyWith(color: JamJotColors.inkSoft)),
-            const Spacer(),
-            FilledButton(
-              onPressed: _finish,
-              child: const Text("I'm done"),
+                    text.titleSmall?.copyWith(color: JamJotColors.inkSoft)),
+            const SizedBox(height: 14),
+            Expanded(
+              child: _songs.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No songs assigned yet — free play!\nEvery minute still counts.',
+                        textAlign: TextAlign.center,
+                        style: text.titleMedium
+                            ?.copyWith(color: JamJotColors.inkSoft),
+                      ),
+                    )
+                  : ListView(
+                      children: [
+                        for (final song in _songs) ...[
+                          _SongTile(
+                            title: song['title'] as String,
+                            note: song['song_note'] as String? ?? '',
+                            done: _done.contains(song['id']),
+                            onDone: () => _markSongDone(song),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                      ],
+                    ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Sound checking and song matching join in a future update — for now every minute counts.',
-              textAlign: TextAlign.center,
-              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+            FilledButton(
+              onPressed: _finish,
+              child: const Text("I'm done practicing"),
             ),
           ],
         );
@@ -181,6 +244,30 @@ class _PracticeSessionScreenState
                 style: text.headlineMedium
                     ?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
+            if (_songsDone > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                    '$_songsDone song${_songsDone == 1 ? '' : 's'} finished',
+                    style: text.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+              ),
+            if (_fans > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: JamJotColors.marigoldTint,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: JamJotColors.ink, width: 2),
+                  ),
+                  child: Text('🕶️ +$_fans new fans in your crowd!',
+                      style: text.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                ),
+              ),
             if (_berries > 0) ...[
               Container(
                 padding:
@@ -224,6 +311,63 @@ class _PracticeSessionScreenState
           padding: const EdgeInsets.fromLTRB(28, 16, 28, 24),
           child: body,
         ),
+      ),
+    );
+  }
+}
+
+class _SongTile extends StatelessWidget {
+  const _SongTile({
+    required this.title,
+    required this.note,
+    required this.done,
+    required this.onDone,
+  });
+
+  final String title;
+  final String note;
+  final bool done;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: done ? JamJotColors.blueberryTint : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: JamJotColors.ink, width: 2),
+      ),
+      child: Row(
+        children: [
+          Text(done ? '✅' : '🎼', style: const TextStyle(fontSize: 22)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: text.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        decoration: done ? TextDecoration.lineThrough : null)),
+                if (note.isNotEmpty)
+                  Text(note,
+                      style: text.bodySmall
+                          ?.copyWith(color: JamJotColors.inkSoft)),
+              ],
+            ),
+          ),
+          if (!done)
+            OutlinedButton(
+              onPressed: onDone,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 40),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              child: const Text('Done!'),
+            ),
+        ],
       ),
     );
   }

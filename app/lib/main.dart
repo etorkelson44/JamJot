@@ -10,6 +10,7 @@ import 'screens/auth/teacher_setup_screen.dart';
 import 'screens/auth/title_screen.dart';
 import 'screens/calendar/calendar_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/lessons/lesson_builder_screen.dart';
 import 'screens/market/market_screen.dart';
 import 'screens/practice/practice_screen.dart';
 import 'screens/practice/practice_session_screen.dart';
@@ -80,6 +81,13 @@ final _router = GoRouter(
     GoRoute(
         path: '/practice-session',
         builder: (_, __) => const PracticeSessionScreen()),
+    GoRoute(
+      path: '/lesson-builder',
+      builder: (_, state) => LessonBuilderScreen(
+        studentId: state.uri.queryParameters['student'] ?? '',
+        studentName: state.uri.queryParameters['name'] ?? 'Student',
+      ),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (_, __, shell) => AppShell(shell: shell),
       branches: [

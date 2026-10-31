@@ -89,27 +89,49 @@ class HomeScreen extends ConsumerWidget {
                 tint: JamJotColors.plumTint,
               );
             }),
-          ] else ...[
-            const JamJotCard(
-              emoji: '🫐',
-              title: 'The backend is live',
-              subtitle:
-                  '27 tables, every permission rule, the berry economy — all wired to this very app.',
-            ),
             const SizedBox(height: 12),
+            Consumer(builder: (context, ref, _) {
+              final fans = ref
+                  .watch(fanTotalProvider(active['id'] as String))
+                  .valueOrNull;
+              return JamJotCard(
+                emoji: '🕶️',
+                title: fans == null || fans == 0
+                    ? 'Your crowd'
+                    : '$fans fan${fans == 1 ? '' : 's'} cheering for you',
+                subtitle: fans == null || fans == 0
+                    ? 'Finish songs in practice to win your first fans!'
+                    : 'Every finished song brings more fans to your stage.',
+                tint: JamJotColors.marigoldTint,
+              );
+            }),
+          ] else ...[
+            Consumer(builder: (context, ref, _) {
+              final students =
+                  ref.watch(myStudentsProvider).valueOrNull ?? [];
+              return Column(
+                children: [
+                  for (final kid in students) ...[
+                    JamJotCard(
+                      emoji: '🎼',
+                      tint: JamJotColors.blueberryTint,
+                      title: "${kid['display_name']}'s practice list",
+                      subtitle:
+                          'Add this week\'s songs — they earn fans & berries for finishing them.',
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.go(
+                          '/lesson-builder?student=${kid['id']}&name=${Uri.encodeComponent(kid['display_name'] as String)}'),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+              );
+            }),
             const JamJotCard(
               emoji: '🏗️',
               title: 'Coming next',
               subtitle:
-                  'The practice timer with recording → berries in the jar → lessons & messages.',
-              tint: JamJotColors.blueberryTint,
-            ),
-            const SizedBox(height: 12),
-            const JamJotCard(
-              emoji: '🎨',
-              title: 'Art slots ready',
-              subtitle:
-                  'Every drawing in the app is a placeholder file — swap in your own art anytime (see ART_MANIFEST.md).',
+                  'Sheet music on screen during practice → song recognition → messages & calendar.',
               tint: JamJotColors.marigoldTint,
             ),
           ],
