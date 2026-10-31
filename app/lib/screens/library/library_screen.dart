@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../services/folder_picker.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
@@ -73,36 +76,48 @@ Future<void> _openScoreFile(BuildContext context, String path) async {
   }
 }
 
-/// Picks a file from the device and saves it to the library.
-/// Returns the new scores row, or null if cancelled.
+/// Saves one file's bytes into the library, under [folder].
+Future<Map<String, dynamic>?> _saveScoreBytes(
+  WidgetRef ref, {
+  required String fileName,
+  required List<int> bytes,
+  String folder = '',
+}) async {
+  final uid = JamJotBackend.client.auth.currentUser!.id;
+  final safeName = fileName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  final path = '$uid/${DateTime.now().microsecondsSinceEpoch}-$safeName';
+  await JamJotBackend.client.storage.from('scores').uploadBinary(
+      path, Uint8List.fromList(bytes),
+      fileOptions: const FileOptions());
+  final title = fileName.contains('.')
+      ? fileName.substring(0, fileName.lastIndexOf('.'))
+      : fileName;
+  final row = await JamJotBackend.client
+      .from('scores')
+      .insert({
+        'owner_id': uid,
+        'title': title,
+        'original_path': path,
+        'folder': folder,
+        'meta': {'file_name': fileName, 'size': bytes.length},
+      })
+      .select()
+      .single();
+  return row;
+}
+
+/// Picks ONE file (used when attaching to an assignment).
 Future<Map<String, dynamic>?> uploadScoreFile(
-    BuildContext context, WidgetRef ref) async {
+    BuildContext context, WidgetRef ref, {String folder = ''}) async {
   final picked = await FilePicker.platform
       .pickFiles(type: FileType.custom, allowedExtensions: [
     'pdf', 'png', 'jpg', 'jpeg', 'xml', 'musicxml', 'mxl'
   ], withData: true);
   final file = picked?.files.firstOrNull;
   if (file == null || file.bytes == null) return null;
-  final uid = JamJotBackend.client.auth.currentUser!.id;
-  final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-  final path = '$uid/${DateTime.now().millisecondsSinceEpoch}-$safeName';
   try {
-    await JamJotBackend.client.storage
-        .from('scores')
-        .uploadBinary(path, file.bytes!, fileOptions: const FileOptions());
-    final title = file.name.contains('.')
-        ? file.name.substring(0, file.name.lastIndexOf('.'))
-        : file.name;
-    final row = await JamJotBackend.client
-        .from('scores')
-        .insert({
-          'owner_id': uid,
-          'title': title,
-          'original_path': path,
-          'meta': {'file_name': file.name, 'size': file.size},
-        })
-        .select()
-        .single();
+    final row = await _saveScoreBytes(ref,
+        fileName: file.name, bytes: file.bytes!, folder: folder);
     ref.invalidate(libraryScoresProvider);
     return row;
   } catch (_) {
@@ -114,7 +129,53 @@ Future<Map<String, dynamic>?> uploadScoreFile(
   }
 }
 
-// ---------------------------------------------------------------- Files tab
+/// Picks MANY files at once into [folder]. Returns how many landed.
+Future<int> uploadScoreFiles(
+    BuildContext context, WidgetRef ref, {String folder = ''}) async {
+  final picked = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: [
+        'pdf', 'png', 'jpg', 'jpeg', 'xml', 'musicxml', 'mxl'
+      ],
+      withData: true);
+  final files = picked?.files ?? [];
+  var count = 0;
+  for (final f in files) {
+    if (f.bytes == null) continue;
+    try {
+      await _saveScoreBytes(ref,
+          fileName: f.name, bytes: f.bytes!, folder: folder);
+      count++;
+    } catch (_) {}
+  }
+  if (count > 0) ref.invalidate(libraryScoresProvider);
+  return count;
+}
+
+/// Picks a whole FOLDER; every file keeps its place inside it, so the
+/// library mirrors the computer's organization under [folder].
+Future<int> uploadScoreFolder(
+    BuildContext context, WidgetRef ref, {String folder = ''}) async {
+  final files = await pickFolderFiles();
+  var count = 0;
+  for (final f in files) {
+    final rel = f.relativePath;
+    final slash = rel.lastIndexOf('/');
+    final sub = slash <= 0 ? '' : rel.substring(0, slash);
+    final target = [
+      if (folder.isNotEmpty) folder,
+      if (sub.isNotEmpty) sub,
+    ].join('/');
+    try {
+      await _saveScoreBytes(ref,
+          fileName: f.name, bytes: f.bytes, folder: target);
+      count++;
+    } catch (_) {}
+  }
+  if (count > 0) ref.invalidate(libraryScoresProvider);
+  return count;
+}
 
 class _FilesTab extends ConsumerStatefulWidget {
   const _FilesTab();
@@ -125,54 +186,266 @@ class _FilesTab extends ConsumerStatefulWidget {
 class _FilesTabState extends ConsumerState<_FilesTab> {
   String _query = '';
 
+  /// The folder being looked at ('' = the top of the library).
+  String _path = '';
+
+  /// Freshly made folders that have no files yet (so they still show).
+  final Set<String> _emptyFolders = {};
+
+  List<String> get _crumbs => _path.isEmpty ? [] : _path.split('/');
+
+  Future<void> _busyAction(Future<int> Function() run, String what) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(SnackBar(
+        duration: const Duration(days: 1),
+        content: Text('Uploading $what…')));
+    final count = await run();
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(
+        content: Text(count == 0
+            ? 'Nothing was uploaded.'
+            : '$count file${count == 1 ? '' : 's'} added! 🎉')));
+  }
+
+  Future<String?> _askName(String title, {String initial = ''}) async {
+    final c = TextEditingController(text: initial);
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text(title),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(c.text.trim()),
+            style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _rename(Map<String, dynamic> f) async {
+    final name =
+        await _askName('Rename file', initial: f['title'] as String? ?? '');
+    if (name == null || name.isEmpty) return;
+    await JamJotBackend.client
+        .from('scores')
+        .update({'title': name}).eq('id', f['id']);
+    ref.invalidate(libraryScoresProvider);
+  }
+
+  Future<void> _move(
+      Map<String, dynamic> f, List<Map<String, dynamic>> all) async {
+    final folders = <String>{''};
+    for (final x in all) {
+      final fo = (x['folder'] as String?) ?? '';
+      if (fo.isEmpty) continue;
+      final parts = fo.split('/');
+      for (var i = 1; i <= parts.length; i++) {
+        folders.add(parts.sublist(0, i).join('/'));
+      }
+    }
+    folders.addAll(_emptyFolders);
+    final sorted = folders.toList()..sort();
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: const Text('Move to…'),
+        children: [
+          for (final fo in sorted)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(fo),
+              child: Text(fo.isEmpty ? '🏠 Top of library' : '📁 $fo'),
+            ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(context).pop('::new::'),
+            child: const Text('➕ New folder…'),
+          ),
+        ],
+      ),
+    );
+    if (choice == null) return;
+    var target = choice;
+    if (choice == '::new::') {
+      final name = await _askName('New folder name');
+      if (name == null || name.isEmpty) return;
+      target = _path.isEmpty ? name : '$_path/$name';
+    }
+    await JamJotBackend.client
+        .from('scores')
+        .update({'folder': target}).eq('id', f['id']);
+    ref.invalidate(libraryScoresProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final files = ref.watch(libraryScoresProvider).valueOrNull ?? [];
-    final shown = files
-        .where((f) => looseMatch(_query, f['title'] as String? ?? ''))
-        .toList();
     final text = Theme.of(context).textTheme;
+    final searching = _query.trim().isNotEmpty;
+
+    // What lives right here, and which subfolders open from here.
+    final here = <Map<String, dynamic>>[];
+    final subfolders = <String, int>{};
+    for (final f in files) {
+      final fo = (f['folder'] as String?) ?? '';
+      if (searching) {
+        if (looseMatch(_query, '${f['title'] ?? ''} $fo')) here.add(f);
+        continue;
+      }
+      if (fo == _path) {
+        here.add(f);
+      } else if (_path.isEmpty
+          ? fo.isNotEmpty
+          : fo.startsWith('$_path/')) {
+        final rest = _path.isEmpty ? fo : fo.substring(_path.length + 1);
+        final next = rest.split('/').first;
+        subfolders[next] = (subfolders[next] ?? 0) + 1;
+      }
+    }
+    if (!searching) {
+      for (final e in _emptyFolders) {
+        if (_path.isEmpty ? !e.contains('/') : (e.startsWith('$_path/') && !e.substring(_path.length + 1).contains('/'))) {
+          final name = _path.isEmpty ? e : e.substring(_path.length + 1);
+          subfolders.putIfAbsent(name, () => 0);
+        }
+      }
+    }
+    final folderNames = subfolders.keys.toList()..sort();
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         _SearchField(
-            hint: 'Search music & books…',
+            hint: 'Search all music & books…',
             onChanged: (v) => setState(() => _query = v)),
         const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: () => uploadScoreFile(context, ref),
-          icon: const Icon(Icons.upload_file),
-          label: const Text('Upload file'),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Soon: connect to score stores & the sheet-music converter right here.',
-          style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
-        ),
-        const SizedBox(height: 12),
-        if (shown.isEmpty)
+        if (!searching) ...[
+          // Breadcrumbs.
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              TextButton(
+                onPressed: () => setState(() => _path = ''),
+                child: const Text('🏠 Library'),
+              ),
+              for (var i = 0; i < _crumbs.length; i++) ...[
+                const Text('›'),
+                TextButton(
+                  onPressed: () => setState(
+                      () => _path = _crumbs.sublist(0, i + 1).join('/')),
+                  child: Text(_crumbs[i]),
+                ),
+              ],
+            ],
+          ),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            FilledButton.icon(
+              onPressed: () => _busyAction(
+                  () => uploadScoreFiles(context, ref, folder: _path),
+                  'files'),
+              icon: const Icon(Icons.upload_file, size: 18),
+              label: const Text('Upload files'),
+            ),
+            if (folderPickingSupported)
+              FilledButton.icon(
+                onPressed: () => _busyAction(
+                    () => uploadScoreFolder(context, ref, folder: _path),
+                    'folder'),
+                icon: const Icon(Icons.drive_folder_upload, size: 18),
+                label: const Text('Upload a folder'),
+              ),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final name = await _askName('New folder name');
+                if (name == null || name.isEmpty) return;
+                setState(() {
+                  final full = _path.isEmpty ? name : '$_path/$name';
+                  _emptyFolders.add(full);
+                  _path = full;
+                });
+              },
+              icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+              label: const Text('New folder'),
+            ),
+          ]),
+          const SizedBox(height: 6),
+          Text(
+            'Uploading a folder keeps its whole structure. Tap a file\'s ⋮ to rename or move it.',
+            style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+          ),
+          const SizedBox(height: 10),
+          for (final name in folderNames)
+            ListTile(
+              leading: const Text('📁', style: TextStyle(fontSize: 22)),
+              title: Text(name),
+              subtitle: subfolders[name] == 0
+                  ? const Text('empty — upload or move files here')
+                  : Text(
+                      '${subfolders[name]} file${subfolders[name] == 1 ? '' : 's'}'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => setState(() =>
+                  _path = _path.isEmpty ? name : '$_path/$name'),
+            ),
+        ],
+        if (here.isEmpty && folderNames.isEmpty)
           Padding(
             padding: const EdgeInsets.all(24),
             child: Text(
-              _query.isEmpty
-                  ? 'No files yet — upload your first PDF or photo of sheet music.'
-                  : 'Nothing matches "$_query" yet.',
+              searching
+                  ? 'Nothing matches "$_query" yet.'
+                  : (_path.isEmpty
+                      ? 'No files yet — upload a PDF, a photo of sheet music, or a whole folder of them.'
+                      : 'This folder is empty — upload or move files here.'),
               textAlign: TextAlign.center,
               style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
             ),
           )
         else
-          for (final f in shown)
+          for (final f in here)
             ListTile(
               leading: const Text('📄', style: TextStyle(fontSize: 22)),
               title: Text(f['title'] as String? ?? 'File'),
-              subtitle: Text(DateFormat('MMM d, yyyy')
-                  .format(DateTime.parse(f['created_at'] as String).toLocal())),
-              trailing: const Icon(Icons.open_in_new, size: 18),
+              subtitle: Text(searching &&
+                      ((f['folder'] as String?) ?? '').isNotEmpty
+                  ? '📁 ${f['folder']}'
+                  : DateFormat('MMM d, yyyy').format(
+                      DateTime.parse(f['created_at'] as String).toLocal())),
               onTap: f['original_path'] == null
                   ? null
                   : () =>
                       _openScoreFile(context, f['original_path'] as String),
+              trailing: PopupMenuButton<String>(
+                onSelected: (v) {
+                  if (v == 'open' && f['original_path'] != null) {
+                    _openScoreFile(context, f['original_path'] as String);
+                  } else if (v == 'rename') {
+                    _rename(f);
+                  } else if (v == 'move') {
+                    _move(f, files);
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'open', child: Text('Open')),
+                  PopupMenuItem(value: 'rename', child: Text('Rename')),
+                  PopupMenuItem(value: 'move', child: Text('Move to…')),
+                ],
+              ),
             ),
       ],
     );
