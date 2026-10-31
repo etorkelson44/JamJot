@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
+import '../history/practice_history_screen.dart' show PracticeHistoryList;
 import '../library/library_screen.dart' show showCreateLessonDialog;
 
-/// One kid's page in the grown-up view: everything about this musician
-/// in one place, nothing mixed with their siblings.
+/// One kid's world in the grown-up view, organized into tabs:
+/// Overview • Teachers • Practices • Caregivers.
 class KidDetailScreen extends ConsumerWidget {
   const KidDetailScreen({super.key, required this.studentId});
 
@@ -18,154 +20,191 @@ class KidDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final students = ref.watch(myStudentsProvider).valueOrNull ?? [];
     final kid = students.where((s) => s['id'] == studentId).firstOrNull;
-    final text = Theme.of(context).textTheme;
 
     if (kid == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final name = kid['display_name'] as String;
-    final berries =
-        ref.watch(berryBalanceProvider(studentId)).valueOrNull;
-    final fans = ref.watch(fanTotalProvider(studentId)).valueOrNull;
-    final progress =
-        ref.watch(weeklyProgressProvider(studentId)).valueOrNull;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(name),
-        leading: BackButton(onPressed: () => context.go('/home')),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: JamJotColors.marigoldTint,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: JamJotColors.ink, width: 2),
-                  ),
-                  child: const Text('🎵', style: TextStyle(fontSize: 26)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name,
-                          style: text.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w700)),
-                      Text(
-                        (kid['instruments'] as List?)?.join(' · ') ?? '',
-                        style: text.bodyMedium
-                            ?.copyWith(color: JamJotColors.inkSoft),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _statChip('🫐 ${berries ?? '…'} berries'),
-                _statChip('🕶️ ${fans ?? '…'} fans'),
-                if (progress != null)
-                  _statChip(
-                      '📅 ${progress['days']} day${progress['days'] == 1 ? '' : 's'} this week'),
-                if (progress != null)
-                  _statChip('⏱️ ${progress['today_minutes']} min today'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            JamJotCard(
-              emoji: '📼',
-              title: 'Practice history',
-              subtitle: 'All sessions, every teacher — ratings & recordings.',
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go(
-                  '/history?student=$studentId&name=${Uri.encodeComponent(name)}'),
-            ),
-            const SizedBox(height: 20),
-            // One section per teacher connection, each kept separate.
-            Consumer(builder: (context, ref, _) {
-              final enrollments = ref
-                      .watch(kidEnrollmentsProvider(studentId))
-                      .valueOrNull ??
-                  [];
-              final chats = ref.watch(myChatsProvider).valueOrNull ?? [];
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final e in enrollments) ...[
-                    _sectionHeader(
-                      context,
-                      '🎻 ${(e['teachers'] as Map?)?['display_name'] ?? 'Teacher'} • ${e['instrument']}',
-                    ),
-                    _sectionCards(
-                      context,
-                      ref,
-                      kid: kid,
-                      name: name,
-                      enrollmentId: e['id'] as String,
-                      sectionLabel:
-                          '${(e['teachers'] as Map?)?['display_name'] ?? 'Teacher'} (${e['instrument']})',
-                      chat: chats
-                          .where((c) =>
-                              c['enrollment_id'] == e['id'])
-                          .firstOrNull,
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                  _sectionHeader(context, '🏡 Family-run practice'),
-                  _sectionCards(
-                    context,
-                    ref,
-                    kid: kid,
-                    name: name,
-                    enrollmentId: null,
-                    sectionLabel: 'Family-run',
-                    chat: null,
-                  ),
-                ],
-              );
-            }),
-          ],
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(name),
+          leading: BackButton(onPressed: () => context.go('/home')),
+          bottom: const TabBar(isScrollable: true, tabs: [
+            Tab(text: 'Overview'),
+            Tab(text: 'Teachers'),
+            Tab(text: 'Practices'),
+            Tab(text: 'Caregivers'),
+          ]),
         ),
+        body: TabBarView(children: [
+          _OverviewTab(kid: kid),
+          _TeachersTab(kid: kid),
+          PracticeHistoryList(studentId: studentId),
+          _CaregiversTab(studentId: studentId),
+        ]),
       ),
     );
   }
+}
 
-  Widget _sectionHeader(BuildContext context, String label) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+// ----------------------------------------------------------------- Overview
+
+class _OverviewTab extends ConsumerWidget {
+  const _OverviewTab({required this.kid});
+  final Map<String, dynamic> kid;
+
+  Widget _statChip(String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: JamJotColors.ink, width: 1.5),
+        ),
         child: Text(label,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700)),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
       );
 
-  Widget _sectionCards(
-    BuildContext context,
-    WidgetRef ref, {
-    required Map<String, dynamic> kid,
-    required String name,
-    required String? enrollmentId,
-    required String sectionLabel,
-    required Map<String, dynamic>? chat,
-  }) {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final studentId = kid['id'] as String;
+    final text = Theme.of(context).textTheme;
+    final berries = ref.watch(berryBalanceProvider(studentId)).valueOrNull;
+    final fans = ref.watch(fanTotalProvider(studentId)).valueOrNull;
+    final progress = ref.watch(weeklyProgressProvider(studentId)).valueOrNull;
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: JamJotColors.marigoldTint,
+                shape: BoxShape.circle,
+                border: Border.all(color: JamJotColors.ink, width: 2),
+              ),
+              child: const Text('🎵', style: TextStyle(fontSize: 26)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(kid['display_name'] as String,
+                      style: text.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  Text((kid['instruments'] as List?)?.join(' · ') ?? '',
+                      style: text.bodyMedium
+                          ?.copyWith(color: JamJotColors.inkSoft)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _statChip('🫐 ${berries ?? '…'} berries'),
+            _statChip('🕶️ ${fans ?? '…'} fans'),
+            if (progress != null)
+              _statChip(
+                  '📅 ${progress['days']} day${progress['days'] == 1 ? '' : 's'} this week'),
+            if (progress != null)
+              _statChip('⏱️ ${progress['today_minutes']} min today'),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'The Teachers tab holds each teacher connection (and your family-run practice) separately; Practices shows every session with recordings; Caregivers manages who helps and what they can do.',
+          style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+        ),
+      ],
+    );
+  }
+}
+
+// ----------------------------------------------------------------- Teachers
+
+class _TeachersTab extends ConsumerWidget {
+  const _TeachersTab({required this.kid});
+  final Map<String, dynamic> kid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final studentId = kid['id'] as String;
+    final name = kid['display_name'] as String;
+    final enrollments =
+        ref.watch(kidEnrollmentsProvider(studentId)).valueOrNull ?? [];
+    final chats = ref.watch(myChatsProvider).valueOrNull ?? [];
+    final text = Theme.of(context).textTheme;
+
+    Widget header(String label) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(label,
+              style:
+                  text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        );
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        for (final e in enrollments) ...[
+          header(
+              '🎻 ${(e['teachers'] as Map?)?['display_name'] ?? 'Teacher'} • ${e['instrument']}'),
+          _SectionCards(
+            kid: kid,
+            name: name,
+            enrollmentId: e['id'] as String,
+            sectionLabel:
+                '${(e['teachers'] as Map?)?['display_name'] ?? 'Teacher'} (${e['instrument']})',
+            chat: chats
+                .where((c) => c['enrollment_id'] == e['id'])
+                .firstOrNull,
+          ),
+          const SizedBox(height: 22),
+        ],
+        header('🏡 Family-run practice'),
+        _SectionCards(
+          kid: kid,
+          name: name,
+          enrollmentId: null,
+          sectionLabel: 'Family-run',
+          chat: null,
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionCards extends ConsumerWidget {
+  const _SectionCards({
+    required this.kid,
+    required this.name,
+    required this.enrollmentId,
+    required this.sectionLabel,
+    required this.chat,
+  });
+
+  final Map<String, dynamic> kid;
+  final String name;
+  final String? enrollmentId;
+  final String sectionLabel;
+  final Map<String, dynamic>? chat;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final studentId = kid['id'] as String;
     final enrollParam = enrollmentId == null
         ? ''
         : '&enrollment=$enrollmentId&section=${Uri.encodeComponent(sectionLabel)}';
-    // Only the primary caregiver manages lessons (teachers manage their own
-    // sections from their side) — other caregivers get a view-shaped page.
     final iAmPrimary = kid['is_primary'] == true;
     return Column(children: [
       if (iAmPrimary) ...[
@@ -194,18 +233,18 @@ class KidDetailScreen extends ConsumerWidget {
           tint: JamJotColors.blueberryTint,
           title: 'Practice & lessons',
           subtitle:
-              'Managed by ${enrollmentId == null ? 'the primary caregiver' : 'the teacher'} — you can follow along in the history below.',
+              'Managed by ${enrollmentId == null ? 'the primary caregiver' : 'the teacher'} — follow along in Practices.',
         ),
       ],
       if (chat != null) ...[
         const SizedBox(height: 10),
         JamJotCard(
           emoji: '💬',
-          title: 'Chat with ${chat['teacher_name']}',
-          subtitle: chat['instrument'] as String?,
+          title: 'Chat with ${chat!['teacher_name']}',
+          subtitle: chat!['instrument'] as String?,
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.go(
-              '/chat?enrollment=${chat['enrollment_id']}&title=${Uri.encodeComponent('$name × ${chat['teacher_name']}')}&primary=${chat['i_am_primary'] == true ? 1 : 0}&teacher=${chat['teacher_profile_id']}'),
+              '/chat?enrollment=${chat!['enrollment_id']}&title=${Uri.encodeComponent('$name × ${chat!['teacher_name']}')}&primary=${chat!['i_am_primary'] == true ? 1 : 0}&teacher=${chat!['teacher_profile_id']}'),
         ),
       ],
       if (enrollmentId != null) ...[
@@ -219,15 +258,123 @@ class KidDetailScreen extends ConsumerWidget {
       ],
     ]);
   }
+}
 
-  Widget _statChip(String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: JamJotColors.ink, width: 1.5),
+// --------------------------------------------------------------- Caregivers
+
+class _CaregiversTab extends ConsumerWidget {
+  const _CaregiversTab({required this.studentId});
+  final String studentId;
+
+  Future<void> _setGrant(BuildContext context, WidgetRef ref,
+      Map<String, dynamic> row, String field, Object value) async {
+    try {
+      await JamJotBackend.client
+          .from('guardianships')
+          .update({field: value}).eq('id', row['id']);
+      ref.invalidate(kidGuardianshipsProvider(studentId));
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Only the primary caregiver can change permissions.')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uid = JamJotBackend.client.auth.currentUser?.id;
+    final rows =
+        ref.watch(kidGuardianshipsProvider(studentId)).valueOrNull ?? [];
+    final iAmPrimary = rows.any(
+        (r) => r['profile_id'] == uid && r['is_primary'] == true);
+    final text = Theme.of(context).textTheme;
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text(
+          iAmPrimary
+              ? 'You are the primary caregiver. You decide what each helper can see and do.'
+              : 'Permissions are set by the primary caregiver.',
+          style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
         ),
-        child: Text(label,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-      );
+        const SizedBox(height: 14),
+        for (final r in rows) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+              border: Border.all(color: JamJotColors.ink, width: 2),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Text(r['profile_id'] == uid ? '🧑 You' : '🧑 Caregiver',
+                      style: text.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 8),
+                  if (r['is_primary'] == true)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: JamJotColors.marigoldTint,
+                        borderRadius: BorderRadius.circular(999),
+                        border:
+                            Border.all(color: JamJotColors.ink, width: 1),
+                      ),
+                      child: const Text('Primary',
+                          style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700)),
+                    ),
+                ]),
+                if (r['is_primary'] != true) ...[
+                  _grantSwitch(context, ref, r, 'can_message',
+                      'Part of teacher chats', iAmPrimary),
+                  _grantSwitch(context, ref, r, 'can_view_calendar',
+                      'Sees the calendar', iAmPrimary),
+                  _grantSwitch(context, ref, r, 'can_stock_rewards',
+                      'Stocks market rewards', iAmPrimary),
+                  _grantSwitch(context, ref, r, 'can_adjust_practice',
+                      'Adjusts practice records', iAmPrimary),
+                  _grantSwitch(
+                      context, ref, r, 'can_pay', 'Can pay for lessons',
+                      iAmPrimary),
+                ] else
+                  Text('Full access to everything for this kid.',
+                      style: text.bodySmall
+                          ?.copyWith(color: JamJotColors.inkSoft)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        const SizedBox(height: 6),
+        JamJotCard(
+          emoji: '✉️',
+          tint: JamJotColors.blueberryTint,
+          title: 'Invite another caregiver',
+          subtitle:
+              'Grandparents, co-parents & helpers — invites arrive in an upcoming update.',
+        ),
+      ],
+    );
+  }
+
+  Widget _grantSwitch(BuildContext context, WidgetRef ref,
+      Map<String, dynamic> row, String field, String label, bool editable) {
+    return SwitchListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      title: Text(label),
+      value: row[field] == true,
+      onChanged: editable
+          ? (v) => _setGrant(context, ref, row, field, v)
+          : null,
+    );
+  }
 }

@@ -40,12 +40,30 @@ final practiceHistoryProvider = FutureProvider.autoDispose
   };
 });
 
-class PracticeHistoryScreen extends ConsumerWidget {
+class PracticeHistoryScreen extends StatelessWidget {
   const PracticeHistoryScreen(
       {super.key, required this.studentId, required this.studentName});
 
   final String studentId;
   final String studentName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("$studentName's practices"),
+        leading: BackButton(onPressed: () => context.go('/home')),
+      ),
+      body: SafeArea(child: PracticeHistoryList(studentId: studentId)),
+    );
+  }
+}
+
+/// The history list itself — embeddable anywhere (kid tabs, reports).
+class PracticeHistoryList extends ConsumerWidget {
+  const PracticeHistoryList({super.key, required this.studentId});
+
+  final String studentId;
 
   Future<void> _listen(BuildContext context, String audioPath) async {
     try {
@@ -66,13 +84,7 @@ class PracticeHistoryScreen extends ConsumerWidget {
     final sessionsAsync = ref.watch(practiceHistoryProvider(studentId));
     final text = Theme.of(context).textTheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("$studentName's practices"),
-        leading: BackButton(onPressed: () => context.go('/home')),
-      ),
-      body: SafeArea(
-        child: sessionsAsync.when(
+    return sessionsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => const Center(
               child: Text('Could not load practices. Pull to retry.')),
@@ -103,9 +115,7 @@ class PracticeHistoryScreen extends ConsumerWidget {
                   onListen: _listen),
             );
           },
-        ),
-      ),
-    );
+        );
   }
 }
 

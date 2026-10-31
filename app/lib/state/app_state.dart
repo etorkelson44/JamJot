@@ -207,6 +207,17 @@ final weeklyProgressProvider =
   return {'days': days.length, 'today_minutes': todaySeconds ~/ 60};
 });
 
+/// Everyone caring for one kid, with their permission grants.
+final kidGuardianshipsProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, String>((ref, studentId) async {
+  final rows = await JamJotBackend.client
+      .from('guardianships')
+      .select()
+      .eq('student_id', studentId)
+      .order('is_primary', ascending: false);
+  return rows.cast<Map<String, dynamic>>();
+});
+
 /// Chats I belong to: one per enrollment (teacher + student + permitted
 /// caregivers). Caregivers without messaging permission see nothing.
 final myChatsProvider =
