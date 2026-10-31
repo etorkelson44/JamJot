@@ -42,7 +42,12 @@ class _PracticeSessionScreenState
 
   /// Uploaded clips not yet attached to a saved song summary,
   /// keyed by song id ('_freeplay' for no-song recording).
-  final Map<String, List<String>> _pendingClips = {};
+  /// Each entry: {path, at, wall_seconds, sound_seconds}.
+  final Map<String, List<Map<String, dynamic>>> _pendingClips = {};
+
+  /// Stamps for the clip currently rolling.
+  DateTime? _clipStartedAt;
+  int _clipStartSoundMs = 0;
 
   /// What each finished song earned & how the kid rated it (for the list).
   final Map<String, String> _ratings = {};
@@ -189,6 +194,8 @@ class _PracticeSessionScreenState
         return;
       }
       await _recorder.start(const RecordConfig(), path: '');
+      _clipStartedAt = DateTime.now();
+      _clipStartSoundMs = _soundMsTotal;
       // Sample the room 5x a second; count the slices that have sound.
       _sampler = Timer.periodic(const Duration(milliseconds: 200), (_) {
         final loud = _meter.level > _threshold;
@@ -212,29 +219,43 @@ class _PracticeSessionScreenState
     }
   }
 
-  /// Uploads one finished clip and files it under the song it belongs to.
+  /// Uploads one finished clip and files it under the song it belongs to,
+  /// stamped with when it started and both of its times.
   Future<void> _uploadClip(String blobUrl) async {
     final student = ref.read(activeStudentProvider);
     if (student == null || _sessionId == null) return;
+    final startedAt = _clipStartedAt ?? DateTime.now();
+    final wallSeconds = DateTime.now().difference(startedAt).inSeconds;
+    final soundSeconds = (_soundMsTotal - _clipStartSoundMs) ~/ 1000;
     try {
       final bytes = (await http.get(Uri.parse(blobUrl))).bodyBytes;
       if (bytes.isEmpty) return;
       final songKey = (_openSong?['id'] as String?) ?? '_freeplay';
       final path =
-          '${student['id']}/$_sessionId/$songKey-${DateTime.now().millisecondsSinceEpoch}.webm';
+          '${student['id']}/$_sessionId/$songKey-${startedAt.millisecondsSinceEpoch}.webm';
       await JamJotBackend.client.storage.from('recordings').uploadBinary(
             path,
             bytes,
             fileOptions: const FileOptions(contentType: 'audio/webm'),
           );
-      (_pendingClips[songKey] ??= []).add(path);
+      (_pendingClips[songKey] ??= []).add({
+        'path': path,
+        'at': startedAt.toUtc().toIso8601String(),
+        'wall_seconds': wallSeconds,
+        'sound_seconds': soundSeconds,
+      });
     } catch (_) {/* stats still count even if a clip fails to upload */}
   }
 
-  List<String> _takeClips(String songKey) {
-    final clips = _pendingClips.remove(songKey) ?? [];
-    return clips;
+  List<Map<String, dynamic>> _takeClips(String songKey) {
+    return _pendingClips.remove(songKey) ?? [];
   }
+
+  /// The two clip columns a segment row carries.
+  Map<String, dynamic> _clipFields(List<Map<String, dynamic>> clips) => {
+        'audio_paths': [for (final c in clips) c['path']],
+        'audio_clips': clips,
+      };
 
   /// Stop pressed on a song page: pause, confirm, rate, reward.
   Future<void> _stopAndMaybeFinishSong(Map<String, dynamic> song) async {
@@ -388,7 +409,7 @@ class _PracticeSessionScreenState
             'seconds': _songSeconds(id),
             'completed': true,
             'goal_results': {'self_rating': rating},
-            'audio_paths': _takeClips(id),
+            ..._clipFields(_takeClips(id)),
             'wall_seconds':
                 ((_wallMsBySong[id] ?? 0) - (_bankedWallMs[id] ?? 0)) ~/ 1000,
           })
@@ -465,7 +486,7 @@ class _PracticeSessionScreenState
             'seconds': extraSeconds,
             'completed': true,
             'goal_results': {'extra_practice': true},
-            'audio_paths': _takeClips(id),
+            ..._clipFields(_takeClips(id)),
             'wall_seconds':
                 ((_wallMsBySong[id] ?? 0) - (_bankedWallMs[id] ?? 0)) ~/ 1000,
           })
@@ -530,7 +551,7 @@ class _PracticeSessionScreenState
           'kind': 'playing',
           'seconds': freshSeconds,
           'completed': false,
-          'audio_paths': clips,
+          ..._clipFields(clips),
           'wall_seconds':
               ((_wallMsBySong[id] ?? 0) - (_bankedWallMs[id] ?? 0)) ~/ 1000,
         });
@@ -545,7 +566,7 @@ class _PracticeSessionScreenState
           'kind': 'free_play',
           'seconds': 0,
           'completed': false,
-          'audio_paths': freeClips,
+          ..._clipFields(freeClips),
         });
       }
 

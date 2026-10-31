@@ -117,6 +117,23 @@ class _SessionCard extends StatelessWidget {
   final Map<String, String> rewards;
   final Future<void> Function(BuildContext, String) onListen;
 
+  /// "7:42 PM • 1:50 sound / 2:20 rec" — each clip's own stamp.
+  static String _clipLabel(Map<String, dynamic> clip) {
+    String fmt(int s) =>
+        '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+    final parts = <String>[];
+    final at = clip['at'] as String?;
+    if (at != null) {
+      parts.add(DateFormat('h:mm a').format(DateTime.parse(at).toLocal()));
+    }
+    final sound = (clip['sound_seconds'] as num?)?.toInt();
+    final wall = (clip['wall_seconds'] as num?)?.toInt();
+    if (sound != null && wall != null) {
+      parts.add('${fmt(sound)} sound / ${fmt(wall)} rec');
+    }
+    return parts.isEmpty ? 'Listen' : parts.join(' • ');
+  }
+
   static const _ratings = {
     'got_it': '🌟 I got it down!',
     'getting_there': '👍 Getting there',
@@ -170,8 +187,17 @@ class _SessionCard extends StatelessWidget {
               Builder(builder: (context) {
                 final title = (seg['assignments'] as Map?)?['title'] ??
                     'Free play';
-                final clips =
-                    ((seg['audio_paths'] as List?) ?? []).cast<String>();
+                // Prefer stamped clips; fall back to bare paths (older data).
+                final stamped = ((seg['audio_clips'] as List?) ?? [])
+                    .cast<Map<String, dynamic>>();
+                final clips = stamped.isNotEmpty
+                    ? stamped
+                    : [
+                        for (final p
+                            in ((seg['audio_paths'] as List?) ?? [])
+                                .cast<String>())
+                          {'path': p}
+                      ];
                 final rating = _ratings[
                     (seg['goal_results'] as Map?)?['self_rating']];
                 final extra = (seg['goal_results'] as Map?)
@@ -223,13 +249,12 @@ class _SessionCard extends StatelessWidget {
                                     color: JamJotColors.inkSoft)),
                           if (rewardText != null && !extra)
                             Text(rewardText, style: text.bodySmall),
-                          for (var c = 0; c < clips.length; c++)
+                          for (final clip in clips)
                             ActionChip(
                               avatar: const Icon(Icons.play_arrow, size: 16),
-                              label: Text(clips.length == 1
-                                  ? 'Listen'
-                                  : 'Clip ${c + 1}'),
-                              onPressed: () => onListen(context, clips[c]),
+                              label: Text(_clipLabel(clip)),
+                              onPressed: () =>
+                                  onListen(context, clip['path'] as String),
                             ),
                         ],
                       ),
