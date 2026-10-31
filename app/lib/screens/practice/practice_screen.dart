@@ -90,17 +90,45 @@ class PracticeScreen extends ConsumerWidget {
                       text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
                 ),
                 const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: () => context.go('/practice-session'),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.play_arrow),
-                      SizedBox(width: 8),
-                      Text('Start practicing'),
-                    ],
-                  ),
-                ),
+                Consumer(builder: (context, ref, _) {
+                  final cutoff = ref
+                      .watch(practiceCutoffProvider(active['id'] as String))
+                      .valueOrNull;
+                  if (cutoff != null) {
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: JamJotColors.blueberryTint,
+                        borderRadius: BorderRadius.circular(14),
+                        border:
+                            Border.all(color: JamJotColors.ink, width: 2),
+                      ),
+                      child: Text(
+                        '🌙 This week\'s practice is all tucked in — your teacher is preparing your lesson sheet. See you at your lesson!',
+                        textAlign: TextAlign.center,
+                        style: text.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    );
+                  }
+                  final today = ref
+                      .watch(weeklyProgressProvider(active['id'] as String))
+                      .valueOrNull;
+                  final practicedToday = (today?['today_minutes'] ?? 0) > 0;
+                  return FilledButton(
+                    onPressed: () => context.go('/practice-session'),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.play_arrow),
+                        const SizedBox(width: 8),
+                        Text(practicedToday
+                            ? "Add to today's practice"
+                            : 'Start practicing'),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           ),

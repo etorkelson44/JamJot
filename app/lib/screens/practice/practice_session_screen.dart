@@ -91,6 +91,14 @@ class _PracticeSessionScreenState
       return;
     }
     try {
+      // The night-before-lesson cutoff: once the teacher's sheet is
+      // finalized, this week's practice is closed.
+      final cutoff = await ref
+          .read(practiceCutoffProvider(student['id'] as String).future);
+      if (cutoff != null) {
+        if (mounted) context.go('/practice');
+        return;
+      }
       final lesson = await ref
           .read(currentLessonProvider(student['id'] as String).future);
       _lesson = lesson;

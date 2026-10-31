@@ -125,6 +125,34 @@ final weeklyProgressProvider =
   return {'days': days.length, 'today_minutes': todaySeconds ~/ 60};
 });
 
+/// Is practice closed right now because a lesson is coming up and the
+/// teacher's weekly sheet has been finalized? (Night-before cutoff.)
+/// Returns null when open, or info about the lesson when closed.
+final practiceCutoffProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>?, String>((ref, studentId) async {
+  final now = DateTime.now();
+  final rows = await JamJotBackend.client
+      .from('event_students')
+      .select('calendar_events(kind, starts_at, title, teachers(finalize_hour))')
+      .eq('student_id', studentId);
+  for (final r in rows) {
+    final ev = r['calendar_events'] as Map<String, dynamic>?;
+    if (ev == null || ev['kind'] != 'lesson') continue;
+    final startsAt = DateTime.parse(ev['starts_at'] as String).toLocal();
+    if (startsAt.isBefore(now)) continue;
+    final finalizeHour =
+        ((ev['teachers'] as Map?)?['finalize_hour'] as num?)?.toInt() ?? 21;
+    final dayBefore = DateTime(startsAt.year, startsAt.month, startsAt.day)
+        .subtract(const Duration(days: 1));
+    final cutoff = DateTime(
+        dayBefore.year, dayBefore.month, dayBefore.day, finalizeHour);
+    if (!now.isBefore(cutoff) && now.isBefore(startsAt)) {
+      return {'lesson_at': startsAt, 'title': ev['title']};
+    }
+  }
+  return null;
+});
+
 /// Remember the active kid across app restarts (best effort).
 Future<void> rememberActiveStudent(String? studentId) async {
   final uid = JamJotBackend.client.auth.currentUser?.id;
