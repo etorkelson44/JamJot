@@ -42,9 +42,63 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
     return lesson;
   }
 
+  Future<void> _editGoals() async {
+    final lesson = await _ensureLesson();
+    final days = TextEditingController(
+        text: '${(lesson['goal_days'] as num?)?.toInt() ?? 4}');
+    final minutes = TextEditingController(
+        text: '${(lesson['goal_minutes'] as num?)?.toInt() ?? 15}');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: const Text('Weekly goals'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: days,
+              keyboardType: TextInputType.number,
+              decoration:
+                  const InputDecoration(labelText: 'Practice days per week'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: minutes,
+              keyboardType: TextInputType.number,
+              decoration:
+                  const InputDecoration(labelText: 'Minutes per day'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await JamJotBackend.client.from('lessons').update({
+      'goal_days': int.tryParse(days.text.trim()) ?? 4,
+      'goal_minutes': int.tryParse(minutes.text.trim()) ?? 15,
+    }).eq('id', lesson['id']);
+    ref.invalidate(currentLessonProvider(widget.studentId));
+  }
+
   Future<void> _addSong() async {
     final title = TextEditingController();
     final note = TextEditingController();
+    final minutes = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -68,6 +122,13 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                   labelText: 'Note (optional) — e.g. "slowly, count out loud"'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: minutes,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                  labelText: 'Minutes goal for this song (optional)'),
             ),
           ],
         ),
@@ -93,6 +154,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
         'lesson_id': lesson['id'],
         'title': title.text.trim(),
         'song_note': note.text.trim(),
+        'suggested_minutes': int.tryParse(minutes.text.trim()),
         'order_idx': count,
       });
       ref.invalidate(currentLessonProvider(widget.studentId));
@@ -129,6 +191,17 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
             Text(
               'These songs show up in ${widget.studentName}\'s practice sessions. Finishing a song earns fans and berries.',
               style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
+            ),
+            const SizedBox(height: 16),
+            JamJotCard(
+              emoji: '🎯',
+              tint: JamJotColors.marigoldTint,
+              title: 'Weekly goals',
+              subtitle: lesson == null
+                  ? 'Days per week & minutes per day'
+                  : '${(lesson['goal_days'] as num?)?.toInt() ?? 4} days a week • ${(lesson['goal_minutes'] as num?)?.toInt() ?? 15} minutes a day',
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: _editGoals,
             ),
             const SizedBox(height: 16),
             if (lessonAsync.isLoading)

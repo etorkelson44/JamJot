@@ -5,12 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:record/record.dart';
 
+import '../../services/sound_meter.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
 
-enum _Phase { starting, recording, saving, celebrate, micDenied, error }
+enum _Phase { starting, practicing, saving, celebrate, micDenied, error }
 
 class PracticeSessionScreen extends ConsumerStatefulWidget {
   const PracticeSessionScreen({super.key});
@@ -23,19 +24,39 @@ class PracticeSessionScreen extends ConsumerStatefulWidget {
 class _PracticeSessionScreenState
     extends ConsumerState<PracticeSessionScreen> {
   final _recorder = AudioRecorder();
+  final _meter = SoundMeter();
+
   _Phase _phase = _Phase.starting;
   String? _sessionId;
-  int _seconds = 0;
-  Timer? _ticker;
+  Map<String, dynamic>? _lesson;
+  List<Map<String, dynamic>> _songs = [];
+
+  /// Which song page is open (null = the song list).
+  Map<String, dynamic>? _openSong;
+
+  /// Is the mic actively recording right now (record button pressed)?
+  bool _live = false;
+  bool _recorderStarted = false;
+
+  /// Sound-counted milliseconds, total and for the open song.
+  int _soundMsTotal = 0;
+  final Map<String, int> _soundMsBySong = {};
+  final Set<String> _done = {};
+
+  /// Loudness gate: room must be louder than this to count.
+  static const _threshold = 0.035;
+  bool _soundNow = false;
+  Timer? _sampler;
+
+  // Celebration numbers.
   int _minutes = 0;
   int _berries = 0;
   int _fans = 0;
   int _songsDone = 0;
   bool _goalMet = false;
 
-  List<Map<String, dynamic>> _songs = [];
-  final Set<String> _done = {};
-  int _lastMarkSeconds = 0;
+  int get _activeSeconds => _soundMsTotal ~/ 1000;
+  int _songSeconds(String id) => (_soundMsBySong[id] ?? 0) ~/ 1000;
 
   @override
   void initState() {
@@ -52,25 +73,62 @@ class _PracticeSessionScreenState
     try {
       final lesson = await ref
           .read(currentLessonProvider(student['id'] as String).future);
+      _lesson = lesson;
       _songs = (lesson?['assignments'] as List?)
               ?.cast<Map<String, dynamic>>() ??
           [];
-      final hasMic = await _recorder.hasPermission();
-      if (!hasMic) {
-        setState(() => _phase = _Phase.micDenied);
-        return;
-      }
-      await _recorder.start(const RecordConfig(), path: '');
       final row = await JamJotBackend.client
           .from('sessions')
           .insert({'student_id': student['id']})
           .select()
           .single();
       _sessionId = row['id'] as String;
-      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() => _seconds++);
+      setState(() => _phase = _Phase.practicing);
+    } catch (_) {
+      setState(() => _phase = _Phase.error);
+    }
+  }
+
+  Future<void> _toggleLive() async {
+    if (_live) {
+      // Stop: pause the recorder and the sound counting.
+      _sampler?.cancel();
+      try {
+        await _recorder.pause();
+      } catch (_) {}
+      setState(() => _live = false);
+      return;
+    }
+    // Start (or resume) listening & recording.
+    try {
+      if (!_recorderStarted) {
+        final hasMic = await _recorder.hasPermission();
+        final meterOk = await _meter.start();
+        if (!hasMic || !meterOk) {
+          setState(() => _phase = _Phase.micDenied);
+          return;
+        }
+        await _recorder.start(const RecordConfig(), path: '');
+        _recorderStarted = true;
+      } else {
+        try {
+          await _recorder.resume();
+        } catch (_) {}
+      }
+      // Sample the room 5x a second; count the slices that have sound.
+      _sampler = Timer.periodic(const Duration(milliseconds: 200), (_) {
+        final loud = _meter.level > _threshold;
+        if (loud) {
+          _soundMsTotal += 200;
+          final open = _openSong;
+          if (open != null) {
+            final id = open['id'] as String;
+            _soundMsBySong[id] = (_soundMsBySong[id] ?? 0) + 200;
+          }
+        }
+        if (mounted) setState(() => _soundNow = loud);
       });
-      setState(() => _phase = _Phase.recording);
+      setState(() => _live = true);
     } catch (_) {
       setState(() => _phase = _Phase.error);
     }
@@ -79,15 +137,16 @@ class _PracticeSessionScreenState
   Future<void> _markSongDone(Map<String, dynamic> song) async {
     final id = song['id'] as String;
     if (_done.contains(id)) return;
-    setState(() => _done.add(id));
-    final spent = _seconds - _lastMarkSeconds;
-    _lastMarkSeconds = _seconds;
+    setState(() {
+      _done.add(id);
+      _openSong = null;
+    });
     try {
       await JamJotBackend.client.from('session_segments').insert({
         'session_id': _sessionId,
         'assignment_id': id,
         'kind': 'playing',
-        'seconds': spent,
+        'seconds': _songSeconds(id),
         'completed': true,
       });
       if (mounted) {
@@ -103,20 +162,21 @@ class _PracticeSessionScreenState
 
   Future<void> _finish() async {
     setState(() => _phase = _Phase.saving);
-    _ticker?.cancel();
+    _sampler?.cancel();
     try {
-      await _recorder.stop();
-    } catch (_) {/* recording is best-effort in this version */}
+      if (_recorderStarted) await _recorder.stop();
+    } catch (_) {}
+    _meter.stop();
     try {
       await JamJotBackend.client.from('sessions').update({
         'ended_at': DateTime.now().toUtc().toIso8601String(),
-        'total_seconds': _seconds,
+        'total_seconds': _activeSeconds,
       }).eq('id', _sessionId!);
       final res = await JamJotBackend.client.functions
           .invoke('award-practice', body: {'session_id': _sessionId});
       final data = res.data as Map<String, dynamic>? ?? {};
       setState(() {
-        _minutes = (data['minutes'] as num?)?.toInt() ?? _seconds ~/ 60;
+        _minutes = (data['minutes'] as num?)?.toInt() ?? _activeSeconds ~/ 60;
         _berries = (data['berries'] as num?)?.toInt() ?? 0;
         _fans = (data['fans'] as num?)?.toInt() ?? 0;
         _songsDone = (data['songs'] as num?)?.toInt() ?? _done.length;
@@ -125,8 +185,10 @@ class _PracticeSessionScreenState
       });
     } catch (_) {
       setState(() {
-        _minutes = _seconds ~/ 60;
+        _minutes = _activeSeconds ~/ 60;
         _berries = 0;
+        _fans = 0;
+        _songsDone = _done.length;
         _goalMet = false;
         _phase = _Phase.celebrate;
       });
@@ -135,14 +197,15 @@ class _PracticeSessionScreenState
 
   @override
   void dispose() {
-    _ticker?.cancel();
+    _sampler?.cancel();
     _recorder.dispose();
+    _meter.stop();
     super.dispose();
   }
 
-  String get _clock {
-    final m = (_seconds ~/ 60).toString().padLeft(2, '0');
-    final s = (_seconds % 60).toString().padLeft(2, '0');
+  String _fmt(int seconds) {
+    final m = (seconds ~/ 60).toString().padLeft(2, '0');
+    final s = (seconds % 60).toString().padLeft(2, '0');
     return '$m:$s';
   }
 
@@ -150,11 +213,11 @@ class _PracticeSessionScreenState
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final student = ref.watch(activeStudentProvider);
-    final name = student?['display_name'] ?? 'musician';
 
     Widget body;
     switch (_phase) {
       case _Phase.starting:
+      case _Phase.saving:
         body = const Center(child: CircularProgressIndicator());
       case _Phase.micDenied:
         body = _Message(
@@ -163,10 +226,7 @@ class _PracticeSessionScreenState
           body:
               'Practice only counts when it is really heard. Please allow the microphone in your browser and try again.',
           button: 'Try again',
-          onTap: () {
-            setState(() => _phase = _Phase.starting);
-            _begin();
-          },
+          onTap: () => setState(() => _phase = _Phase.practicing),
         );
       case _Phase.error:
         body = _Message(
@@ -179,139 +239,321 @@ class _PracticeSessionScreenState
             _begin();
           },
         );
-      case _Phase.saving:
-        body = const Center(child: CircularProgressIndicator());
-      case _Phase.recording:
-        body = Column(
-          children: [
-            const SizedBox(height: 8),
-            const _RecordingBanner(),
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const DancingNote(size: 72),
-                const SizedBox(width: 16),
-                Text(_clock,
-                    style: text.displayMedium?.copyWith(
-                        fontWeight: FontWeight.w700, letterSpacing: 2)),
-              ],
-            ),
-            Text('Keep the music coming, $name!',
-                style:
-                    text.titleSmall?.copyWith(color: JamJotColors.inkSoft)),
-            const SizedBox(height: 14),
-            Expanded(
-              child: _songs.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No songs assigned yet — free play!\nEvery minute still counts.',
-                        textAlign: TextAlign.center,
-                        style: text.titleMedium
-                            ?.copyWith(color: JamJotColors.inkSoft),
-                      ),
-                    )
-                  : ListView(
-                      children: [
-                        for (final song in _songs) ...[
-                          _SongTile(
-                            title: song['title'] as String,
-                            note: song['song_note'] as String? ?? '',
-                            done: _done.contains(song['id']),
-                            onDone: () => _markSongDone(song),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-                      ],
-                    ),
-            ),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: _finish,
-              child: const Text("I'm done practicing"),
-            ),
-          ],
-        );
+      case _Phase.practicing:
+        body = _openSong == null ? _buildSongList(text) : _buildSongPage(text);
       case _Phase.celebrate:
-        body = Column(
-          children: [
-            const Spacer(),
-            const Text('🎉', style: TextStyle(fontSize: 56)),
-            const SizedBox(height: 8),
-            Text('You practiced $_minutes minute${_minutes == 1 ? '' : 's'}!',
-                textAlign: TextAlign.center,
-                style: text.headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            if (_songsDone > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                    '$_songsDone song${_songsDone == 1 ? '' : 's'} finished',
-                    style: text.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-              ),
-            if (_fans > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: JamJotColors.marigoldTint,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: JamJotColors.ink, width: 2),
-                  ),
-                  child: Text('🕶️ +$_fans new fans in your crowd!',
-                      style: text.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                ),
-              ),
-            if (_berries > 0) ...[
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                decoration: BoxDecoration(
-                  color: JamJotColors.plumTint,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: JamJotColors.ink, width: 2),
-                ),
-                child: Text('🫐 +$_berries berries in your jar!',
-                    style: text.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-              ),
-              if (_goalMet)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text('Session goal reached — amazing!',
-                      style: text.titleSmall
-                          ?.copyWith(color: JamJotColors.leaf)),
-                ),
-            ] else ...[
-              Text(
-                'The session goal is 15 minutes — a little more next time and the berries start rolling in!',
-                textAlign: TextAlign.center,
-                style:
-                    text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
-              ),
-            ],
-            const Spacer(),
-            FilledButton(
-              onPressed: () => context.go('/home'),
-              child: const Text('Back to my stage'),
-            ),
-          ],
-        );
+        body = _buildCelebrate(text);
     }
 
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 16, 28, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
           child: body,
         ),
       ),
+    );
+  }
+
+  Widget _goalsHeader(TextTheme text) {
+    final student = ref.watch(activeStudentProvider);
+    final goalDays = (_lesson?['goal_days'] as num?)?.toInt() ?? 4;
+    final goalMinutes = (_lesson?['goal_minutes'] as num?)?.toInt() ?? 15;
+    final progress = student == null
+        ? null
+        : ref
+            .watch(weeklyProgressProvider(student['id'] as String))
+            .valueOrNull;
+    final days = progress?['days'] ?? 0;
+    final baseToday = progress?['today_minutes'] ?? 0;
+    final todayMinutes = baseToday + _activeSeconds ~/ 60;
+    Widget chip(String label, bool met) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: met ? JamJotColors.blueberryTint : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: JamJotColors.ink, width: 1.5),
+          ),
+          child: Text(label,
+              style: text.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+        );
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: [
+        chip('📅 This week: $days/$goalDays days', days >= goalDays),
+        chip('⏱️ Today: $todayMinutes/$goalMinutes min',
+            todayMinutes >= goalMinutes),
+      ],
+    );
+  }
+
+  Widget _recordButton() {
+    return FilledButton(
+      onPressed: _toggleLive,
+      style: FilledButton.styleFrom(
+        backgroundColor:
+            _live ? JamJotColors.recording : JamJotColors.ink,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(_live ? Icons.stop : Icons.fiber_manual_record,
+              color: _live ? Colors.white : JamJotColors.recording),
+          const SizedBox(width: 8),
+          Text(_live ? 'Stop' : 'Record'),
+        ],
+      ),
+    );
+  }
+
+  Widget _liveBanner(TextTheme text) {
+    if (!_live) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: JamJotColors.recording, width: 2),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: _soundNow
+                  ? JamJotColors.recording
+                  : JamJotColors.outline,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _soundNow
+                  ? 'Listening & recording — I hear you!'
+                  : 'Listening & recording — waiting for sound…',
+              style: text.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSongList(TextTheme text) {
+    return Column(
+      children: [
+        _goalsHeader(text),
+        const SizedBox(height: 10),
+        _liveBanner(text),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const DancingNote(size: 56),
+            const SizedBox(width: 12),
+            Text(_fmt(_activeSeconds),
+                style: text.displaySmall
+                    ?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(width: 8),
+            Text('of real\nsound', style: text.labelSmall),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: _songs.isEmpty
+              ? Center(
+                  child: Text(
+                    'No songs assigned yet — free play!\nTap Record and make some music; sound minutes still count.',
+                    textAlign: TextAlign.center,
+                    style: text.titleSmall
+                        ?.copyWith(color: JamJotColors.inkSoft),
+                  ),
+                )
+              : ListView(
+                  children: [
+                    for (final song in _songs) ...[
+                      _SongTile(
+                        title: song['title'] as String,
+                        note: song['song_note'] as String? ?? '',
+                        minutes:
+                            (song['suggested_minutes'] as num?)?.toInt(),
+                        spentSeconds: _songSeconds(song['id'] as String),
+                        done: _done.contains(song['id']),
+                        onTap: _done.contains(song['id'])
+                            ? null
+                            : () => setState(() => _openSong = song),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
+                ),
+        ),
+        const SizedBox(height: 8),
+        _recordButton(),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: _finish,
+          child: const Text("I'm done practicing"),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSongPage(TextTheme text) {
+    final song = _openSong!;
+    final id = song['id'] as String;
+    final target = (song['suggested_minutes'] as num?)?.toInt();
+    final note = song['song_note'] as String? ?? '';
+    final lessonNote = _lesson?['lesson_note'] as String? ?? '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              onPressed: () => setState(() => _openSong = null),
+              icon: const Icon(Icons.arrow_back),
+            ),
+            Expanded(
+              child: Text(song['title'] as String,
+                  style: text.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+            ),
+            Text(
+              target == null
+                  ? _fmt(_songSeconds(id))
+                  : '${_fmt(_songSeconds(id))} / $target min',
+              style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        _liveBanner(text),
+        Expanded(
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: JamJotColors.outline, width: 2),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('🎼', style: TextStyle(fontSize: 44)),
+                const SizedBox(height: 6),
+                Text(
+                  'Sheet music shows here once\nscores are uploaded',
+                  textAlign: TextAlign.center,
+                  style:
+                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (note.isNotEmpty || lessonNote.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: JamJotColors.marigoldTint,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: JamJotColors.ink, width: 2),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (note.isNotEmpty)
+                  Text('🎵 $note',
+                      style: text.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                if (lessonNote.isNotEmpty)
+                  Text('📝 $lessonNote', style: text.bodySmall),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        _recordButton(),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () => _markSongDone(song),
+          child: const Text('Done with this song'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCelebrate(TextTheme text) {
+    return Column(
+      children: [
+        const Spacer(),
+        const Text('🎉', style: TextStyle(fontSize: 56)),
+        const SizedBox(height: 8),
+        Text(
+            'You made $_minutes minute${_minutes == 1 ? '' : 's'} of real music!',
+            textAlign: TextAlign.center,
+            style:
+                text.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 16),
+        if (_songsDone > 0)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text('$_songsDone song${_songsDone == 1 ? '' : 's'} finished',
+                style:
+                    text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          ),
+        if (_fans > 0)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: BoxDecoration(
+                color: JamJotColors.marigoldTint,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: JamJotColors.ink, width: 2),
+              ),
+              child: Text('🕶️ +$_fans new fans in your crowd!',
+                  style:
+                      text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            ),
+          ),
+        if (_berries > 0) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: JamJotColors.plumTint,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: JamJotColors.ink, width: 2),
+            ),
+            child: Text('🫐 +$_berries berries in your jar!',
+                style:
+                    text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+          ),
+          if (_goalMet)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text('Session goal reached — amazing!',
+                  style: text.titleSmall?.copyWith(color: JamJotColors.leaf)),
+            ),
+        ] else ...[
+          Text(
+            'The session goal is 15 sound-minutes — a little more next time and the berries start rolling in!',
+            textAlign: TextAlign.center,
+            style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
+          ),
+        ],
+        const Spacer(),
+        FilledButton(
+          onPressed: () => context.go('/home'),
+          child: const Text('Back to my stage'),
+        ),
+      ],
     );
   }
 }
@@ -320,111 +562,65 @@ class _SongTile extends StatelessWidget {
   const _SongTile({
     required this.title,
     required this.note,
+    required this.minutes,
+    required this.spentSeconds,
     required this.done,
-    required this.onDone,
+    required this.onTap,
   });
 
   final String title;
   final String note;
+  final int? minutes;
+  final int spentSeconds;
   final bool done;
-  final VoidCallback onDone;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: done ? JamJotColors.blueberryTint : Colors.white,
+    final spentMin = spentSeconds ~/ 60;
+    return Material(
+      color: done ? JamJotColors.blueberryTint : Colors.white,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: JamJotColors.ink, width: 2),
+        side: const BorderSide(color: JamJotColors.ink, width: 2),
       ),
-      child: Row(
-        children: [
-          Text(done ? '✅' : '🎼', style: const TextStyle(fontSize: 22)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: text.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        decoration: done ? TextDecoration.lineThrough : null)),
-                if (note.isNotEmpty)
-                  Text(note,
-                      style: text.bodySmall
-                          ?.copyWith(color: JamJotColors.inkSoft)),
-              ],
-            ),
-          ),
-          if (!done)
-            OutlinedButton(
-              onPressed: onDone,
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 40),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-              ),
-              child: const Text('Done!'),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RecordingBanner extends StatefulWidget {
-  const _RecordingBanner();
-
-  @override
-  State<_RecordingBanner> createState() => _RecordingBannerState();
-}
-
-class _RecordingBannerState extends State<_RecordingBanner>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-    lowerBound: 0.35,
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: JamJotColors.recording, width: 2),
-      ),
-      child: Row(
-        children: [
-          FadeTransition(
-            opacity: _pulse,
-            child: Container(
-              width: 14,
-              height: 14,
-              decoration: const BoxDecoration(
-                color: JamJotColors.recording,
-                shape: BoxShape.circle,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Text(done ? '✅' : '🎼', style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: text.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            decoration:
+                                done ? TextDecoration.lineThrough : null)),
+                    if (note.isNotEmpty)
+                      Text(note,
+                          style: text.bodySmall
+                              ?.copyWith(color: JamJotColors.inkSoft)),
+                  ],
+                ),
               ),
-            ),
+              Text(
+                minutes == null
+                    ? (spentMin > 0 ? '$spentMin min' : '')
+                    : '$spentMin/$minutes min',
+                style:
+                    text.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              if (!done) const Icon(Icons.chevron_right),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Listening & recording — tap "I\'m done" to stop',
-              style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

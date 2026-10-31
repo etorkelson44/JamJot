@@ -100,6 +100,31 @@ final currentLessonProvider =
   return lesson;
 });
 
+/// Practice progress this week: {'days': n, 'today_minutes': m}.
+final weeklyProgressProvider =
+    FutureProvider.family<Map<String, int>, String>((ref, studentId) async {
+  final now = DateTime.now();
+  final monday = DateTime(now.year, now.month, now.day)
+      .subtract(Duration(days: now.weekday - 1));
+  final rows = await JamJotBackend.client
+      .from('sessions')
+      .select('started_at, total_seconds')
+      .eq('student_id', studentId)
+      .gte('started_at', monday.toUtc().toIso8601String());
+  final days = <String>{};
+  var todaySeconds = 0;
+  final todayKey = '${now.year}-${now.month}-${now.day}';
+  for (final r in rows) {
+    final secs = (r['total_seconds'] as num?)?.toInt() ?? 0;
+    if (secs <= 0) continue;
+    final dt = DateTime.parse(r['started_at'] as String).toLocal();
+    final key = '${dt.year}-${dt.month}-${dt.day}';
+    days.add(key);
+    if (key == todayKey) todaySeconds += secs;
+  }
+  return {'days': days.length, 'today_minutes': todaySeconds ~/ 60};
+});
+
 /// Remember the active kid across app restarts (best effort).
 Future<void> rememberActiveStudent(String? studentId) async {
   final uid = JamJotBackend.client.auth.currentUser?.id;
