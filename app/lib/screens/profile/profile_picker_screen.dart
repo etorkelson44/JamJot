@@ -11,27 +11,22 @@ import '../../widgets/pin_dialog.dart';
 class ProfilePickerScreen extends ConsumerWidget {
   const ProfilePickerScreen({super.key});
 
+  /// EVERY profile opens with its own PIN — no exceptions. A missing PIN
+  /// must be created on the spot. Forgotten PINs unlock with the account
+  /// password ("I forgot my PIN" on the prompt), which only grown-ups know.
   Future<void> _pickGrownUp(
       BuildContext context, WidgetRef ref, Map<String, dynamic>? profile) async {
-    final active = ref.read(activeStudentProvider);
     final pinHash = profile?['app_pin_hash'] as String?;
-    // Leaving a kid profile ALWAYS requires the grown-up PIN.
-    if (active != null) {
-      if (pinHash != null) {
-        final ok = await askForPin(context,
-            title: 'Grown-up PIN', pinHash: pinHash);
-        if (!ok) return;
-      }
-      // Legacy account without a PIN: let them through once, then make
-      // them set one right away so the door locks behind them.
-      ref.read(activeStudentProvider.notifier).state = null;
-      await rememberActiveStudent(null);
-      if (context.mounted && pinHash == null) {
-        await _setGrownUpPin(context, ref, required: true);
-      }
-      if (context.mounted) context.go('/home');
-      return;
+    if (pinHash != null) {
+      final ok =
+          await askForPin(context, title: 'Grown-up PIN', pinHash: pinHash);
+      if (!ok) return;
+    } else {
+      // First time: the grown-up PIN must exist before the door opens.
+      final set = await _setGrownUpPin(context, ref, required: true);
+      if (!set) return;
     }
+    if (!context.mounted) return;
     ref.read(activeStudentProvider.notifier).state = null;
     await rememberActiveStudent(null);
     if (context.mounted) context.go('/home');
@@ -39,28 +34,32 @@ class ProfilePickerScreen extends ConsumerWidget {
 
   Future<void> _pickKid(BuildContext context, WidgetRef ref,
       Map<String, dynamic> kid, Map<String, dynamic>? profile) async {
-    final active = ref.read(activeStudentProvider);
     final kidPinHash = kid['pin_hash'] as String?;
     final grownUpPinHash = profile?['app_pin_hash'] as String?;
-    if (active == null) {
-      // Grown-up entering a kid profile: free — but only once the
-      // grown-up PIN exists, so kids can never wander back out.
-      if (grownUpPinHash == null) {
+
+    if (kidPinHash != null) {
+      final ok = await askForPin(context,
+          title: "${kid['display_name']}'s PIN", pinHash: kidPinHash);
+      if (!ok) return;
+    } else {
+      // No PIN yet: a grown-up must supervise creating one before entry —
+      // prove it with the grown-up PIN (or create that first).
+      if (grownUpPinHash != null) {
+        final ok = await askForPin(context,
+            title: 'Grown-up PIN first', pinHash: grownUpPinHash);
+        if (!ok) return;
+      } else {
         final set = await _setGrownUpPin(context, ref, required: true);
-        if (!set || !context.mounted) return;
+        if (!set) return;
       }
-    } else if (active['id'] != kid['id']) {
-      // Sibling switch: the target kid's PIN opens their profile —
-      // or the grown-up PIN when that kid has none.
-      if (kidPinHash != null) {
-        final ok = await askForPin(context,
-            title: "${kid['display_name']}'s PIN", pinHash: kidPinHash);
-        if (!ok) return;
-      } else if (grownUpPinHash != null) {
-        final ok = await askForPin(context,
-            title: 'Grown-up PIN', pinHash: grownUpPinHash);
-        if (!ok) return;
-      }
+      if (!context.mounted) return;
+      final pin = await askForNewPin(context,
+          title: "Create ${kid['display_name']}'s PIN");
+      if (pin == null) return;
+      await JamJotBackend.client
+          .from('students')
+          .update({'pin_hash': hashPin(pin)}).eq('id', kid['id']);
+      ref.invalidate(myStudentsProvider);
     }
     if (!context.mounted) return;
     ref.read(activeStudentProvider.notifier).state = kid;
@@ -195,7 +194,7 @@ class ProfilePickerScreen extends ConsumerWidget {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'Grown-ups can hop into kid profiles freely. Getting back out asks for a PIN.',
+          'Every profile opens with its own PIN. Forgot one? Tap "I forgot my PIN" and use the account password.',
           textAlign: TextAlign.center,
           style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
         ),
