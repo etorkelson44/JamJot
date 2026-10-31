@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
@@ -179,8 +180,125 @@ class _TeachersTab extends ConsumerWidget {
           sectionLabel: 'Family-run',
           chat: null,
         ),
+        if (kid['is_primary'] == true) ...[
+          const SizedBox(height: 22),
+          header('➕ Connect a new teacher'),
+          JamJotCard(
+            emoji: '🔗',
+            tint: JamJotColors.blueberryTint,
+            title: 'I have a teacher code or link',
+            subtitle:
+                'Type the code from $name\'s teacher (or scan their QR with your camera).',
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _enterTeacherCode(context, ref, kid),
+          ),
+          const SizedBox(height: 10),
+          JamJotCard(
+            emoji: '✉️',
+            tint: JamJotColors.marigoldTint,
+            title: 'Invite the teacher to JamJot',
+            subtitle:
+                'Not on JamJot yet? Send a ready-written email explaining the app.',
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _emailTeacherInvite(name),
+          ),
+        ],
       ],
     );
+  }
+
+  Future<void> _enterTeacherCode(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> kid) async {
+    final code = TextEditingController();
+    String? error;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+            side: JamJotShape.border,
+          ),
+          title: const Text('Enter teacher code'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: code,
+                autofocus: true,
+                decoration: const InputDecoration(
+                    labelText: 'Code (or paste their whole link)'),
+              ),
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(error!,
+                      style:
+                          const TextStyle(color: JamJotColors.recording)),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                var token = code.text.trim();
+                // Accept a pasted link too.
+                final match = RegExp(r'token=([a-f0-9]+)').firstMatch(token);
+                if (match != null) token = match.group(1)!;
+                try {
+                  final res = await JamJotBackend.client.functions.invoke(
+                      'redeem-invite',
+                      body: {'token': token, 'student_id': kid['id']});
+                  final data = res.data as Map<String, dynamic>? ?? {};
+                  if (data['mode'] == 'redeemed') {
+                    ref.invalidate(
+                        kidEnrollmentsProvider(kid['id'] as String));
+                    ref.invalidate(myChatsProvider);
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(
+                              'Connected with ${data['teacher_name']}! 🎉')));
+                    }
+                  } else {
+                    setState(() => error =
+                        (data['error'] as String?) ?? 'That code did not work.');
+                  }
+                } catch (_) {
+                  setState(() => error = 'That code did not work. Check it and try again?');
+                }
+              },
+              style: FilledButton.styleFrom(minimumSize: const Size(110, 44)),
+              child: const Text('Connect'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _emailTeacherInvite(String kidName) async {
+    const appLink = 'https://etorkelson44.github.io/JamJot/';
+    final subject = Uri.encodeComponent(
+        'Would you try JamJot for $kidName\'s music practice?');
+    final body = Uri.encodeComponent('''Hi!
+
+We've started using JamJot, an app that makes $kidName's home practice really count: it listens while they play, so only real playing time is counted, records their practice so you can hear exactly how the week went, and keeps them motivated with little rewards for finishing their assigned songs.
+
+For you as a teacher, it means: you assign the week's songs with your notes, see (and hear!) exactly what was practiced before each lesson, and can message us through the app.
+
+Creating a teacher account is free and takes about two minutes:
+1. Open $appLink
+2. Tap "I teach music" and set up your profile
+3. Open "My teaching" → "My teacher code" and send us the code or QR — we'll connect $kidName right away
+
+Hope you'll give it a try!
+''');
+    await launchUrl(Uri.parse('mailto:?subject=$subject&body=$body'));
   }
 }
 

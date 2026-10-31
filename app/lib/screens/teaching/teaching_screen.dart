@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
@@ -125,6 +126,96 @@ class TeachingScreen extends ConsumerWidget {
     );
   }
 
+  /// Each teacher has one standing code families can use anytime —
+  /// as text, a link, or a QR code at the studio door.
+  Future<void> _showMyCode(BuildContext context, WidgetRef ref,
+      Map<String, dynamic> teacher) async {
+    final uid = JamJotBackend.client.auth.currentUser!.id;
+    // Find (or mint) the standing, reusable invitation.
+    final existing = await JamJotBackend.client
+        .from('invitations')
+        .select()
+        .eq('created_by', uid)
+        .eq('single_use', false)
+        .limit(1);
+    Map<String, dynamic> invite;
+    if (existing.isNotEmpty) {
+      invite = existing.first;
+    } else {
+      invite = await JamJotBackend.client
+          .from('invitations')
+          .insert({
+            'kind': 'enrollment',
+            'created_by': uid,
+            'teacher_id': teacher['id'],
+            'studio_id': teacher['studio_id'],
+            'instrument':
+                (teacher['instruments'] as List?)?.firstOrNull ?? 'Music',
+            'single_use': false,
+          })
+          .select()
+          .single();
+    }
+    if (!context.mounted) return;
+    final code = invite['token'] as String;
+    final link = 'https://etorkelson44.github.io/JamJot/#/invite?token=$code';
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: const Text('My teacher code'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                  'Families can scan this, tap the link, or type the code into JamJot to connect with you — it never expires and works for every student.'),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: JamJotColors.ink, width: 2),
+                ),
+                child: QrImageView(
+                  data: link,
+                  size: 190,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SelectableText('Code: $code',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 16)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: link));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Link copied!')));
+              }
+            },
+            icon: const Icon(Icons.copy),
+            label: const Text('Copy link'),
+            style: FilledButton.styleFrom(minimumSize: const Size(130, 44)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teacher = ref.watch(myTeacherProvider).valueOrNull;
@@ -154,6 +245,12 @@ class TeachingScreen extends ConsumerWidget {
                     onPressed: () => _inviteFamily(context, ref, teacher),
                     icon: const Icon(Icons.person_add_alt),
                     label: const Text('Invite a family'),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => _showMyCode(context, ref, teacher),
+                    icon: const Icon(Icons.qr_code_2),
+                    label: const Text('My teacher code (QR & link)'),
                   ),
                   const SizedBox(height: 20),
                   Text('My students',
