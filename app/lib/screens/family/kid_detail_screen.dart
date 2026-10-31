@@ -432,9 +432,22 @@ class _CaregiversTab extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Text(r['profile_id'] == uid ? '🧑 You' : '🧑 Caregiver',
-                      style: text.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  Expanded(
+                    child: Builder(builder: (context) {
+                      final shown =
+                          (r['display_name'] as String?)?.trim() ?? '';
+                      final rel =
+                          (r['relationship'] as String?)?.trim() ?? '';
+                      final label = r['profile_id'] == uid
+                          ? (shown.isEmpty ? 'You' : '$shown (you)')
+                          : (shown.isEmpty ? 'Caregiver' : shown);
+                      return Text(
+                          '🧑 $label${rel.isEmpty ? '' : ' • $rel'}',
+                          overflow: TextOverflow.ellipsis,
+                          style: text.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700));
+                    }),
+                  ),
                   const SizedBox(width: 8),
                   if (r['is_primary'] == true)
                     Container(
@@ -488,6 +501,21 @@ class _CaregiversTab extends ConsumerWidget {
   }
 
   Future<void> _inviteCaregiver(BuildContext context, WidgetRef ref) async {
+    final kidName = (ref.read(myStudentsProvider).valueOrNull ?? [])
+            .where((s) => s['id'] == studentId)
+            .firstOrNull?['display_name'] as String? ??
+        'our kid';
+    final name = TextEditingController();
+    final customRelation = TextEditingController();
+    final phone = TextEditingController();
+    final email = TextEditingController();
+    const relations = [
+      'Mom', 'Dad', 'Stepmom', 'Stepdad', 'Grandma', 'Grandpa',
+      'Aunt', 'Uncle', 'Nanny / sitter',
+    ];
+    String relation = '';
+    var fullAccess = false;
+    var fullAccessAcknowledged = false;
     final grants = <String, bool>{
       'can_message': false,
       'can_view_calendar': true,
@@ -502,6 +530,7 @@ class _CaregiversTab extends ConsumerWidget {
       'can_adjust_practice': 'Adjusts practice records',
       'can_pay': 'Can pay for lessons',
     };
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -511,22 +540,124 @@ class _CaregiversTab extends ConsumerWidget {
             side: JamJotShape.border,
           ),
           title: const Text('Invite a caregiver'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                    'Choose what they can do (you can change it anytime):'),
-                for (final key in grants.keys)
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: name,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.words,
+                    decoration:
+                        const InputDecoration(labelText: 'Their name'),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Relationship to $kidName',
+                      style:
+                          const TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final r in relations)
+                        ChoiceChip(
+                          label: Text(r),
+                          selected: relation == r,
+                          selectedColor: JamJotColors.blueberryTint,
+                          onSelected: (_) => setState(() {
+                            relation = r;
+                            customRelation.clear();
+                          }),
+                        ),
+                    ],
+                  ),
+                  TextField(
+                    controller: customRelation,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                        labelText: '…or something else'),
+                    onChanged: (_) => setState(() => relation = ''),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('What can they do?',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
                   SwitchListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(labels[key]!),
-                    value: grants[key]!,
-                    onChanged: (v) => setState(() => grants[key] = v),
+                    title: const Text('Full partner access',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle:
+                        const Text('Everything on — like a second parent.'),
+                    value: fullAccess,
+                    onChanged: (v) => setState(() {
+                      fullAccess = v;
+                      if (!v) fullAccessAcknowledged = false;
+                    }),
                   ),
-              ],
+                  if (fullAccess)
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: JamJotColors.marigoldTint,
+                        borderRadius: BorderRadius.circular(12),
+                        border:
+                            Border.all(color: JamJotColors.ink, width: 1.5),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'They\'ll be able to do everything you can for $kidName — chats, calendar, rewards, practice records, and payments. For safety, each child keeps exactly ONE primary caregiver (you): only you can change caregivers\' permissions or remove chat messages.',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          CheckboxListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            title: const Text(
+                                'I understand and want to give full access',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13)),
+                            value: fullAccessAcknowledged,
+                            onChanged: (v) => setState(
+                                () => fullAccessAcknowledged = v == true),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    for (final key in grants.keys)
+                      SwitchListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(labels[key]!),
+                        value: grants[key]!,
+                        onChanged: (v) => setState(() => grants[key] = v),
+                      ),
+                  const SizedBox(height: 6),
+                  const Text('How should the invite reach them?',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                        labelText: 'Phone number (for a text)'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                        labelText: 'Email address (for an email)'),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -535,7 +666,10 @@ class _CaregiversTab extends ConsumerWidget {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: (name.text.trim().isEmpty ||
+                      (fullAccess && !fullAccessAcknowledged))
+                  ? null
+                  : () => Navigator.of(context).pop(true),
               style: FilledButton.styleFrom(minimumSize: const Size(130, 44)),
               child: const Text('Create invite'),
             ),
@@ -544,6 +678,12 @@ class _CaregiversTab extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
+
+    final relationFinal = relation.isNotEmpty
+        ? relation
+        : (customRelation.text.trim().isNotEmpty
+            ? customRelation.text.trim()
+            : 'Caregiver');
     try {
       final uid = JamJotBackend.client.auth.currentUser!.id;
       final invite = await JamJotBackend.client
@@ -552,13 +692,36 @@ class _CaregiversTab extends ConsumerWidget {
             'kind': 'caregiver',
             'created_by': uid,
             'student_id': studentId,
-            'preset_grants': grants,
+            'preset_grants': {
+              ...grants,
+              'full_access': fullAccess,
+              'caregiver_name': name.text.trim(),
+              'relationship': relationFinal,
+            },
           })
           .select()
           .single();
       if (!context.mounted) return;
       final link =
           'https://etorkelson44.github.io/JamJot/#/invite?token=${invite['token']}';
+      final allowed = [
+        for (final key in grants.keys)
+          if (grants[key] == true) labels[key]!.toLowerCase(),
+      ];
+      final permissionLine = fullAccess
+          ? 'do everything a parent can — full partner access'
+          : (allowed.isEmpty
+              ? 'follow along with their practice'
+              : 'follow along with their practice, plus: ${allowed.join(', ')}');
+      final message = '''Hi ${name.text.trim()}!
+
+I set you up as $kidName's $relationFinal on JamJot — the app we use for music practice. You'll be able to $permissionLine.
+
+Tap this link, create your free account, and you're in:
+$link
+
+(The link is just for you and works once.)''';
+
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
@@ -566,39 +729,49 @@ class _CaregiversTab extends ConsumerWidget {
             borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
             side: JamJotShape.border,
           ),
-          title: const Text('Caregiver invite ready! 🎉'),
+          title: const Text('Invite ready — send it! 🎉'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                  'Send this link to them — it works whether or not they have JamJot yet, and can only be used once.'),
+              Text(
+                  'A ready-written message for ${name.text.trim()} — send it however you like:'),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: JamJotColors.blueberryTint,
-                  borderRadius: BorderRadius.circular(10),
+              if (phone.text.trim().isNotEmpty)
+                FilledButton.icon(
+                  onPressed: () => launchUrl(Uri.parse(
+                      'sms:${phone.text.trim()}?body=${Uri.encodeComponent(message)}')),
+                  icon: const Icon(Icons.sms_outlined),
+                  label: const Text('Send as text'),
                 ),
-                child:
-                    SelectableText(link, style: const TextStyle(fontSize: 12)),
+              if (phone.text.trim().isNotEmpty)
+                const SizedBox(height: 8),
+              if (email.text.trim().isNotEmpty)
+                FilledButton.icon(
+                  onPressed: () => launchUrl(Uri.parse(
+                      'mailto:${email.text.trim()}?subject=${Uri.encodeComponent("You're invited to $kidName's JamJot!")}&body=${Uri.encodeComponent(message)}')),
+                  icon: const Icon(Icons.email_outlined),
+                  label: const Text('Send as email'),
+                ),
+              if (email.text.trim().isNotEmpty)
+                const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: message));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Message copied!')));
+                  }
+                },
+                icon: const Icon(Icons.copy),
+                label: const Text('Copy the message'),
               ),
             ],
           ),
           actions: [
-            FilledButton.icon(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: link));
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Link copied!')));
-                }
-              },
-              icon: const Icon(Icons.copy),
-              label: const Text('Copy link'),
-              style:
-                  FilledButton.styleFrom(minimumSize: const Size(140, 44)),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Done'),
             ),
           ],
         ),

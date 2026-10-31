@@ -224,7 +224,9 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           const Center(child: DancingNote(size: 130)),
           const SizedBox(height: 12),
           Text(
-            "You're invited to be one of ${_info!['student_name']}'s caregivers! 🎉",
+            _info!['caregiver_name'] != null
+                ? "Hi ${_info!['caregiver_name']}! You're invited to be ${_info!['student_name']}'s ${(_info!['relationship'] as String?)?.toLowerCase() ?? 'caregiver'} on JamJot! 🎉"
+                : "You're invited to be one of ${_info!['student_name']}'s caregivers! 🎉",
             textAlign: TextAlign.center,
             style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           ),

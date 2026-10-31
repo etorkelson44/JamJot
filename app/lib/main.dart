@@ -20,6 +20,7 @@ import 'screens/teaching/teaching_screen.dart';
 import 'screens/market/market_screen.dart';
 import 'screens/practice/practice_screen.dart';
 import 'screens/practice/practice_session_screen.dart';
+import 'screens/profile/my_profile_screen.dart';
 import 'screens/profile/profile_picker_screen.dart';
 import 'screens/shell.dart';
 import 'services/supabase_service.dart';
@@ -114,6 +115,8 @@ final _router = GoRouter(
     GoRoute(path: '/library', builder: (_, __) => const LibraryScreen()),
     GoRoute(path: '/teaching', builder: (_, __) => const TeachingScreen()),
     GoRoute(path: '/messages', builder: (_, __) => const MessagesScreen()),
+    GoRoute(
+        path: '/my-profile', builder: (_, __) => const MyProfileScreen()),
     GoRoute(
       path: '/kid',
       builder: (_, state) => KidDetailScreen(

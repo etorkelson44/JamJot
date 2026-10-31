@@ -191,6 +191,14 @@ class HomeScreen extends ConsumerWidget {
                 ],
               );
             }),
+            JamJotCard(
+              emoji: '🧑',
+              title: 'My profile',
+              subtitle: 'Your name, phone, and how each kid\'s page shows you.',
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/my-profile'),
+            ),
+            const SizedBox(height: 12),
             const JamJotCard(
               emoji: '🏗️',
               title: 'Coming next',
