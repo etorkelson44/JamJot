@@ -12,6 +12,7 @@ import 'screens/calendar/calendar_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/market/market_screen.dart';
 import 'screens/practice/practice_screen.dart';
+import 'screens/practice/practice_session_screen.dart';
 import 'screens/profile/profile_picker_screen.dart';
 import 'screens/shell.dart';
 import 'services/supabase_service.dart';
@@ -76,6 +77,9 @@ final _router = GoRouter(
         builder: (_, __) => const TeacherSetupScreen()),
     GoRoute(
         path: '/profiles', builder: (_, __) => const ProfilePickerScreen()),
+    GoRoute(
+        path: '/practice-session',
+        builder: (_, __) => const PracticeSessionScreen()),
     StatefulShellRoute.indexedStack(
       builder: (_, __, shell) => AppShell(shell: shell),
       branches: [

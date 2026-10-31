@@ -69,16 +69,26 @@ class HomeScreen extends ConsumerWidget {
             JamJotCard(
               emoji: '🎻',
               title: (active['instruments'] as List?)?.join(' · ') ?? 'Music',
-              subtitle: 'Your practice sessions will start here very soon.',
+              subtitle: 'Tap to start a practice session!',
               tint: JamJotColors.blueberryTint,
+              onTap: () => context.go('/practice'),
             ),
             const SizedBox(height: 12),
-            const JamJotCard(
-              emoji: '🫐',
-              title: 'Berry jar',
-              subtitle: 'Earn berries for real practice — the jar is coming!',
-              tint: JamJotColors.plumTint,
-            ),
+            Consumer(builder: (context, ref, _) {
+              final balance = ref
+                  .watch(berryBalanceProvider(active['id'] as String))
+                  .valueOrNull;
+              return JamJotCard(
+                emoji: '🫐',
+                title: balance == null
+                    ? 'Berry jar'
+                    : '$balance berr${balance == 1 ? 'y' : 'ies'} in your jar',
+                subtitle: balance == null || balance == 0
+                    ? 'Practice 15+ minutes to start filling it up!'
+                    : 'Keep practicing to grow your stash for the Market.',
+                tint: JamJotColors.plumTint,
+              );
+            }),
           ] else ...[
             const JamJotCard(
               emoji: '🫐',

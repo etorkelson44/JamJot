@@ -53,6 +53,20 @@ final myTeacherProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
 final activeStudentProvider =
     StateProvider<Map<String, dynamic>?>((ref) => null);
 
+/// A student's berry balance (sum of their ledger).
+final berryBalanceProvider =
+    FutureProvider.family<int, String>((ref, studentId) async {
+  final rows = await JamJotBackend.client
+      .from('berry_ledger')
+      .select('amount')
+      .eq('student_id', studentId);
+  var total = 0;
+  for (final r in rows) {
+    total += (r['amount'] as num).toInt();
+  }
+  return total;
+});
+
 /// Remember the active kid across app restarts (best effort).
 Future<void> rememberActiveStudent(String? studentId) async {
   final uid = JamJotBackend.client.auth.currentUser?.id;
