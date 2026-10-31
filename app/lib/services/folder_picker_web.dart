@@ -53,7 +53,12 @@ Future<void> _readAll(web.HTMLInputElement input,
       if (!_allowed.contains(ext)) continue;
       if (f.size > _maxBytes) continue;
       try {
-        final buf = await f.arrayBuffer().toDart;
+        // A file that can't be read in 20s (e.g. an iCloud placeholder
+        // that never downloads) is skipped instead of freezing everything.
+        final buf = await f
+            .arrayBuffer()
+            .toDart
+            .timeout(const Duration(seconds: 20));
         final bytes = buf.toDart.asUint8List();
         final rel = f.webkitRelativePath;
         out.add(PickedFolderFile(
