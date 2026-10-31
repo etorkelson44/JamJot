@@ -211,8 +211,47 @@ final _router = GoRouter(
   ],
 );
 
-class JamJotApp extends StatelessWidget {
+class JamJotApp extends StatefulWidget {
   const JamJotApp({super.key});
+
+  @override
+  State<JamJotApp> createState() => _JamJotAppState();
+}
+
+class _JamJotAppState extends State<JamJotApp>
+    with WidgetsBindingObserver {
+  DateTime? _hiddenAt;
+
+  /// Away longer than this and the app relocks to the profile picker.
+  static const _relockAfter = Duration(minutes: 3);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      _hiddenAt ??= DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      final hiddenAt = _hiddenAt;
+      _hiddenAt = null;
+      if (hiddenAt != null &&
+          DateTime.now().difference(hiddenAt) > _relockAfter &&
+          JamJotBackend.signedIn) {
+        _router.go('/gate');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
