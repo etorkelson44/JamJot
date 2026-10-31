@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -472,15 +473,142 @@ class _CaregiversTab extends ConsumerWidget {
           const SizedBox(height: 10),
         ],
         const SizedBox(height: 6),
-        JamJotCard(
-          emoji: '✉️',
-          tint: JamJotColors.blueberryTint,
-          title: 'Invite another caregiver',
-          subtitle:
-              'Grandparents, co-parents & helpers — invites arrive in an upcoming update.',
-        ),
+        if (iAmPrimary)
+          JamJotCard(
+            emoji: '✉️',
+            tint: JamJotColors.blueberryTint,
+            title: 'Invite another caregiver',
+            subtitle:
+                'Grandparents, co-parents & helpers — you choose what they can do.',
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _inviteCaregiver(context, ref),
+          ),
       ],
     );
+  }
+
+  Future<void> _inviteCaregiver(BuildContext context, WidgetRef ref) async {
+    final grants = <String, bool>{
+      'can_message': false,
+      'can_view_calendar': true,
+      'can_stock_rewards': false,
+      'can_adjust_practice': false,
+      'can_pay': false,
+    };
+    const labels = {
+      'can_message': 'Part of teacher chats',
+      'can_view_calendar': 'Sees the calendar',
+      'can_stock_rewards': 'Stocks market rewards',
+      'can_adjust_practice': 'Adjusts practice records',
+      'can_pay': 'Can pay for lessons',
+    };
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+            side: JamJotShape.border,
+          ),
+          title: const Text('Invite a caregiver'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'Choose what they can do (you can change it anytime):'),
+                for (final key in grants.keys)
+                  SwitchListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(labels[key]!),
+                    value: grants[key]!,
+                    onChanged: (v) => setState(() => grants[key] = v),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: FilledButton.styleFrom(minimumSize: const Size(130, 44)),
+              child: const Text('Create invite'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      final uid = JamJotBackend.client.auth.currentUser!.id;
+      final invite = await JamJotBackend.client
+          .from('invitations')
+          .insert({
+            'kind': 'caregiver',
+            'created_by': uid,
+            'student_id': studentId,
+            'preset_grants': grants,
+          })
+          .select()
+          .single();
+      if (!context.mounted) return;
+      final link =
+          'https://etorkelson44.github.io/JamJot/#/invite?token=${invite['token']}';
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+            side: JamJotShape.border,
+          ),
+          title: const Text('Caregiver invite ready! 🎉'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                  'Send this link to them — it works whether or not they have JamJot yet, and can only be used once.'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: JamJotColors.blueberryTint,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child:
+                    SelectableText(link, style: const TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: link));
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Link copied!')));
+                }
+              },
+              icon: const Icon(Icons.copy),
+              label: const Text('Copy link'),
+              style:
+                  FilledButton.styleFrom(minimumSize: const Size(140, 44)),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not create the invite just now.')));
+      }
+    }
   }
 
   Widget _grantSwitch(BuildContext context, WidgetRef ref,

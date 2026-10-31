@@ -54,6 +54,53 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     }
   }
 
+  Future<void> _acceptCaregiver() async {
+    setState(() => _busy = true);
+    try {
+      final res = await JamJotBackend.client.functions.invoke(
+          'redeem-invite',
+          body: {'token': widget.token, 'accept': true});
+      final data = res.data as Map<String, dynamic>? ?? {};
+      if (data['mode'] == 'redeemed') {
+        pendingInviteToken = null;
+        ref.invalidate(myStudentsProvider);
+        if (mounted) {
+          await showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+                side: JamJotShape.border,
+              ),
+              title: const Text('Welcome to the team! 🎉'),
+              content: Text(
+                  'You are now one of ${data['student_name']}\'s caregivers. You can cheer along from your home screen.'),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: FilledButton.styleFrom(
+                      minimumSize: const Size(96, 44)),
+                  child: const Text("Let's go"),
+                ),
+              ],
+            ),
+          );
+          if (mounted) context.go('/gate');
+        }
+      } else {
+        setState(() {
+          _error = (data['error'] as String?) ?? 'Something went wrong.';
+          _busy = false;
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _error = 'Something went wrong. Try again?';
+        _busy = false;
+      });
+    }
+  }
+
   Future<void> _accept() async {
     setState(() => _busy = true);
     try {
@@ -169,6 +216,31 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       );
     } else if (_info == null) {
       body = const Center(child: CircularProgressIndicator());
+    } else if (_info!['kind'] == 'caregiver') {
+      body = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Center(child: DancingNote(size: 130)),
+          const SizedBox(height: 12),
+          Text(
+            "You're invited to be one of ${_info!['student_name']}'s caregivers! 🎉",
+            textAlign: TextAlign.center,
+            style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'You\'ll be able to follow their practice journey — and whatever else their primary caregiver has switched on for you.',
+            textAlign: TextAlign.center,
+            style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: _busy ? null : _acceptCaregiver,
+            child: Text(_busy ? 'Joining…' : "Count me in!"),
+          ),
+        ],
+      );
     } else {
       final hint = _info!['student_hint'] as String?;
       body = Column(
