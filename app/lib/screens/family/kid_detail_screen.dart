@@ -164,26 +164,39 @@ class KidDetailScreen extends ConsumerWidget {
     final enrollParam = enrollmentId == null
         ? ''
         : '&enrollment=$enrollmentId&section=${Uri.encodeComponent(sectionLabel)}';
+    // Only the primary caregiver manages lessons (teachers manage their own
+    // sections from their side) — other caregivers get a view-shaped page.
+    final iAmPrimary = kid['is_primary'] == true;
     return Column(children: [
-      JamJotCard(
-        emoji: '🎼',
-        tint: JamJotColors.blueberryTint,
-        title: 'Practice list',
-        subtitle: 'Songs, notes, and goals for $sectionLabel.',
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => context.go(
-            '/lesson-builder?student=$studentId&name=${Uri.encodeComponent(name)}$enrollParam'),
-      ),
-      const SizedBox(height: 10),
-      JamJotCard(
-        emoji: '🪄',
-        tint: JamJotColors.marigoldTint,
-        title: 'Assign a lesson',
-        subtitle: 'From your library, with goals & a start date.',
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => showCreateLessonDialog(context, ref,
-            student: kid, enrollmentId: enrollmentId),
-      ),
+      if (iAmPrimary) ...[
+        JamJotCard(
+          emoji: '🎼',
+          tint: JamJotColors.blueberryTint,
+          title: 'Practice list',
+          subtitle: 'Songs, notes, and goals for $sectionLabel.',
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.go(
+              '/lesson-builder?student=$studentId&name=${Uri.encodeComponent(name)}$enrollParam'),
+        ),
+        const SizedBox(height: 10),
+        JamJotCard(
+          emoji: '🪄',
+          tint: JamJotColors.marigoldTint,
+          title: 'Assign a lesson',
+          subtitle: 'From your library, with goals & a start date.',
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => showCreateLessonDialog(context, ref,
+              student: kid, enrollmentId: enrollmentId),
+        ),
+      ] else ...[
+        JamJotCard(
+          emoji: '👀',
+          tint: JamJotColors.blueberryTint,
+          title: 'Practice & lessons',
+          subtitle:
+              'Managed by ${enrollmentId == null ? 'the primary caregiver' : 'the teacher'} — you can follow along in the history below.',
+        ),
+      ],
       if (chat != null) ...[
         const SizedBox(height: 10),
         JamJotCard(
