@@ -195,7 +195,7 @@ class HomeScreen extends ConsumerWidget {
               emoji: '🏗️',
               title: 'Coming next',
               subtitle:
-                  'Sheet music on screen during practice → song recognition → messages & calendar.',
+                  'Calendar & scheduled lessons → the berry Market → song recognition.',
               tint: JamJotColors.marigoldTint,
             ),
           ],

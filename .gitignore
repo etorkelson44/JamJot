@@ -1,7 +1,8 @@
 app/build/
 app/.dart_tool/
 app/.flutter-plugins*
-app/web/
+app/web/*
+!app/web/index.html
 app/ios/
 app/android/
 app/linux/
