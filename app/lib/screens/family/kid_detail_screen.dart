@@ -504,6 +504,14 @@ class _CaregiversTab extends ConsumerWidget {
                   _grantSwitch(
                       context, ref, r, 'can_pay', 'Can pay for lessons',
                       iAmPrimary),
+                  if (iAmPrimary)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => _transferPrimary(context, ref, r),
+                        child: const Text('Make primary caregiver…'),
+                      ),
+                    ),
                 ] else
                   Text('Full access to everything for this kid.',
                       style: text.bodySmall
@@ -808,6 +816,91 @@ $link
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Could not create the invite just now.')));
+      }
+    }
+  }
+
+  Future<void> _transferPrimary(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> target) async {
+    final shown = ((target['display_name'] as String?) ?? '').trim();
+    final who = shown.isEmpty ? 'this caregiver' : shown;
+    final password = TextEditingController();
+    String? error;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+            side: JamJotShape.border,
+          ),
+          title: const Text('Transfer the primary role?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                  '$who becomes the primary caregiver: they alone will manage caregiver permissions and chat safety. You stay on with full access — but you can\'t take the role back yourself; only they can hand it to you.'),
+              const SizedBox(height: 12),
+              const Text('Confirm with your account password:',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: password,
+                obscureText: true,
+                autofocus: true,
+                decoration:
+                    const InputDecoration(labelText: 'Account password'),
+              ),
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(error!,
+                      style:
+                          const TextStyle(color: JamJotColors.recording)),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                try {
+                  final res = await JamJotBackend.client.functions
+                      .invoke('transfer-primary', body: {
+                    'student_id': studentId,
+                    'to_guardianship_id': target['id'],
+                    'password': password.text,
+                  });
+                  final data = res.data as Map<String, dynamic>? ?? {};
+                  if (data['transferred'] == true) {
+                    if (context.mounted) Navigator.of(context).pop(true);
+                  } else {
+                    setState(() => error =
+                        (data['error'] as String?) ?? 'Could not transfer.');
+                  }
+                } catch (_) {
+                  setState(() => error = 'Wrong password, or something hiccuped.');
+                }
+              },
+              style: FilledButton.styleFrom(
+                  backgroundColor: JamJotColors.recording,
+                  minimumSize: const Size(130, 44)),
+              child: const Text('Transfer role'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok == true) {
+      ref.invalidate(kidGuardianshipsProvider(studentId));
+      ref.invalidate(myStudentsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$who is now the primary caregiver.')));
       }
     }
   }
