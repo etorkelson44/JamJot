@@ -29,6 +29,11 @@ class _GateScreenState extends ConsumerState<GateScreen> {
     final students = await ref.read(myStudentsProvider.future);
     final teacher = await ref.read(myTeacherProvider.future);
     if (!mounted) return;
+    // An invite link is waiting? Finish that connection first.
+    if (pendingInviteToken != null) {
+      context.go('/invite?token=$pendingInviteToken');
+      return;
+    }
     if (students.isEmpty && teacher == null) {
       // Brand-new account: honor the role they picked on the landing page.
       final intended = JamJotBackend

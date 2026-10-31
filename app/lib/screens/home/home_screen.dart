@@ -116,6 +116,22 @@ class HomeScreen extends ConsumerWidget {
                   '/history?student=${active['id']}&name=${Uri.encodeComponent(active['display_name'] as String)}'),
             ),
           ] else ...[
+            Consumer(builder: (context, ref, _) {
+              final teacher = ref.watch(myTeacherProvider).valueOrNull;
+              if (teacher == null) return const SizedBox.shrink();
+              return Column(children: [
+                JamJotCard(
+                  emoji: '🎻',
+                  tint: JamJotColors.blueberryTint,
+                  title: 'My teaching',
+                  subtitle:
+                      'Invite families, see your students, assign lessons.',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.go('/teaching'),
+                ),
+                const SizedBox(height: 12),
+              ]);
+            }),
             JamJotCard(
               emoji: '📚',
               tint: JamJotColors.plumTint,

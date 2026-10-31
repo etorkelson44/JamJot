@@ -136,6 +136,30 @@ final weeklyProgressProvider =
   return {'days': days.length, 'today_minutes': todaySeconds ~/ 60};
 });
 
+/// An invite token waiting to be redeemed after sign-in.
+String? pendingInviteToken;
+
+/// Students enrolled with me as their teacher.
+final teacherStudentsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final teacher = await ref.watch(myTeacherProvider.future);
+  if (teacher == null) return [];
+  final rows = await JamJotBackend.client
+      .from('enrollments')
+      .select('id, instrument, status, students(*)')
+      .eq('teacher_id', teacher['id'])
+      .eq('status', 'active');
+  return [
+    for (final r in rows)
+      if (r['students'] != null)
+        {
+          ...(r['students'] as Map<String, dynamic>),
+          'enrollment_id': r['id'],
+          'enrollment_instrument': r['instrument'],
+        },
+  ];
+});
+
 /// My uploaded music files (scores bucket rows).
 final libraryScoresProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {

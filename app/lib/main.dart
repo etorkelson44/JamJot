@@ -12,7 +12,9 @@ import 'screens/calendar/calendar_screen.dart';
 import 'screens/history/practice_history_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/lessons/lesson_builder_screen.dart';
+import 'screens/invite/invite_screen.dart';
 import 'screens/library/library_screen.dart';
+import 'screens/teaching/teaching_screen.dart';
 import 'screens/market/market_screen.dart';
 import 'screens/practice/practice_screen.dart';
 import 'screens/practice/practice_session_screen.dart';
@@ -56,9 +58,9 @@ final _router = GoRouter(
   redirect: (context, state) {
     final signedIn = JamJotBackend.signedIn;
     final loc = state.matchedLocation;
-    const public = {'/', '/signin'};
+    const public = {'/', '/signin', '/invite'};
     if (!signedIn && !public.contains(loc)) return '/';
-    if (signedIn && public.contains(loc)) return '/gate';
+    if (signedIn && (loc == '/' || loc == '/signin')) return '/gate';
     return null;
   },
   routes: [
@@ -84,6 +86,12 @@ final _router = GoRouter(
         path: '/practice-session',
         builder: (_, __) => const PracticeSessionScreen()),
     GoRoute(path: '/library', builder: (_, __) => const LibraryScreen()),
+    GoRoute(path: '/teaching', builder: (_, __) => const TeachingScreen()),
+    GoRoute(
+      path: '/invite',
+      builder: (_, state) =>
+          InviteScreen(token: state.uri.queryParameters['token'] ?? ''),
+    ),
     GoRoute(
       path: '/history',
       builder: (_, state) => PracticeHistoryScreen(
