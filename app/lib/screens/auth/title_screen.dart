@@ -123,9 +123,14 @@ class TitleScreen extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Padding(
+          padding: const EdgeInsets.fromLTRB(28, 12, 28, 24),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Sign in, tucked at the top for returning families & teachers.
               Align(
@@ -136,9 +141,9 @@ class TitleScreen extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 8),
               // Erika's mascot, with a little welcome dance.
-              const DancingNote(size: 200),
+              const DancingNote(size: 170),
               const SizedBox(height: 20),
               Text('JamJot',
                   style: text.displayMedium?.copyWith(
@@ -167,7 +172,7 @@ class TitleScreen extends StatelessWidget {
                   ]),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 28),
               JamJotCard(
                 emoji: '🧑‍🧒',
                 tint: JamJotColors.blueberryTint,
@@ -191,6 +196,9 @@ class TitleScreen extends StatelessWidget {
                 child: const Text('How do accounts work?'),
               ),
             ],
+          ),
+              ),
+            ),
           ),
         ),
       ),
