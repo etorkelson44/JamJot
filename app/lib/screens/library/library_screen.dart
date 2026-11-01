@@ -532,7 +532,7 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
                     .showSnackBar(SnackBar(content: Text(message)));
               },
               icon: const Icon(Icons.upload_file, size: 18),
-              label: const Text('Upload files (pick several!)'),
+              label: const Text('Upload files (You can upload several)'),
             ),
             if (folderPickingSupported)
               FilledButton.icon(
