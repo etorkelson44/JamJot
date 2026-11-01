@@ -998,10 +998,18 @@ class _PracticeSessionScreenState
     final target = (song['suggested_minutes'] as num?)?.toInt();
     final note = song['song_note'] as String? ?? '';
     final lessonNote = _lesson?['lesson_note'] as String? ?? '';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
+    final mq = MediaQuery.of(context).size;
+    final landscape = mq.width > mq.height && mq.width >= 600;
+
+    return FutureBuilder<String?>(
+      future: _scoreUrlFor(song),
+      builder: (context, snap) {
+        final loading = snap.connectionState != ConnectionState.done;
+        final url = snap.data;
+        final hasScore = loading || url != null;
+        final hasNotes = note.isNotEmpty || lessonNote.isNotEmpty;
+
+        final header = Row(
           children: [
             IconButton(
               onPressed: () => setState(() => _openSong = null),
@@ -1009,9 +1017,22 @@ class _PracticeSessionScreenState
             ),
             Expanded(
               child: Text(song['title'] as String,
-                  style: text.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w700)),
+                  style:
+                      text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             ),
+            // Music-size toggle lives up here (taps over the PDF frame
+            // itself can get swallowed by the browser).
+            if (hasScore && !landscape)
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: _scoreSmall
+                    ? 'Bigger music'
+                    : 'Smaller music (more room for notes)',
+                icon: Icon(
+                    _scoreSmall ? Icons.unfold_more : Icons.unfold_less),
+                onPressed: () =>
+                    setState(() => _scoreSmall = !_scoreSmall),
+              ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -1030,176 +1051,178 @@ class _PracticeSessionScreenState
               ],
             ),
           ],
-        ),
-        _liveBanner(text),
-        Expanded(
-          child: FutureBuilder<String?>(
-            future: _scoreUrlFor(song),
-            builder: (context, snap) {
-              final loading =
-                  snap.connectionState != ConnectionState.done;
-              final url = snap.data;
-              final hasScore = loading || url != null;
-              final hasNotes = note.isNotEmpty || lessonNote.isNotEmpty;
+        );
 
-              final notesPanel = Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: JamJotColors.marigoldTint,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: JamJotColors.ink, width: 2),
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (note.isNotEmpty)
-                        Text('🎵 $note',
-                            style: text.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w600)),
-                      if (lessonNote.isNotEmpty)
-                        Text('📝 $lessonNote', style: text.bodySmall),
-                    ],
-                  ),
-                ),
-              );
-
-              // No file attached: skip the music box entirely — the notes
-              // and controls get all the room.
-              if (!hasScore) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (hasNotes) Expanded(child: notesPanel)
-                    else const Spacer(),
-                  ],
-                );
-              }
-
-              Widget scoreBody;
-              if (loading) {
-                scoreBody =
-                    const Center(child: CircularProgressIndicator());
-              } else {
-                final lower = url!.split('?').first.toLowerCase();
-                final isImage = lower.endsWith('.png') ||
-                    lower.endsWith('.jpg') ||
-                    lower.endsWith('.jpeg');
-                scoreBody = isImage
-                    // The whole page always fits the box; pinch to zoom in.
-                    ? InteractiveViewer(
-                        maxScale: 5,
-                        child: SizedBox.expand(
-                          child:
-                              Image.network(url, fit: BoxFit.contain),
-                        ),
-                      )
-                    : buildScoreFrame(url);
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: _scoreSmall ? 2 : 5,
-                    child: Stack(children: [
-                      Container(
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: JamJotColors.outline, width: 2),
-                        ),
-                        child: scoreBody,
-                      ),
-                      // Toggle: big music ↔ more room for notes & stats.
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Material(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          shape: const CircleBorder(
-                              side: BorderSide(
-                                  color: JamJotColors.outline, width: 1.5)),
-                          child: IconButton(
-                            visualDensity: VisualDensity.compact,
-                            tooltip: _scoreSmall
-                                ? 'Bigger music'
-                                : 'Smaller music (more room for notes)',
-                            icon: Icon(
-                                _scoreSmall
-                                    ? Icons.unfold_more
-                                    : Icons.unfold_less,
-                                size: 18),
-                            onPressed: () => setState(
-                                () => _scoreSmall = !_scoreSmall),
-                          ),
-                        ),
-                      ),
-                    ]),
-                  ),
-                  if (hasNotes) ...[
-                    const SizedBox(height: 10),
-                    if (_scoreSmall)
-                      Expanded(flex: 3, child: notesPanel)
-                    else
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 120),
-                        child: notesPanel,
-                      ),
-                  ],
-                ],
-              );
-            },
+        final notesPanel = Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: JamJotColors.marigoldTint,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: JamJotColors.ink, width: 2),
           ),
-        ),
-        const SizedBox(height: 10),
-        if (_done.contains(id)) ...[
-          // Already finished — fresh 2-minute chunks earn bonus fans.
-          _recordButton(),
-          const SizedBox(height: 8),
-          Builder(builder: (context) {
-            final extraSec =
-                ((_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0)) ~/ 1000;
-            if (extraSec >= _minSongSeconds) {
-              return OutlinedButton(
-                onPressed: () => _bankExtra(song),
-                child: const Text('Bank extra practice (+5 fans!)'),
-              );
-            }
-            return Text(
-              'Finished ✅ — ${_fmt(extraSec)} / 02:00 of extra practice toward bonus fans',
-              textAlign: TextAlign.center,
-              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
-            );
-          }),
-        ] else if (_live) ...[
-          FilledButton(
-            onPressed: () => _stopAndMaybeFinishSong(song),
-            style:
-                FilledButton.styleFrom(backgroundColor: JamJotColors.recording),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.stop, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Stop'),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (note.isNotEmpty)
+                  Text('🎵 $note',
+                      style: text.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                if (lessonNote.isNotEmpty)
+                  Text('📝 $lessonNote', style: text.bodySmall),
               ],
             ),
           ),
-        ] else ...[
-          _recordButton(),
-          if (_songSeconds(id) > 0) ...[
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: () => _stopAndMaybeFinishSong(song),
-              child: const Text('Done with this song'),
+        );
+
+        Widget scoreBox() {
+          Widget body;
+          if (loading) {
+            body = const Center(child: CircularProgressIndicator());
+          } else {
+            final lower = url!.split('?').first.toLowerCase();
+            final isImage = lower.endsWith('.png') ||
+                lower.endsWith('.jpg') ||
+                lower.endsWith('.jpeg');
+            body = isImage
+                // The whole page always fits the box; pinch to zoom in.
+                ? InteractiveViewer(
+                    maxScale: 5,
+                    child: SizedBox.expand(
+                      child: Image.network(url, fit: BoxFit.contain),
+                    ),
+                  )
+                : buildScoreFrame(url);
+          }
+          return Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: JamJotColors.outline, width: 2),
             ),
+            child: body,
+          );
+        }
+
+        final controls = <Widget>[
+          if (_done.contains(id)) ...[
+            // Already finished — fresh 2-minute chunks earn bonus fans.
+            _recordButton(),
+            const SizedBox(height: 8),
+            Builder(builder: (context) {
+              final extraSec =
+                  ((_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0)) ~/ 1000;
+              if (extraSec >= _minSongSeconds) {
+                return OutlinedButton(
+                  onPressed: () => _bankExtra(song),
+                  child: const Text('Bank extra practice (+5 fans!)'),
+                );
+              }
+              return Text(
+                'Finished ✅ — ${_fmt(extraSec)} / 02:00 of extra practice toward bonus fans',
+                textAlign: TextAlign.center,
+                style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+              );
+            }),
+          ] else if (_live) ...[
+            FilledButton(
+              onPressed: () => _stopAndMaybeFinishSong(song),
+              style: FilledButton.styleFrom(
+                  backgroundColor: JamJotColors.recording),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.stop, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Stop'),
+                ],
+              ),
+            ),
+          ] else ...[
+            _recordButton(),
+            if (_songSeconds(id) > 0) ...[
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => _stopAndMaybeFinishSong(song),
+                child: const Text('Done with this song'),
+              ),
+            ],
           ],
-        ],
-      ],
+        ];
+
+        // Landscape with music: sidebar (notes, stats, controls) on the
+        // left, the score big on the right.
+        if (landscape && hasScore) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              header,
+              _liveBanner(text),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: 290,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (hasNotes)
+                            Expanded(child: notesPanel)
+                          else
+                            const Spacer(),
+                          const SizedBox(height: 10),
+                          ...controls,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: scoreBox()),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+          );
+        }
+
+        // Portrait (or no music attached).
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            header,
+            _liveBanner(text),
+            Expanded(
+              child: !hasScore
+                  ? (hasNotes
+                      ? notesPanel
+                      : const SizedBox.expand())
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                            flex: _scoreSmall ? 2 : 5, child: scoreBox()),
+                        if (hasNotes) ...[
+                          const SizedBox(height: 10),
+                          if (_scoreSmall)
+                            Expanded(flex: 3, child: notesPanel)
+                          else
+                            ConstrainedBox(
+                              constraints:
+                                  const BoxConstraints(maxHeight: 120),
+                              child: notesPanel,
+                            ),
+                        ],
+                      ],
+                    ),
+            ),
+            const SizedBox(height: 10),
+            ...controls,
+          ],
+        );
+      },
     );
   }
 
