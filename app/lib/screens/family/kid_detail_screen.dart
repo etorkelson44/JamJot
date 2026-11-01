@@ -12,6 +12,7 @@ import '../../widgets/letter_avatar.dart';
 import '../../widgets/pin_dialog.dart' show askForNewPin;
 import '../history/practice_history_screen.dart' show PracticeHistoryList;
 import '../library/library_screen.dart' show showCreateLessonDialog;
+import 'scan_sheet.dart';
 
 /// One kid's world in the grown-up view, organized into tabs:
 /// Overview • Teachers • Practices • Caregivers.
@@ -365,6 +366,17 @@ class _SectionCards extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => showCreateLessonDialog(context, ref,
               student: kid, enrollmentId: enrollmentId),
+        ),
+        const SizedBox(height: 10),
+        JamJotCard(
+          emoji: '📷',
+          tint: JamJotColors.plumTint,
+          title: 'Scan a written assignment',
+          subtitle:
+              'Photo or PDF of a lesson sheet — it becomes a ready-to-check lesson.',
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () =>
+              scanSheetToLesson(context, ref, kid: kid, enrollmentId: enrollmentId),
         ),
       ] else ...[
         JamJotCard(

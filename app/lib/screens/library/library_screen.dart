@@ -1144,17 +1144,25 @@ class _CreateAssignmentDialogState
 Future<void> showCreateLessonDialog(BuildContext context, WidgetRef ref,
     {Map<String, dynamic>? student,
     String? enrollmentId,
-    Map<String, dynamic>? existing}) {
+    Map<String, dynamic>? existing,
+    Map<String, dynamic>? draft}) {
   return showDialog<void>(
     context: context,
     builder: (_) => _CreateLessonDialog(
-        student: student, enrollmentId: enrollmentId, existing: existing),
+        student: student,
+        enrollmentId: enrollmentId,
+        existing: existing,
+        draft: draft),
   );
 }
 
 class _CreateLessonDialog extends ConsumerStatefulWidget {
-  const _CreateLessonDialog({this.student, this.enrollmentId, this.existing});
+  const _CreateLessonDialog(
+      {this.student, this.enrollmentId, this.existing, this.draft});
   final Map<String, dynamic>? student;
+
+  /// A scanned-sheet draft to prefill from (title, note, assignments).
+  final Map<String, dynamic>? draft;
 
   /// When set, the dialog edits this saved lesson template instead.
   final Map<String, dynamic>? existing;
@@ -1186,9 +1194,26 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
   bool get _singleStudent => widget.student != null;
   bool get _editing => widget.existing != null;
 
+  /// Save a student-free copy into the lesson library too?
+  bool _saveTemplate = true;
+
   @override
   void initState() {
     super.initState();
+    final draft = widget.draft;
+    if (draft != null && !_editing) {
+      _title.text = draft['lesson_title'] as String? ?? 'This week';
+      _picked.addAll(((draft['assignments'] as List?) ?? []).map((a) {
+        final m = Map<String, dynamic>.from(a as Map);
+        return {
+          'title': m['title'] ?? 'Song',
+          'book': m['book'] ?? '',
+          'pages': m['pages'] ?? '',
+          'note': m['note'] ?? '',
+          'score_id': m['score_id'],
+        };
+      }));
+    }
     if (_editing) {
       final payload =
           (widget.existing!['payload'] as Map?)?.cast<String, dynamic>() ??
@@ -1200,7 +1225,18 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
     if (_singleStudent) {
       final id = widget.student!['id'] as String;
       _checked.add(id);
-      _plans[id] = _StudentPlan();
+      final plan = _StudentPlan();
+      final draft = widget.draft;
+      if (draft != null) {
+        plan.notes.text = draft['lesson_note'] as String? ?? '';
+        if (draft['goal_days'] != null) {
+          plan.days.text = '${draft['goal_days']}';
+        }
+        if (draft['goal_minutes'] != null) {
+          plan.minutes.text = '${draft['goal_minutes']}';
+        }
+      }
+      _plans[id] = plan;
     }
   }
 
@@ -1226,15 +1262,17 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
         }
         return;
       }
-      // 1) The lesson template, student-free, into the library.
-      await JamJotBackend.client.from('saved_lessons').insert({
-        'owner_id': uid,
-        'payload': {
-          'title': _title.text.trim(),
-          'assignments': _picked,
-        },
-      });
-      ref.invalidate(savedLessonsProvider);
+      // 1) Optionally, the lesson template (student-free) into the library.
+      if (_saveTemplate) {
+        await JamJotBackend.client.from('saved_lessons').insert({
+          'owner_id': uid,
+          'payload': {
+            'title': _title.text.trim(),
+            'assignments': _picked,
+          },
+        });
+        ref.invalidate(savedLessonsProvider);
+      }
       // 2) A real lesson for each chosen student.
       for (final sid in _checked) {
         final plan = _plans[sid]!;
@@ -1313,7 +1351,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
                 ),
             ],
           ),
-          Text('Tap a song to add a note the student sees while practicing.',
+          Text('Tap a song to edit its note or attach/replace its sheet music.',
               style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
           const SizedBox(height: 10),
         ],
@@ -1355,41 +1393,108 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               _plans[widget.student!['id']]!,
               text),
         ],
+        if (!_editing)
+          CheckboxListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: const Text(
+                'Also save to my lesson library (without student details)'),
+            value: _saveTemplate,
+            onChanged: (v) => setState(() => _saveTemplate = v ?? true),
+          ),
       ],
     );
   }
 
   Future<void> _editAssignmentNote(int index) async {
-    final controller =
+    final noteCtl =
         TextEditingController(text: _picked[index]['note'] as String? ?? '');
-    final saved = await showDialog<String>(
+    final files = ref.read(libraryScoresProvider).valueOrNull ?? [];
+    String? scoreId = _picked[index]['score_id'] as String?;
+    String fileQuery = '';
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
-          side: JamJotShape.border,
-        ),
-        title: Text(_picked[index]['title'] as String? ?? 'Note'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-              labelText: 'Note shown while practicing (optional)'),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
-              child: const Text('Save')),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          final matches = fileQuery.isEmpty
+              ? <Map<String, dynamic>>[]
+              : files
+                  .where((f) =>
+                      looseMatch(fileQuery, '${f['title'] ?? ''} ${f['folder'] ?? ''}'))
+                  .take(4)
+                  .toList();
+          final current =
+              files.where((f) => f['id'] == scoreId).firstOrNull;
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+              side: JamJotShape.border,
+            ),
+            title: Text(_picked[index]['title'] as String? ?? 'Song'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: noteCtl,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                        labelText: 'Note shown while practicing (optional)'),
+                  ),
+                  const SizedBox(height: 12),
+                  if (scoreId != null)
+                    Chip(
+                      avatar: const Text('📄'),
+                      label: Text(current?['title'] as String? ??
+                          'Attached file'),
+                      onDeleted: () => setState(() => scoreId = null),
+                    )
+                  else ...[
+                    TextField(
+                      decoration: const InputDecoration(
+                          labelText: 'Attach sheet music: search…',
+                          prefixIcon: Icon(Icons.search)),
+                      onChanged: (v) => setState(() => fileQuery = v),
+                    ),
+                    for (final f in matches)
+                      ListTile(
+                        dense: true,
+                        leading: const Text('📄'),
+                        title: Text(f['title'] as String? ?? ''),
+                        subtitle: ((f['folder'] as String?) ?? '').isEmpty
+                            ? null
+                            : Text('📁 ${f['folder']}'),
+                        onTap: () => setState(() {
+                          scoreId = f['id'] as String;
+                          fileQuery = '';
+                        }),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel')),
+              FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style:
+                      FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+                  child: const Text('Save')),
+            ],
+          );
+        },
       ),
     );
-    if (saved != null) {
-      setState(() => _picked[index]['note'] = saved.trim());
+    if (saved == true) {
+      setState(() {
+        _picked[index]['note'] = noteCtl.text.trim();
+        _picked[index]['score_id'] = scoreId;
+      });
     }
   }
 
