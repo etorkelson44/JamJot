@@ -992,10 +992,21 @@ class _PracticeSessionScreenState
     );
   }
 
+  /// This song's practice-minutes suggestion: the teacher's number if set,
+  /// otherwise the daily minutes goal split across today's songs.
+  int _suggestedMinutes(Map<String, dynamic> song) {
+    final set = (song['suggested_minutes'] as num?)?.toInt();
+    if (set != null && set > 0) return set;
+    final goal = (_lesson?['goal_minutes'] as num?)?.toInt() ?? 15;
+    final songs = _songs.isEmpty ? 1 : _songs.length;
+    final share = (goal / songs).ceil();
+    return share < 2 ? 2 : share;
+  }
+
   Widget _buildSongPage(TextTheme text) {
     final song = _openSong!;
     final id = song['id'] as String;
-    final target = (song['suggested_minutes'] as num?)?.toInt();
+    final target = _suggestedMinutes(song);
     final note = song['song_note'] as String? ?? '';
     final lessonNote = _lesson?['lesson_note'] as String? ?? '';
     final mq = MediaQuery.of(context).size;
@@ -1036,15 +1047,23 @@ class _PracticeSessionScreenState
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                // Real sound counted so far, next to this song's share of
+                // the daily minutes goal.
                 Text(
-                  target == null
-                      ? _fmt(_songSeconds(id))
-                      : '${_fmt(_songSeconds(id))} / $target min',
+                  '${_fmt(_songSeconds(id))} sound / $target min goal',
                   style:
                       text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
+                // While recording: time since this take started, live.
+                if (_live && _clipStartedAt != null)
+                  Text(
+                    '⏺ ${_fmt(DateTime.now().difference(_clipStartedAt!).inSeconds)} this recording',
+                    style: text.labelSmall?.copyWith(
+                        color: JamJotColors.recording,
+                        fontWeight: FontWeight.w700),
+                  ),
                 Text(
-                  '${_fmt((_wallMsBySong[id] ?? 0) ~/ 1000)} recorded',
+                  '${_fmt((_wallMsBySong[id] ?? 0) ~/ 1000)} recorded in all',
                   style:
                       text.labelSmall?.copyWith(color: JamJotColors.inkSoft),
                 ),
