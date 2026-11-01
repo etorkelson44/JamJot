@@ -43,9 +43,16 @@
         window.dispatchEvent(new Event('resize'));
       });
     }
-    // Belt & suspenders: re-measure when the tab becomes visible again.
+    // Belt & suspenders: re-measure when the tab becomes visible again,
+    // and right after the device is rotated (some browsers are slow to
+    // announce the new size).
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) window.dispatchEvent(new Event('resize'));
+    });
+    window.addEventListener('orientationchange', function () {
+      setTimeout(function () {
+        window.dispatchEvent(new Event('resize'));
+      }, 250);
     });
 
     // ---- Auto-update: when a new version of the app is published, switch
