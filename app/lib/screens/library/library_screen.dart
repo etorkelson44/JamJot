@@ -358,6 +358,7 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
         next = '$to${fo.substring(from.length)}';
       }
       if (next != null) {
+        if (next.startsWith('/')) next = next.substring(1);
         await JamJotBackend.client
             .from('scores')
             .update({'folder': next}).eq('id', f['id']);
@@ -367,9 +368,10 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
       final updated = <String>{};
       for (final e in _emptyFolders) {
         if (e == from) {
-          updated.add(to);
+          if (to.isNotEmpty) updated.add(to);
         } else if (e.startsWith('$from/')) {
-          updated.add('$to${e.substring(from.length)}');
+          final next = '$to${e.substring(from.length)}';
+          updated.add(next.startsWith('/') ? next.substring(1) : next);
         } else {
           updated.add(e);
         }
@@ -380,10 +382,48 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
       if (_path == from) {
         _path = to;
       } else if (_path.startsWith('$from/')) {
-        _path = '$to${_path.substring(from.length)}';
+        final next = '$to${_path.substring(from.length)}';
+        _path = next.startsWith('/') ? next.substring(1) : next;
       }
     });
     ref.invalidate(libraryScoresProvider);
+  }
+
+  /// Moves everything inside [full] (files and subfolders) up one level and
+  /// removes the now-empty folder — handy after uploading a wrapper folder.
+  Future<void> _unwrapFolder(
+      String full, List<Map<String, dynamic>> all) async {
+    final name = full.split('/').last;
+    final parent =
+        full.contains('/') ? full.substring(0, full.lastIndexOf('/')) : '';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text('Move everything out of "$name"?'),
+        content: Text(parent.isEmpty
+            ? 'Its files and folders move to the top of your library, and the empty "$name" folder goes away. Nothing is deleted.'
+            : 'Its files and folders move into "${parent.split('/').last}", and the empty "$name" folder goes away. Nothing is deleted.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+            child: const Text('Move contents up'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _repathFolder(full, parent, all);
+    setState(() {
+      if (_path == full || _path.startsWith('$full/')) _path = parent;
+    });
   }
 
   Future<void> _renameFolder(
@@ -687,6 +727,8 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
                     _renameFolder(full, files);
                   } else if (v == 'move') {
                     _moveFolder(full, files);
+                  } else if (v == 'unwrap') {
+                    _unwrapFolder(full, files);
                   } else if (v == 'delete') {
                     _deleteFolder(full, files);
                   }
@@ -695,6 +737,9 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
                   PopupMenuItem(value: 'open', child: Text('Open')),
                   PopupMenuItem(value: 'rename', child: Text('Rename folder')),
                   PopupMenuItem(value: 'move', child: Text('Move folder to…')),
+                  PopupMenuItem(
+                      value: 'unwrap',
+                      child: Text('Move contents up a level')),
                   PopupMenuItem(
                       value: 'delete',
                       child: Text('Delete folder…',
