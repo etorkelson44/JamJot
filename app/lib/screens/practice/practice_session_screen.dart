@@ -185,10 +185,14 @@ class _PracticeSessionScreenState
       // No session row is created yet — that happens the moment a song's
       // Record button is pressed for the first time (_ensureSession).
       setState(() => _phase = _Phase.practicing);
-    } catch (_) {
+    } catch (e) {
+      _lastError = e.toString();
       setState(() => _phase = _Phase.error);
     }
   }
+
+  /// What actually went wrong, shown on the error screen so it can be fixed.
+  String? _lastError;
 
   /// True when today's session exists but was already saved once.
   bool _sessionSaved = false;
@@ -682,7 +686,8 @@ class _PracticeSessionScreenState
         body = _Message(
           emoji: '😅',
           title: 'Something hiccuped',
-          body: 'Could not start the session. Give it another try!',
+          body:
+              'Could not start the session. Give it another try!${_lastError == null ? '' : '\n\nDetails: $_lastError'}',
           button: 'Try again',
           onTap: () {
             setState(() => _phase = _Phase.starting);
