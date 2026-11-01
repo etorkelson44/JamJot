@@ -1,0 +1,1 @@
+void setUnloadGuard(bool on) {}

@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/folder_picker.dart';
+import '../../services/unload_guard.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
@@ -129,9 +130,11 @@ Future<Map<String, dynamic>?> uploadScoreFile(
   }
 }
 
-/// Picks MANY files at once into [folder]. Returns how many landed.
-Future<int> uploadScoreFiles(
-    BuildContext context, WidgetRef ref, {String folder = ''}) async {
+/// Picks MANY files at once into [folder] (shift/cmd-click to select
+/// several). Returns the finished-message to show.
+Future<String> uploadScoreFiles(BuildContext context, WidgetRef ref,
+    {String folder = '',
+    void Function(String status)? onProgress}) async {
   final picked = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
@@ -140,17 +143,33 @@ Future<int> uploadScoreFiles(
       ],
       withData: true);
   final files = picked?.files ?? [];
-  var count = 0;
-  for (final f in files) {
-    if (f.bytes == null) continue;
-    try {
-      await _saveScoreBytes(ref,
-          fileName: f.name, bytes: f.bytes!, folder: folder);
-      count++;
-    } catch (_) {}
+  if (files.isEmpty) return 'Nothing was selected.';
+  setUnloadGuard(true);
+  var added = 0;
+  var skipped = 0;
+  try {
+    for (var i = 0; i < files.length; i++) {
+      final f = files[i];
+      onProgress?.call('Uploading ${i + 1} of ${files.length} — ${f.name}…');
+      if (f.bytes == null) {
+        skipped++;
+        continue;
+      }
+      try {
+        await _saveScoreBytes(ref,
+            fileName: f.name, bytes: f.bytes!, folder: folder);
+        added++;
+      } catch (_) {
+        skipped++;
+      }
+    }
+  } finally {
+    setUnloadGuard(false);
   }
-  if (count > 0) ref.invalidate(libraryScoresProvider);
-  return count;
+  if (added > 0) ref.invalidate(libraryScoresProvider);
+  return skipped == 0
+      ? '$added file${added == 1 ? '' : 's'} added! 🎉'
+      : '$added added • $skipped could not be read.';
 }
 
 /// Picks a whole FOLDER; every file keeps its place inside it, so the
@@ -160,8 +179,10 @@ Future<String> uploadScoreFolder(BuildContext context, WidgetRef ref,
     void Function(String status)? onProgress}) async {
   final handles = await pickFolderFiles();
   if (handles.isEmpty) return 'No usable music files found in that folder.';
+  setUnloadGuard(true);
   var added = 0;
   var skipped = 0;
+  try {
   for (var i = 0; i < handles.length; i++) {
     final h = handles[i];
     onProgress?.call(
@@ -186,6 +207,9 @@ Future<String> uploadScoreFolder(BuildContext context, WidgetRef ref,
     } catch (_) {
       skipped++;
     }
+  }
+  } finally {
+    setUnloadGuard(false);
   }
   if (added > 0) ref.invalidate(libraryScoresProvider);
   if (skipped == 0) {
@@ -393,11 +417,20 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
           ),
           Wrap(spacing: 8, runSpacing: 8, children: [
             FilledButton.icon(
-              onPressed: () => _busyAction(
-                  () => uploadScoreFiles(context, ref, folder: _path),
-                  'files'),
+              onPressed: () async {
+                setState(() => _progress = 'Choosing files…');
+                final message = await uploadScoreFiles(context, ref,
+                    folder: _path,
+                    onProgress: (st) {
+                      if (mounted) setState(() => _progress = st);
+                    });
+                if (!mounted) return;
+                setState(() => _progress = null);
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(message)));
+              },
               icon: const Icon(Icons.upload_file, size: 18),
-              label: const Text('Upload files'),
+              label: const Text('Upload files (pick several!)'),
             ),
             if (folderPickingSupported)
               FilledButton.icon(
