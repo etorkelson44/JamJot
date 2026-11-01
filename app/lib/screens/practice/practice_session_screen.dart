@@ -1171,10 +1171,32 @@ class _PracticeSessionScreenState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SizedBox(
-                      width: 290,
+                      // The toggle trades room between the sidebar and
+                      // the music.
+                      width: _scoreSmall ? mq.width * 0.45 : 290,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  minimumSize: const Size(0, 32),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10)),
+                              onPressed: () => setState(
+                                  () => _scoreSmall = !_scoreSmall),
+                              icon: Icon(
+                                  _scoreSmall
+                                      ? Icons.chevron_left
+                                      : Icons.chevron_right,
+                                  size: 18),
+                              label: Text(_scoreSmall
+                                  ? 'Bigger music'
+                                  : 'Bigger notes'),
+                            ),
+                          ),
                           if (hasNotes)
                             Expanded(child: notesPanel)
                           else
