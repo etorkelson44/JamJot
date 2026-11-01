@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../services/supabase_service.dart';
 import '../../theme/jamjot_theme.dart';
@@ -14,24 +16,64 @@ import '../library/library_screen.dart' show showCreateLessonDialog;
 /// then optionally pick students, each with their own notes/goals/date).
 Future<void> scanSheetToLesson(BuildContext context, WidgetRef ref,
     {Map<String, dynamic>? kid, String? enrollmentId}) async {
-  final picked = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-    withData: true,
+  // First: camera, or something already scanned/photographed?
+  final how = await showDialog<String>(
+    context: context,
+    builder: (context) => SimpleDialog(
+      title: const Text('Scan a written assignment'),
+      children: [
+        SimpleDialogOption(
+          onPressed: () => Navigator.of(context).pop('camera'),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 6),
+            child: Text('📷  Take a photo with the camera'),
+          ),
+        ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.of(context).pop('upload'),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 6),
+            child: Text('📁  Upload a photo or PDF'),
+          ),
+        ),
+      ],
+    ),
   );
-  final file = picked?.files.firstOrNull;
-  if (file == null || file.bytes == null || !context.mounted) return;
-  if (file.bytes!.length > 15 * 1024 * 1024) {
+  if (how == null || !context.mounted) return;
+
+  Uint8List? bytes;
+  String mediaType = 'image/jpeg';
+  if (how == 'camera') {
+    // On phones and tablets this opens the camera; on a computer without
+    // one it falls back to choosing a picture.
+    final shot = await ImagePicker().pickImage(
+        source: ImageSource.camera, maxWidth: 2200, imageQuality: 88);
+    if (shot == null) return;
+    bytes = await shot.readAsBytes();
+    final n = shot.name.toLowerCase();
+    if (n.endsWith('.png')) mediaType = 'image/png';
+  } else {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      withData: true,
+    );
+    final file = picked?.files.firstOrNull;
+    if (file == null || file.bytes == null) return;
+    bytes = file.bytes!;
+    final ext = file.extension?.toLowerCase() ?? 'jpg';
+    mediaType = switch (ext) {
+      'pdf' => 'application/pdf',
+      'png' => 'image/png',
+      _ => 'image/jpeg',
+    };
+  }
+  if (!context.mounted) return;
+  if (bytes.length > 15 * 1024 * 1024) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('That file is too big — try a photo instead.')));
     return;
   }
-  final ext = file.extension?.toLowerCase() ?? 'jpg';
-  final mediaType = switch (ext) {
-    'pdf' => 'application/pdf',
-    'png' => 'image/png',
-    _ => 'image/jpeg',
-  };
 
   // A little patience screen while the sheet is read.
   var dialogOpen = true;
@@ -51,7 +93,7 @@ Future<void> scanSheetToLesson(BuildContext context, WidgetRef ref,
     final res = await JamJotBackend.client.functions.invoke(
       'scan-lesson',
       body: {
-        'image_base64': base64Encode(file.bytes!),
+        'image_base64': base64Encode(bytes),
         'media_type': mediaType,
       },
     );
