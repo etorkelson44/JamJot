@@ -51,6 +51,9 @@ class _PracticeSessionScreenState
   DateTime? _clipStartedAt;
   int _clipStartSoundMs = 0;
 
+  /// Music-vs-notes balance on the song page (toggled by the kid).
+  bool _scoreSmall = false;
+
   /// Signed sheet-music links, fetched once per song.
   final Map<String, Future<String?>> _scoreUrls = {};
 
@@ -1030,79 +1033,128 @@ class _PracticeSessionScreenState
         ),
         _liveBanner(text),
         Expanded(
-          child: Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: JamJotColors.outline, width: 2),
-            ),
-            child: FutureBuilder<String?>(
-              future: _scoreUrlFor(song),
-              builder: (context, snap) {
-                if (snap.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final url = snap.data;
-                if (url == null) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('🎼', style: TextStyle(fontSize: 44)),
-                        const SizedBox(height: 6),
-                        Text(
-                          'No sheet music attached to this song yet',
-                          textAlign: TextAlign.center,
-                          style: text.bodySmall
-                              ?.copyWith(color: JamJotColors.inkSoft),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                final lower = url.split('?').first.toLowerCase();
+          child: FutureBuilder<String?>(
+            future: _scoreUrlFor(song),
+            builder: (context, snap) {
+              final loading =
+                  snap.connectionState != ConnectionState.done;
+              final url = snap.data;
+              final hasScore = loading || url != null;
+              final hasNotes = note.isNotEmpty || lessonNote.isNotEmpty;
+
+              final notesPanel = Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: JamJotColors.marigoldTint,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: JamJotColors.ink, width: 2),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (note.isNotEmpty)
+                        Text('🎵 $note',
+                            style: text.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600)),
+                      if (lessonNote.isNotEmpty)
+                        Text('📝 $lessonNote', style: text.bodySmall),
+                    ],
+                  ),
+                ),
+              );
+
+              // No file attached: skip the music box entirely — the notes
+              // and controls get all the room.
+              if (!hasScore) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (hasNotes) Expanded(child: notesPanel)
+                    else const Spacer(),
+                  ],
+                );
+              }
+
+              Widget scoreBody;
+              if (loading) {
+                scoreBody =
+                    const Center(child: CircularProgressIndicator());
+              } else {
+                final lower = url!.split('?').first.toLowerCase();
                 final isImage = lower.endsWith('.png') ||
                     lower.endsWith('.jpg') ||
                     lower.endsWith('.jpeg');
-                if (isImage) {
-                  return InteractiveViewer(
-                    maxScale: 5,
-                    child: Center(child: Image.network(url)),
-                  );
-                }
-                return buildScoreFrame(url);
-              },
-            ),
+                scoreBody = isImage
+                    // The whole page always fits the box; pinch to zoom in.
+                    ? InteractiveViewer(
+                        maxScale: 5,
+                        child: SizedBox.expand(
+                          child:
+                              Image.network(url, fit: BoxFit.contain),
+                        ),
+                      )
+                    : buildScoreFrame(url);
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: _scoreSmall ? 2 : 5,
+                    child: Stack(children: [
+                      Container(
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: JamJotColors.outline, width: 2),
+                        ),
+                        child: scoreBody,
+                      ),
+                      // Toggle: big music ↔ more room for notes & stats.
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Material(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          shape: const CircleBorder(
+                              side: BorderSide(
+                                  color: JamJotColors.outline, width: 1.5)),
+                          child: IconButton(
+                            visualDensity: VisualDensity.compact,
+                            tooltip: _scoreSmall
+                                ? 'Bigger music'
+                                : 'Smaller music (more room for notes)',
+                            icon: Icon(
+                                _scoreSmall
+                                    ? Icons.unfold_more
+                                    : Icons.unfold_less,
+                                size: 18),
+                            onPressed: () => setState(
+                                () => _scoreSmall = !_scoreSmall),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  if (hasNotes) ...[
+                    const SizedBox(height: 10),
+                    if (_scoreSmall)
+                      Expanded(flex: 3, child: notesPanel)
+                    else
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 120),
+                        child: notesPanel,
+                      ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
-        if (note.isNotEmpty || lessonNote.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          // This song's own note stays pinned under the music the whole
-          // time — while recording, zooming, everything. Scrolls if long.
-          Container(
-            padding: const EdgeInsets.all(12),
-            constraints: const BoxConstraints(maxHeight: 120),
-            decoration: BoxDecoration(
-              color: JamJotColors.marigoldTint,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: JamJotColors.ink, width: 2),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (note.isNotEmpty)
-                    Text('🎵 $note',
-                        style: text.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600)),
-                  if (lessonNote.isNotEmpty)
-                    Text('📝 $lessonNote', style: text.bodySmall),
-                ],
-              ),
-            ),
-          ),
-        ],
         const SizedBox(height: 10),
         if (_done.contains(id)) ...[
           // Already finished — fresh 2-minute chunks earn bonus fans.

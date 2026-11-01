@@ -521,28 +521,40 @@ class _AssignedLessonCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: JamJotColors.ink, width: 2),
       ),
-      child: Row(children: [
-        const Text('📚', style: TextStyle(fontSize: 20)),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(lesson['title'] as String? ?? 'New lesson',
-                  style:
-                      text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-              Text('New practice lesson for $name',
-                  style: text.bodySmall?.copyWith(color: color)),
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Text('📚', style: TextStyle(fontSize: 20)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(lesson['title'] as String? ?? 'New lesson',
+                      style: text.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  Text('New practice lesson for $name',
+                      style: text.bodySmall?.copyWith(color: color)),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 14)),
+              onPressed: () => context.go(
+                  '/lesson-sheet?student=${lesson['student_id']}&name=${Uri.encodeComponent(name)}'),
+              icon: const Icon(Icons.print, size: 16),
+              label: const Text('Lesson sheet'),
+            ),
           ),
-        ),
-        OutlinedButton.icon(
-          onPressed: () => context.go(
-              '/lesson-sheet?student=${lesson['student_id']}&name=${Uri.encodeComponent(name)}'),
-          icon: const Icon(Icons.print, size: 16),
-          label: const Text('Sheet'),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
