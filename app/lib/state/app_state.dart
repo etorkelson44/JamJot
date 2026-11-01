@@ -124,8 +124,8 @@ final lessonForEnrollmentProvider = FutureProvider.autoDispose
 /// The kid's combined practice for today: the newest arrived lesson from
 /// EACH connection (every teacher, plus family-run), merged into one list.
 /// Goals use the highest asked of the kid; assignments carry their source.
-final currentLessonProvider =
-    FutureProvider.family<Map<String, dynamic>?, String>((ref, studentId) async {
+final currentLessonProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>?, String>((ref, studentId) async {
   final rows = await JamJotBackend.client
       .from('lessons')
       .select('*, assignments(*)')
