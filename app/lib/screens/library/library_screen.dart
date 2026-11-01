@@ -87,9 +87,11 @@ Future<Map<String, dynamic>?> _saveScoreBytes(
   final uid = JamJotBackend.client.auth.currentUser!.id;
   final safeName = fileName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
   final path = '$uid/${DateTime.now().microsecondsSinceEpoch}-$safeName';
-  await JamJotBackend.client.storage.from('scores').uploadBinary(
-      path, Uint8List.fromList(bytes),
-      fileOptions: const FileOptions());
+  await JamJotBackend.client.storage
+      .from('scores')
+      .uploadBinary(path, Uint8List.fromList(bytes),
+          fileOptions: const FileOptions())
+      .timeout(const Duration(seconds: 60));
   final title = fileName.contains('.')
       ? fileName.substring(0, fileName.lastIndexOf('.'))
       : fileName;
@@ -147,6 +149,7 @@ Future<String> uploadScoreFiles(BuildContext context, WidgetRef ref,
   setUnloadGuard(true);
   var added = 0;
   var skipped = 0;
+  String? firstError;
   try {
     for (var i = 0; i < files.length; i++) {
       final f = files[i];
@@ -159,17 +162,20 @@ Future<String> uploadScoreFiles(BuildContext context, WidgetRef ref,
         await _saveScoreBytes(ref,
             fileName: f.name, bytes: f.bytes!, folder: folder);
         added++;
-      } catch (_) {
+      } catch (e) {
         skipped++;
+        firstError ??= e.toString();
       }
     }
   } finally {
     setUnloadGuard(false);
   }
   if (added > 0) ref.invalidate(libraryScoresProvider);
-  return skipped == 0
-      ? '$added file${added == 1 ? '' : 's'} added! 🎉'
-      : '$added added • $skipped could not be read.';
+  if (skipped == 0) {
+    return '$added file${added == 1 ? '' : 's'} added! 🎉';
+  }
+  return '$added added • $skipped failed.'
+      '${firstError == null ? '' : ' First error: $firstError'}';
 }
 
 /// Picks a whole FOLDER; every file keeps its place inside it, so the
@@ -182,6 +188,7 @@ Future<String> uploadScoreFolder(BuildContext context, WidgetRef ref,
   setUnloadGuard(true);
   var added = 0;
   var skipped = 0;
+  String? firstError;
   try {
   for (var i = 0; i < handles.length; i++) {
     final h = handles[i];
@@ -204,8 +211,9 @@ Future<String> uploadScoreFolder(BuildContext context, WidgetRef ref,
       await _saveScoreBytes(ref,
           fileName: h.name, bytes: bytes, folder: target);
       added++;
-    } catch (_) {
+    } catch (e) {
       skipped++;
+      firstError ??= e.toString();
     }
   }
   } finally {
@@ -215,7 +223,8 @@ Future<String> uploadScoreFolder(BuildContext context, WidgetRef ref,
   if (skipped == 0) {
     return '$added file${added == 1 ? '' : 's'} added! 🎉';
   }
-  return '$added added • $skipped skipped (could not be read — if they live in iCloud, open the folder in Finder and choose "Download Now", then try those again).';
+  return '$added added • $skipped skipped'
+      '${firstError != null ? ' — first error: $firstError' : ' (could not be read — if they live in iCloud, open the folder in Finder and choose "Download Now", then try those again).'}';
 }
 
 class _FilesTab extends ConsumerStatefulWidget {
