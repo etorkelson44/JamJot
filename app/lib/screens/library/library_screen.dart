@@ -344,6 +344,99 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
     ref.invalidate(libraryScoresProvider);
   }
 
+  Future<bool> _confirm(String title, String body) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep it')),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+                backgroundColor: JamJotColors.recording,
+                minimumSize: const Size(96, 44)),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
+  Future<void> _deleteFile(Map<String, dynamic> f) async {
+    final ok = await _confirm('Delete "${f['title']}"?',
+        'It disappears from your library. Assignments that pointed to it lose their sheet music.');
+    if (!ok) return;
+    try {
+      final path = f['original_path'] as String?;
+      if (path != null) {
+        try {
+          await JamJotBackend.client.storage.from('scores').remove([path]);
+        } catch (_) {}
+      }
+      await JamJotBackend.client.from('scores').delete().eq('id', f['id']);
+      ref.invalidate(libraryScoresProvider);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not delete just now — try again?')));
+      }
+    }
+  }
+
+  Future<void> _deleteFolder(
+      String folderPath, List<Map<String, dynamic>> all) async {
+    final inside = [
+      for (final f in all)
+        if ((f['folder'] as String? ?? '') == folderPath ||
+            (f['folder'] as String? ?? '').startsWith('$folderPath/'))
+          f,
+    ];
+    final ok = await _confirm(
+        'Delete the folder "${folderPath.split('/').last}"?',
+        inside.isEmpty
+            ? 'The empty folder will be removed.'
+            : 'Its ${inside.length} file${inside.length == 1 ? '' : 's'} (including subfolders) will be deleted too.');
+    if (!ok) return;
+    try {
+      final paths = [
+        for (final f in inside)
+          if (f['original_path'] != null) f['original_path'] as String,
+      ];
+      if (paths.isNotEmpty) {
+        try {
+          await JamJotBackend.client.storage.from('scores').remove(paths);
+        } catch (_) {}
+      }
+      for (final f in inside) {
+        await JamJotBackend.client.from('scores').delete().eq('id', f['id']);
+      }
+      setState(() {
+        _emptyFolders
+            .removeWhere((e) => e == folderPath || e.startsWith('$folderPath/'));
+        if (_path == folderPath || _path.startsWith('$folderPath/')) {
+          _path = folderPath.contains('/')
+              ? folderPath.substring(0, folderPath.lastIndexOf('/'))
+              : '';
+        }
+      });
+      ref.invalidate(libraryScoresProvider);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not delete just now — try again?')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final files = ref.watch(libraryScoresProvider).valueOrNull ?? [];
@@ -486,7 +579,24 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
                   ? const Text('empty — upload or move files here')
                   : Text(
                       '${subfolders[name]} file${subfolders[name] == 1 ? '' : 's'}'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: PopupMenuButton<String>(
+                onSelected: (v) {
+                  final full = _path.isEmpty ? name : '$_path/$name';
+                  if (v == 'open') {
+                    setState(() => _path = full);
+                  } else if (v == 'delete') {
+                    _deleteFolder(full, files);
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'open', child: Text('Open')),
+                  PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete folder…',
+                          style:
+                              TextStyle(color: JamJotColors.recording))),
+                ],
+              ),
               onTap: () => setState(() =>
                   _path = _path.isEmpty ? name : '$_path/$name'),
             ),
@@ -526,12 +636,19 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
                     _rename(f);
                   } else if (v == 'move') {
                     _move(f, files);
+                  } else if (v == 'delete') {
+                    _deleteFile(f);
                   }
                 },
                 itemBuilder: (context) => const [
                   PopupMenuItem(value: 'open', child: Text('Open')),
                   PopupMenuItem(value: 'rename', child: Text('Rename')),
                   PopupMenuItem(value: 'move', child: Text('Move to…')),
+                  PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete…',
+                          style:
+                              TextStyle(color: JamJotColors.recording))),
                 ],
               ),
             ),
