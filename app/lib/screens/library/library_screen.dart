@@ -712,6 +712,58 @@ class _AssignmentsTabState extends ConsumerState<_AssignmentsTab> {
                 leading: const Text('🎼', style: TextStyle(fontSize: 22)),
                 title: Text(p['title'] as String? ?? 'Assignment'),
                 subtitle: sub.isEmpty ? null : Text(sub),
+                onTap: () =>
+                    showCreateAssignmentDialog(context, ref, existing: a),
+                trailing: PopupMenuButton<String>(
+                  onSelected: (v) async {
+                    if (v == 'edit') {
+                      showCreateAssignmentDialog(context, ref, existing: a);
+                    } else if (v == 'delete') {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                JamJotShape.cardRadius),
+                            side: JamJotShape.border,
+                          ),
+                          title: Text('Delete "${p['title']}"?'),
+                          content: const Text(
+                              'Lessons that already include it keep their own copy — only this library template goes away.'),
+                          actions: [
+                            TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: const Text('Keep it')),
+                            FilledButton(
+                              onPressed: () =>
+                                  Navigator.of(context).pop(true),
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: JamJotColors.recording,
+                                  minimumSize: const Size(96, 44)),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (ok == true) {
+                        await JamJotBackend.client
+                            .from('saved_assignments')
+                            .delete()
+                            .eq('id', a['id']);
+                        ref.invalidate(savedAssignmentsProvider);
+                      }
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Delete…',
+                            style:
+                                TextStyle(color: JamJotColors.recording))),
+                  ],
+                ),
               );
             }),
       ],
@@ -772,6 +824,58 @@ class _LessonsTabState extends ConsumerState<_LessonsTab> {
                 title: Text(p['title'] as String? ?? 'Lesson'),
                 subtitle:
                     Text('$count assignment${count == 1 ? '' : 's'}'),
+                onTap: () =>
+                    showCreateLessonDialog(context, ref, existing: l),
+                trailing: PopupMenuButton<String>(
+                  onSelected: (v) async {
+                    if (v == 'edit') {
+                      showCreateLessonDialog(context, ref, existing: l);
+                    } else if (v == 'delete') {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                JamJotShape.cardRadius),
+                            side: JamJotShape.border,
+                          ),
+                          title: Text('Delete "${p['title']}"?'),
+                          content: const Text(
+                              'Only this library template goes away — lessons already assigned to students are untouched.'),
+                          actions: [
+                            TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: const Text('Keep it')),
+                            FilledButton(
+                              onPressed: () =>
+                                  Navigator.of(context).pop(true),
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: JamJotColors.recording,
+                                  minimumSize: const Size(96, 44)),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (ok == true) {
+                        await JamJotBackend.client
+                            .from('saved_lessons')
+                            .delete()
+                            .eq('id', l['id']);
+                        ref.invalidate(savedLessonsProvider);
+                      }
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Delete…',
+                            style:
+                                TextStyle(color: JamJotColors.recording))),
+                  ],
+                ),
               );
             }),
       ],
@@ -783,15 +887,19 @@ class _LessonsTabState extends ConsumerState<_LessonsTab> {
 
 /// Pops the create-assignment box. Returns the new saved_assignments row.
 Future<Map<String, dynamic>?> showCreateAssignmentDialog(
-    BuildContext context, WidgetRef ref) {
+    BuildContext context, WidgetRef ref,
+    {Map<String, dynamic>? existing}) {
   return showDialog<Map<String, dynamic>>(
     context: context,
-    builder: (_) => const _CreateAssignmentDialog(),
+    builder: (_) => _CreateAssignmentDialog(existing: existing),
   );
 }
 
 class _CreateAssignmentDialog extends ConsumerStatefulWidget {
-  const _CreateAssignmentDialog();
+  const _CreateAssignmentDialog({this.existing});
+
+  /// When set, the dialog edits this saved assignment instead of creating.
+  final Map<String, dynamic>? existing;
   @override
   ConsumerState<_CreateAssignmentDialog> createState() =>
       _CreateAssignmentDialogState();
@@ -799,12 +907,15 @@ class _CreateAssignmentDialog extends ConsumerStatefulWidget {
 
 class _CreateAssignmentDialogState
     extends ConsumerState<_CreateAssignmentDialog> {
-  final _title = TextEditingController();
-  final _book = TextEditingController();
-  final _pages = TextEditingController();
-  final _note = TextEditingController();
+  late final Map<String, dynamic> _p =
+      (widget.existing?['payload'] as Map?)?.cast<String, dynamic>() ?? {};
+  late final _title = TextEditingController(text: _p['title'] as String? ?? '');
+  late final _book = TextEditingController(text: _p['book'] as String? ?? '');
+  late final _pages = TextEditingController(text: _p['pages'] as String? ?? '');
+  late final _note = TextEditingController(text: _p['note'] as String? ?? '');
   String _fileQuery = '';
   Map<String, dynamic>? _attachedFile;
+  bool _prefilledFile = false;
   String _lessonQuery = '';
   final Set<String> _addedToLessons = {};
   bool _busy = false;
@@ -823,20 +934,28 @@ class _CreateAssignmentDialogState
     setState(() => _busy = true);
     try {
       final uid = JamJotBackend.client.auth.currentUser!.id;
-      final row = await JamJotBackend.client
-          .from('saved_assignments')
-          .insert({
-            'owner_id': uid,
-            'payload': {
-              'title': _title.text.trim(),
-              'book': _book.text.trim(),
-              'pages': _pages.text.trim(),
-              'note': _note.text.trim(),
-              'score_id': _attachedFile?['id'],
-            },
-          })
-          .select()
-          .single();
+      final payload = {
+        'title': _title.text.trim(),
+        'book': _book.text.trim(),
+        'pages': _pages.text.trim(),
+        'note': _note.text.trim(),
+        'score_id': _attachedFile?['id'],
+      };
+      final Map<String, dynamic> row;
+      if (widget.existing != null) {
+        row = await JamJotBackend.client
+            .from('saved_assignments')
+            .update({'payload': payload})
+            .eq('id', widget.existing!['id'])
+            .select()
+            .single();
+      } else {
+        row = await JamJotBackend.client
+            .from('saved_assignments')
+            .insert({'owner_id': uid, 'payload': payload})
+            .select()
+            .single();
+      }
       ref.invalidate(savedAssignmentsProvider);
       if (mounted) Navigator.of(context).pop(row);
     } catch (_) {
@@ -868,6 +987,11 @@ class _CreateAssignmentDialogState
   Widget build(BuildContext context) {
     final files = ref.watch(libraryScoresProvider).valueOrNull ?? [];
     final lessons = ref.watch(savedLessonsProvider).valueOrNull ?? [];
+    if (!_prefilledFile && _p['score_id'] != null && files.isNotEmpty) {
+      _prefilledFile = true;
+      _attachedFile =
+          files.where((f) => f['id'] == _p['score_id']).firstOrNull;
+    }
     final fileMatches = _fileQuery.isEmpty
         ? <Map<String, dynamic>>[]
         : files
@@ -889,7 +1013,9 @@ class _CreateAssignmentDialogState
         borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
         side: JamJotShape.border,
       ),
-      title: const Text('Create an assignment'),
+      title: Text(widget.existing == null
+          ? 'Create an assignment'
+          : 'Edit assignment'),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
@@ -1000,7 +1126,11 @@ class _CreateAssignmentDialogState
         FilledButton(
           onPressed: _busy ? null : _save,
           style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
-          child: Text(_busy ? 'Saving…' : 'Save to assignment library'),
+          child: Text(_busy
+              ? 'Saving…'
+              : (widget.existing == null
+                  ? 'Save to assignment library'
+                  : 'Save changes')),
         ),
       ],
     );
@@ -1012,17 +1142,22 @@ class _CreateAssignmentDialogState
 /// The full create-lesson flow. When [student] is given (from a student's
 /// profile), the student step is folded into one page and auto-assigned.
 Future<void> showCreateLessonDialog(BuildContext context, WidgetRef ref,
-    {Map<String, dynamic>? student, String? enrollmentId}) {
+    {Map<String, dynamic>? student,
+    String? enrollmentId,
+    Map<String, dynamic>? existing}) {
   return showDialog<void>(
     context: context,
-    builder: (_) =>
-        _CreateLessonDialog(student: student, enrollmentId: enrollmentId),
+    builder: (_) => _CreateLessonDialog(
+        student: student, enrollmentId: enrollmentId, existing: existing),
   );
 }
 
 class _CreateLessonDialog extends ConsumerStatefulWidget {
-  const _CreateLessonDialog({this.student, this.enrollmentId});
+  const _CreateLessonDialog({this.student, this.enrollmentId, this.existing});
   final Map<String, dynamic>? student;
+
+  /// When set, the dialog edits this saved lesson template instead.
+  final Map<String, dynamic>? existing;
 
   /// Which connection the assigned lessons belong to (null = family-run).
   final String? enrollmentId;
@@ -1049,10 +1184,19 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
   bool _busy = false;
 
   bool get _singleStudent => widget.student != null;
+  bool get _editing => widget.existing != null;
 
   @override
   void initState() {
     super.initState();
+    if (_editing) {
+      final payload =
+          (widget.existing!['payload'] as Map?)?.cast<String, dynamic>() ??
+              {};
+      _title.text = payload['title'] as String? ?? '';
+      _picked.addAll(((payload['assignments'] as List?) ?? [])
+          .map((a) => Map<String, dynamic>.from(a as Map)));
+    }
     if (_singleStudent) {
       final id = widget.student!['id'] as String;
       _checked.add(id);
@@ -1065,6 +1209,23 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
     setState(() => _busy = true);
     try {
       final uid = JamJotBackend.client.auth.currentUser!.id;
+      if (_editing) {
+        // Editing changes the library template only; lessons already
+        // assigned to students stay exactly as they were.
+        await JamJotBackend.client.from('saved_lessons').update({
+          'payload': {
+            'title': _title.text.trim(),
+            'assignments': _picked,
+          },
+        }).eq('id', widget.existing!['id']);
+        ref.invalidate(savedLessonsProvider);
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Lesson updated.')));
+        }
+        return;
+      }
       // 1) The lesson template, student-free, into the library.
       await JamJotBackend.client.from('saved_lessons').insert({
         'owner_id': uid,
@@ -1329,9 +1490,11 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
         borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
         side: JamJotShape.border,
       ),
-      title: Text(_singleStudent
-          ? 'Lesson for ${widget.student!['display_name']}'
-          : (_page == 0 ? 'Create a lesson' : 'Assign the lesson')),
+      title: Text(_editing
+          ? 'Edit lesson'
+          : _singleStudent
+              ? 'Lesson for ${widget.student!['display_name']}'
+              : (_page == 0 ? 'Create a lesson' : 'Assign the lesson')),
       content: SizedBox(
         width: 440,
         child: SingleChildScrollView(
@@ -1349,7 +1512,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-        if (_page == 0 && !_singleStudent)
+        if (_page == 0 && !_singleStudent && !_editing)
           FilledButton(
             onPressed: canContinue ? () => setState(() => _page = 1) : null,
             style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
@@ -1359,7 +1522,9 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
           FilledButton(
             onPressed: _busy || !canContinue ? null : _save,
             style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
-            child: Text(_busy ? 'Saving…' : 'Save lesson'),
+            child: Text(_busy
+                ? 'Saving…'
+                : (_editing ? 'Save changes' : 'Save lesson')),
           ),
       ],
     );
