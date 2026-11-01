@@ -1031,19 +1031,6 @@ class _PracticeSessionScreenState
                   style:
                       text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             ),
-            // Music-size toggle lives up here (taps over the PDF frame
-            // itself can get swallowed by the browser).
-            if (hasScore && !landscape)
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                tooltip: _scoreSmall
-                    ? 'Bigger music'
-                    : 'Smaller music (more room for notes)',
-                icon: Icon(
-                    _scoreSmall ? Icons.unfold_more : Icons.unfold_less),
-                onPressed: () =>
-                    setState(() => _scoreSmall = !_scoreSmall),
-              ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -1221,6 +1208,26 @@ class _PracticeSessionScreenState
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                minimumSize: const Size(0, 32),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10)),
+                            onPressed: () => setState(
+                                () => _scoreSmall = !_scoreSmall),
+                            icon: Icon(
+                                _scoreSmall
+                                    ? Icons.unfold_more
+                                    : Icons.unfold_less,
+                                size: 16),
+                            label: Text(_scoreSmall
+                                ? 'Bigger music'
+                                : 'Smaller music'),
+                          ),
+                        ),
                         Expanded(
                             flex: _scoreSmall ? 2 : 5, child: scoreBox()),
                         if (hasNotes) ...[
