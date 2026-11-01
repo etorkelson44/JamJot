@@ -65,15 +65,109 @@ Future<void> scanSheetToLesson(BuildContext context, WidgetRef ref,
               'The scanner\'s reading brain isn\'t connected yet — it needs an AI key added to the backend. Everything else is ready!')));
       return;
     }
-    final draft = data['draft'] as Map<String, dynamic>?;
-    if (draft == null) {
+    var lessons = ((data['lessons'] as List?) ?? [
+      if (data['draft'] != null) data['draft'],
+    ])
+        .map((l) => Map<String, dynamic>.from(l as Map))
+        .toList();
+    if (lessons.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text((data['error'] as String?) ??
               'Could not read that sheet — try a clearer photo?')));
       return;
     }
-    await showCreateLessonDialog(context, ref,
-        student: kid, enrollmentId: enrollmentId, draft: draft);
+
+    // More than one lesson on the sheet? Offer to split.
+    if (lessons.length > 1) {
+      final split = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('This sheet has ${lessons.length} lessons'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                  'The scanner found separate lessons on this sheet:'),
+              const SizedBox(height: 8),
+              for (final l in lessons)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text('📚 ${l['lesson_title'] ?? 'Lesson'}'),
+                ),
+              const SizedBox(height: 8),
+              const Text(
+                  'Save them one at a time, or combine everything into one lesson?'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Combine into one'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+              child: Text('Split into ${lessons.length}'),
+            ),
+          ],
+        ),
+      );
+      if (split == null || !context.mounted) return;
+      if (split == false) {
+        // Fold everything into one lesson.
+        final first = lessons.first;
+        final merged = <String, dynamic>{
+          'lesson_title': first['lesson_title'] ?? 'This week',
+          'lesson_note': lessons
+              .map((l) => (l['lesson_note'] as String?) ?? '')
+              .where((n) => n.isNotEmpty)
+              .join('\n'),
+          'goal_days': first['goal_days'],
+          'goal_minutes': first['goal_minutes'],
+          'assignments': [
+            for (final l in lessons) ...((l['assignments'] as List?) ?? []),
+          ],
+        };
+        lessons = [merged];
+      }
+    }
+
+    // Walk through saving each lesson (usually just one).
+    for (var i = 0; i < lessons.length; i++) {
+      if (!context.mounted) return;
+      if (lessons.length > 1) {
+        final go = await showDialog<String>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Lesson ${i + 1} of ${lessons.length}'),
+            content:
+                Text('📚 ${lessons[i]['lesson_title'] ?? 'Lesson'}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop('stop'),
+                child: const Text('Stop here'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop('skip'),
+                child: const Text('Skip this one'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop('go'),
+                style:
+                    FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+                child: const Text('Review & save'),
+              ),
+            ],
+          ),
+        );
+        if (go == 'stop' || go == null) return;
+        if (go == 'skip') continue;
+        if (!context.mounted) return;
+      }
+      await showCreateLessonDialog(context, ref,
+          student: kid, enrollmentId: enrollmentId, draft: lessons[i]);
+    }
   } catch (_) {
     if (context.mounted) {
       if (dialogOpen) Navigator.of(context, rootNavigator: true).pop();

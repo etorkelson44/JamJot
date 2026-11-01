@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../services/supabase_service.dart';
@@ -16,6 +17,20 @@ final calendarEventsProvider =
           '*, event_students(student_id, students(display_name)), teachers(display_name)')
       .gte('starts_at', from.toUtc().toIso8601String())
       .order('starts_at', ascending: true)
+      .limit(200);
+  return rows.cast<Map<String, dynamic>>();
+});
+
+/// Practice lessons land on the calendar on their assign-on date, so
+/// everyone can find the week's lesson (and its printable sheet) by date.
+final assignedLessonsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final from = DateTime.now().subtract(const Duration(days: 14));
+  final rows = await JamJotBackend.client
+      .from('lessons')
+      .select('id, title, week_start, student_id, students(display_name)')
+      .gte('week_start', DateFormat('yyyy-MM-dd').format(from))
+      .order('week_start', ascending: true)
       .limit(200);
   return rows.cast<Map<String, dynamic>>();
 });
@@ -61,8 +76,15 @@ class CalendarScreen extends ConsumerWidget {
                 .any((es) => es['student_id'] == activeKid['id']))
             .toList();
 
-    // Group by day.
+    // Group by day — assigned practice lessons first, then timed events.
     final byDay = <String, List<Map<String, dynamic>>>{};
+    final lessons = ref.watch(assignedLessonsProvider).valueOrNull ?? [];
+    for (final l in lessons) {
+      if (activeKid != null && l['student_id'] != activeKid['id']) continue;
+      final ws = l['week_start'] as String?;
+      if (ws == null) continue;
+      (byDay[ws] ??= []).add({'_lesson': l});
+    }
     for (final e in shown) {
       final d = DateTime.parse(e['starts_at'] as String).toLocal();
       final key = DateFormat('yyyy-MM-dd').format(d);
@@ -129,11 +151,15 @@ class CalendarScreen extends ConsumerWidget {
                 ),
               ),
               for (final e in byDay[key]!) ...[
-                _EventCard(
-                  event: e,
-                  isMine: e['owner_id'] == uid,
-                  isKidView: activeKid != null,
-                ),
+                if (e.containsKey('_lesson'))
+                  _AssignedLessonCard(
+                      lesson: e['_lesson'] as Map<String, dynamic>)
+                else
+                  _EventCard(
+                    event: e,
+                    isMine: e['owner_id'] == uid,
+                    isKidView: activeKid != null,
+                  ),
                 const SizedBox(height: 8),
               ],
             ],
@@ -472,6 +498,51 @@ class CalendarScreen extends ConsumerWidget {
   }
 }
 
+/// A practice lesson pinned to its assign-on date, with the printable sheet
+/// one tap away.
+class _AssignedLessonCard extends StatelessWidget {
+  const _AssignedLessonCard({required this.lesson});
+  final Map<String, dynamic> lesson;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final name =
+        (lesson['students'] as Map?)?['display_name'] as String? ?? 'Student';
+    final color = studentColor(lesson['student_id'] as String);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: JamJotColors.blueberryTint,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: JamJotColors.ink, width: 2),
+      ),
+      child: Row(children: [
+        const Text('📚', style: TextStyle(fontSize: 20)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(lesson['title'] as String? ?? 'New lesson',
+                  style:
+                      text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text('New practice lesson for $name',
+                  style: text.bodySmall?.copyWith(color: color)),
+            ],
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => context.go(
+              '/lesson-sheet?student=${lesson['student_id']}&name=${Uri.encodeComponent(name)}'),
+          icon: const Icon(Icons.print, size: 16),
+          label: const Text('Sheet'),
+        ),
+      ]),
+    );
+  }
+}
+
 class _EventCard extends ConsumerWidget {
   const _EventCard(
       {required this.event, required this.isMine, required this.isKidView});
@@ -650,7 +721,9 @@ class _EventCard extends ConsumerWidget {
                             as String? ??
                         '?';
                     final color = studentColor(k['student_id'] as String);
-                    return Container(
+                    final isLessonKind =
+                        kind == 'lesson' || kind == 'extra_lesson';
+                    final chip = Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
@@ -658,14 +731,32 @@ class _EventCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(color: color, width: 1.5),
                       ),
-                      child: Text(name,
-                          style: TextStyle(
+                      child: Text(isLessonKind ? '$name 🖨️' : name,
+                          style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: JamJotColors.ink)),
                     );
+                    // On lessons, a kid's chip opens their printable
+                    // lesson sheet for the week.
+                    return isLessonKind
+                        ? InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () => context.go(
+                                '/lesson-sheet?student=${k['student_id']}&name=${Uri.encodeComponent(name)}'),
+                            child: chip,
+                          )
+                        : chip;
                   }),
               ]),
+            ),
+          if ((kind == 'lesson' || kind == 'extra_lesson') &&
+              kids.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('Tap a name to open their printable lesson sheet.',
+                  style:
+                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
             ),
           if (!isKidView)
             Row(children: [

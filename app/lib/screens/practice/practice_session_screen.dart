@@ -845,10 +845,22 @@ class _PracticeSessionScreenState
       );
     }
 
-    return Row(children: [
-      card('🎒', 'Last lesson', sched?['last']),
-      const SizedBox(width: 8),
-      card('📅', 'Next lesson', sched?['next']),
+    return Column(children: [
+      Row(children: [
+        card('🎒', 'Last lesson', sched?['last']),
+        const SizedBox(width: 8),
+        card('📅', 'Next lesson', sched?['next']),
+      ]),
+      const SizedBox(height: 8),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          onPressed: () => context.go(
+              '/lesson-sheet?student=${student['id']}&name=${Uri.encodeComponent(student['display_name'] as String? ?? 'Student')}'),
+          icon: const Icon(Icons.print, size: 16),
+          label: const Text("Print this week's lesson sheet"),
+        ),
+      ),
     ]);
   }
 

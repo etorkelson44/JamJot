@@ -16,6 +16,7 @@ import 'screens/home/home_screen.dart';
 import 'screens/lessons/lesson_builder_screen.dart';
 import 'screens/invite/invite_screen.dart';
 import 'screens/library/library_screen.dart';
+import 'screens/lesson/lesson_sheet_screen.dart';
 import 'screens/messages/messages_screen.dart';
 import 'screens/teaching/teaching_screen.dart';
 import 'screens/market/market_screen.dart';
@@ -180,6 +181,13 @@ final _router = GoRouter(
       builder: (_, state) => PracticeHistoryScreen(
         studentId: state.uri.queryParameters['student'] ?? '',
         studentName: state.uri.queryParameters['name'] ?? 'My',
+      ),
+    ),
+    GoRoute(
+      path: '/lesson-sheet',
+      builder: (_, state) => LessonSheetScreen(
+        studentId: state.uri.queryParameters['student'] ?? '',
+        studentName: state.uri.queryParameters['name'] ?? 'Student',
       ),
     ),
     GoRoute(

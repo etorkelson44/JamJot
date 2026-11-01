@@ -1426,6 +1426,22 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
           });
         }
         ref.invalidate(currentLessonProvider(sid));
+        // Announce it in the teacher↔family chat, so caregivers (or the
+        // family, when a teacher assigned it) hear right away.
+        final eid = _enrollments[sid];
+        if (eid != null) {
+          final name = _nameOf(sid);
+          final when =
+              DateFormat('EEE, MMM d').format(plan.assignOn);
+          try {
+            await JamJotBackend.client.from('messages').insert({
+              'enrollment_id': eid,
+              'sender_id': uid,
+              'body':
+                  '📚 New lesson "${_title.text.trim()}" assigned to $name for $when — it\'s on the calendar, and the printable sheet is one tap away there or on the Practice page.',
+            });
+          } catch (_) {}
+        }
       }
       if (mounted) {
         Navigator.of(context).pop();
@@ -1690,6 +1706,23 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
       byId[s['id'] as String] = s;
     }
     return byId.values.toList();
+  }
+
+  String _nameOf(String sid) {
+    if (widget.student?['id'] == sid) {
+      return widget.student!['display_name'] as String? ?? 'your student';
+    }
+    // ref.read (not watch): this runs from the save button, not build.
+    final all = [
+      ...(ref.read(myStudentsProvider).valueOrNull ?? []),
+      ...(ref.read(teacherStudentsProvider).valueOrNull ?? []),
+    ];
+    for (final s in all) {
+      if (s['id'] == sid) {
+        return s['display_name'] as String? ?? 'your student';
+      }
+    }
+    return 'your student';
   }
 
   void _toggleStudent(Map<String, dynamic> s, bool checked) {
