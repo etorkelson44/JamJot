@@ -1402,7 +1402,10 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               'goal_minutes': int.tryParse(plan.minutes.text.trim()) ?? 15,
               'week_start':
                   DateFormat('yyyy-MM-dd').format(plan.assignOn),
-              if (widget.enrollmentId != null)
+              // The teacher-connection tag belongs only to the student it
+              // was opened for; siblings added on get a family-run lesson.
+              if (widget.enrollmentId != null &&
+                  sid == widget.student?['id'])
                 'enrollment_id': widget.enrollmentId,
             })
             .select()
@@ -1507,6 +1510,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               widget.student!['display_name'] as String,
               _plans[widget.student!['id']]!,
               text),
+          _alsoAssignOthers(text),
         ],
         if (!_editing)
           CheckboxListTile(
@@ -1659,6 +1663,59 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               'Assign on ${DateFormat('EEE, MMM d').format(plan.assignOn)}'),
         ),
         const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  /// From a single-student lesson: optionally hand the same lesson to other
+  /// students too, each with their own notes/goals/assign-on boxes.
+  bool _showOthers = false;
+
+  Widget _alsoAssignOthers(TextTheme text) {
+    final students = ref.watch(myStudentsProvider).valueOrNull ?? [];
+    final others = [
+      for (final s in students)
+        if (s['id'] != widget.student!['id']) s,
+    ];
+    if (others.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (!_showOthers)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => setState(() => _showOthers = true),
+              icon: const Icon(Icons.group_add_outlined, size: 18),
+              label: const Text('Also assign to other students…'),
+            ),
+          )
+        else ...[
+          Text('Also assign to:',
+              style: text.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+          for (final s in others)
+            CheckboxListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _checked.contains(s['id']),
+              title: Text(s['display_name'] as String),
+              onChanged: (v) => setState(() {
+                final id = s['id'] as String;
+                if (v == true) {
+                  _checked.add(id);
+                  _plans[id] ??= _newPlan();
+                } else {
+                  _checked.remove(id);
+                }
+              }),
+            ),
+          for (final s in others)
+            if (_checked.contains(s['id']))
+              _studentPlanFields(
+                  s['display_name'] as String, _plans[s['id']]!, text),
+        ],
+        const SizedBox(height: 4),
       ],
     );
   }
