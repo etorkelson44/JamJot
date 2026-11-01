@@ -1073,23 +1073,28 @@ class _PracticeSessionScreenState
         ),
         if (note.isNotEmpty || lessonNote.isNotEmpty) ...[
           const SizedBox(height: 10),
+          // This song's own note stays pinned under the music the whole
+          // time — while recording, zooming, everything. Scrolls if long.
           Container(
             padding: const EdgeInsets.all(12),
+            constraints: const BoxConstraints(maxHeight: 120),
             decoration: BoxDecoration(
               color: JamJotColors.marigoldTint,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: JamJotColors.ink, width: 2),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (note.isNotEmpty)
-                  Text('🎵 $note',
-                      style: text.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                if (lessonNote.isNotEmpty)
-                  Text('📝 $lessonNote', style: text.bodySmall),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (note.isNotEmpty)
+                    Text('🎵 $note',
+                        style: text.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                  if (lessonNote.isNotEmpty)
+                    Text('📝 $lessonNote', style: text.bodySmall),
+                ],
+              ),
             ),
           ),
         ],

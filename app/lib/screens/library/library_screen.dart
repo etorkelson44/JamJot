@@ -1365,8 +1365,48 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
       if (draft['goal_minutes'] != null) {
         plan.minutes.text = '${draft['goal_minutes']}';
       }
+      // A date read off the sheet becomes the assign-on date (changeable).
+      final d = DateTime.tryParse(draft['lesson_date'] as String? ?? '');
+      if (d != null) plan.assignOn = d;
     }
     return plan;
+  }
+
+  // ---- Auto-title for scanned lessons: "Ben & Mia — Nov 3". It follows the
+  // date and the checked students until the person types their own title.
+  String? _autoTitle;
+
+  String _firstNameOf(String sid) => _nameOf(sid).split(' ').first;
+
+  String _computeAutoTitle() {
+    final ordered = <String>[
+      if (widget.student != null && _checked.contains(widget.student!['id']))
+        widget.student!['id'] as String,
+      for (final id in _checked)
+        if (id != widget.student?['id']) id,
+    ];
+    final names = [for (final id in ordered) _firstNameOf(id)];
+    final date = ordered.isEmpty
+        ? DateTime.now()
+        : (_plans[ordered.first]?.assignOn ?? DateTime.now());
+    final who = names.isEmpty
+        ? ''
+        : names.length == 1
+            ? names.first
+            : '${names.sublist(0, names.length - 1).join(', ')} & ${names.last}';
+    final when = DateFormat('MMM d').format(date);
+    return who.isEmpty ? 'Lesson — $when' : '$who — $when';
+  }
+
+  void _refreshAutoTitle() {
+    if (widget.draft == null || _editing) return;
+    final current = _title.text.trim();
+    if (current.isNotEmpty && current != (_autoTitle ?? '').trim()) {
+      return; // they typed their own title — leave it alone
+    }
+    final next = _computeAutoTitle();
+    _title.text = next;
+    _autoTitle = next;
   }
 
   /// Save a student-free copy into the lesson library too?
@@ -1403,6 +1443,16 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
       _plans[id] = _newPlan();
       _enrollments[id] = widget.enrollmentId;
     }
+    // Scanned drafts: title follows the sheet's date + who it's for.
+    if (widget.draft != null && !_editing) {
+      final scanned = (widget.draft!['lesson_title'] as String? ?? '').trim();
+      if (_singleStudent || scanned.isEmpty) {
+        _title.text = '';
+        _refreshAutoTitle();
+      } else {
+        _title.text = scanned;
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -1429,10 +1479,18 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
       }
       // 1) Optionally, the lesson template (student-free) into the library.
       if (_saveTemplate) {
+        // An auto title carries student names/date — the library copy gets
+        // the sheet's own heading instead, keeping templates student-free.
+        var templateTitle = _title.text.trim();
+        if (_autoTitle != null && templateTitle == _autoTitle!.trim()) {
+          final scanned =
+              (widget.draft?['lesson_title'] as String? ?? '').trim();
+          if (scanned.isNotEmpty) templateTitle = scanned;
+        }
         await JamJotBackend.client.from('saved_lessons').insert({
           'owner_id': uid,
           'payload': {
-            'title': _title.text.trim(),
+            'title': templateTitle,
             'assignments': _picked,
           },
         });
@@ -1522,20 +1580,43 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
         if (_picked.isNotEmpty) ...[
           Text('In this lesson:',
               style: text.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (var i = 0; i < _picked.length; i++)
-                InputChip(
-                  avatar: const Text('🎼'),
-                  label: Text(_picked[i]['title'] as String? ?? ''),
-                  onPressed: () => _editAssignmentNote(i),
-                  onDeleted: () => setState(() => _picked.removeAt(i)),
+          const SizedBox(height: 4),
+          // Every song with its own note in plain sight — check each one
+          // before saving; tap to edit the note or the attached music.
+          for (var i = 0; i < _picked.length; i++)
+            Builder(builder: (context) {
+              final note = (_picked[i]['note'] as String? ?? '').trim();
+              return Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: JamJotColors.outline, width: 1.5),
                 ),
-            ],
-          ),
-          Text('Tap a song to edit its note or attach/replace its sheet music.',
+                child: ListTile(
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  leading: const Text('🎼'),
+                  title: Text(_picked[i]['title'] as String? ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(
+                    note.isEmpty ? 'No note — tap to add one' : '📝 $note',
+                    style: TextStyle(
+                        color: note.isEmpty
+                            ? JamJotColors.inkSoft
+                            : JamJotColors.ink),
+                  ),
+                  onTap: () => _editAssignmentNote(i),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    tooltip: 'Remove from lesson',
+                    onPressed: () => setState(() => _picked.removeAt(i)),
+                  ),
+                ),
+              );
+            }),
+          Text(
+              'Tap a song to edit its note or attach/replace its sheet music — the note shows while that song is practiced.',
               style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
           const SizedBox(height: 10),
         ],
@@ -1719,10 +1800,15 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
             final picked = await showDatePicker(
               context: context,
               initialDate: plan.assignOn,
-              firstDate: DateTime.now().subtract(const Duration(days: 1)),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2100),
             );
-            if (picked != null) setState(() => plan.assignOn = picked);
+            if (picked != null) {
+              setState(() {
+                plan.assignOn = picked;
+                _refreshAutoTitle();
+              });
+            }
           },
           icon: const Icon(Icons.event, size: 18),
           label: Text(
@@ -1780,6 +1866,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
       } else {
         _checked.remove(id);
       }
+      _refreshAutoTitle();
     });
   }
 
