@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/folder_picker.dart';
+import '../family/scan_sheet.dart' show scanSheetToLesson;
 import '../../services/unload_guard.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
@@ -344,6 +345,104 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
     ref.invalidate(libraryScoresProvider);
   }
 
+  /// Re-points every file inside [from] (and its subfolders) to [to], and
+  /// keeps empty-folder markers and the current spot in step.
+  Future<void> _repathFolder(
+      String from, String to, List<Map<String, dynamic>> all) async {
+    for (final f in all) {
+      final fo = (f['folder'] as String?) ?? '';
+      String? next;
+      if (fo == from) {
+        next = to;
+      } else if (fo.startsWith('$from/')) {
+        next = '$to${fo.substring(from.length)}';
+      }
+      if (next != null) {
+        await JamJotBackend.client
+            .from('scores')
+            .update({'folder': next}).eq('id', f['id']);
+      }
+    }
+    setState(() {
+      final updated = <String>{};
+      for (final e in _emptyFolders) {
+        if (e == from) {
+          updated.add(to);
+        } else if (e.startsWith('$from/')) {
+          updated.add('$to${e.substring(from.length)}');
+        } else {
+          updated.add(e);
+        }
+      }
+      _emptyFolders
+        ..clear()
+        ..addAll(updated);
+      if (_path == from) {
+        _path = to;
+      } else if (_path.startsWith('$from/')) {
+        _path = '$to${_path.substring(from.length)}';
+      }
+    });
+    ref.invalidate(libraryScoresProvider);
+  }
+
+  Future<void> _renameFolder(
+      String full, List<Map<String, dynamic>> all) async {
+    final oldName = full.split('/').last;
+    final name = await _askName('Rename folder', initial: oldName);
+    if (name == null || name.isEmpty || name == oldName) return;
+    final safe = name.replaceAll('/', '-');
+    final parent =
+        full.contains('/') ? full.substring(0, full.lastIndexOf('/')) : '';
+    final to = parent.isEmpty ? safe : '$parent/$safe';
+    await _repathFolder(full, to, all);
+  }
+
+  Future<void> _moveFolder(String full, List<Map<String, dynamic>> all) async {
+    final name = full.split('/').last;
+    final parent =
+        full.contains('/') ? full.substring(0, full.lastIndexOf('/')) : '';
+    // Every folder it could land in — never itself or anything inside it.
+    final folders = <String>{''};
+    for (final x in all) {
+      final fo = (x['folder'] as String?) ?? '';
+      if (fo.isEmpty) continue;
+      final parts = fo.split('/');
+      for (var i = 1; i <= parts.length; i++) {
+        folders.add(parts.sublist(0, i).join('/'));
+      }
+    }
+    folders.addAll(_emptyFolders);
+    folders.removeWhere(
+        (fo) => fo == full || fo.startsWith('$full/') || fo == parent);
+    final sorted = folders.toList()..sort();
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text('Move "$name" to…'),
+        children: [
+          for (final fo in sorted)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(fo),
+              child: Text(fo.isEmpty ? '🏠 Top of library' : '📁 $fo'),
+            ),
+          if (sorted.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('There is nowhere else to move it yet.'),
+            ),
+        ],
+      ),
+    );
+    if (choice == null) return;
+    final to = choice.isEmpty ? name : '$choice/$name';
+    await _repathFolder(full, to, all);
+  }
+
   Future<bool> _confirm(String title, String body) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -567,7 +666,7 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
           ]),
           const SizedBox(height: 6),
           Text(
-            'Uploading a folder keeps its whole structure. Tap a file\'s ⋮ to rename or move it.',
+            'Uploading a folder keeps its whole structure. Tap any file or folder\'s ⋮ to rename, move, or delete it.',
             style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
           ),
           const SizedBox(height: 10),
@@ -584,12 +683,18 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
                   final full = _path.isEmpty ? name : '$_path/$name';
                   if (v == 'open') {
                     setState(() => _path = full);
+                  } else if (v == 'rename') {
+                    _renameFolder(full, files);
+                  } else if (v == 'move') {
+                    _moveFolder(full, files);
                   } else if (v == 'delete') {
                     _deleteFolder(full, files);
                   }
                 },
                 itemBuilder: (context) => const [
                   PopupMenuItem(value: 'open', child: Text('Open')),
+                  PopupMenuItem(value: 'rename', child: Text('Rename folder')),
+                  PopupMenuItem(value: 'move', child: Text('Move folder to…')),
                   PopupMenuItem(
                       value: 'delete',
                       child: Text('Delete folder…',
@@ -801,6 +906,12 @@ class _LessonsTabState extends ConsumerState<_LessonsTab> {
           onPressed: () => showCreateLessonDialog(context, ref),
           icon: const Icon(Icons.add),
           label: const Text('Create a lesson'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () => scanSheetToLesson(context, ref),
+          icon: const Text('📷'),
+          label: const Text('Scan a written assignment'),
         ),
         const SizedBox(height: 12),
         if (shown.isEmpty)
@@ -1194,6 +1305,21 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
   bool get _singleStudent => widget.student != null;
   bool get _editing => widget.existing != null;
 
+  /// A fresh per-student plan — seeded from the scanned draft when there is
+  /// one, so its notes/goals land in every checked student's boxes too.
+  _StudentPlan _newPlan() {
+    final plan = _StudentPlan();
+    final draft = widget.draft;
+    if (draft != null) {
+      plan.notes.text = draft['lesson_note'] as String? ?? '';
+      if (draft['goal_days'] != null) plan.days.text = '${draft['goal_days']}';
+      if (draft['goal_minutes'] != null) {
+        plan.minutes.text = '${draft['goal_minutes']}';
+      }
+    }
+    return plan;
+  }
+
   /// Save a student-free copy into the lesson library too?
   bool _saveTemplate = true;
 
@@ -1225,18 +1351,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
     if (_singleStudent) {
       final id = widget.student!['id'] as String;
       _checked.add(id);
-      final plan = _StudentPlan();
-      final draft = widget.draft;
-      if (draft != null) {
-        plan.notes.text = draft['lesson_note'] as String? ?? '';
-        if (draft['goal_days'] != null) {
-          plan.days.text = '${draft['goal_days']}';
-        }
-        if (draft['goal_minutes'] != null) {
-          plan.minutes.text = '${draft['goal_minutes']}';
-        }
-      }
-      _plans[id] = plan;
+      _plans[id] = _newPlan();
     }
   }
 
@@ -1566,7 +1681,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               final id = s['id'] as String;
               if (v == true) {
                 _checked.add(id);
-                _plans[id] ??= _StudentPlan();
+                _plans[id] ??= _newPlan();
               } else {
                 _checked.remove(id);
               }

@@ -8,10 +8,12 @@ import '../../services/supabase_service.dart';
 import '../../theme/jamjot_theme.dart';
 import '../library/library_screen.dart' show showCreateLessonDialog;
 
-/// Photo/PDF of a written lesson sheet → a pre-filled lesson draft for one
-/// kid, matched against the family's library, ready to correct and assign.
+/// Photo/PDF of a written lesson sheet → a pre-filled lesson draft, matched
+/// against the family's library, ready to correct and assign. With [kid] it
+/// targets that child; without, it opens the full flow (build the lesson,
+/// then optionally pick students, each with their own notes/goals/date).
 Future<void> scanSheetToLesson(BuildContext context, WidgetRef ref,
-    {required Map<String, dynamic> kid, String? enrollmentId}) async {
+    {Map<String, dynamic>? kid, String? enrollmentId}) async {
   final picked = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
