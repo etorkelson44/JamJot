@@ -28,11 +28,15 @@ final assignedLessonsProvider =
   final from = DateTime.now().subtract(const Duration(days: 14));
   final rows = await JamJotBackend.client
       .from('lessons')
-      .select('id, title, week_start, student_id, students(display_name)')
+      .select('id, title, week_start, student_id, event_id, students(display_name)')
       .gte('week_start', DateFormat('yyyy-MM-dd').format(from))
       .order('week_start', ascending: true)
       .limit(200);
-  return rows.cast<Map<String, dynamic>>();
+  // Lessons pinned to a calendar lesson show inside that event instead.
+  return rows
+      .cast<Map<String, dynamic>>()
+      .where((l) => l['event_id'] == null)
+      .toList();
 });
 
 const _kindEmoji = {
@@ -656,10 +660,105 @@ class _EventCard extends ConsumerWidget {
     } catch (_) {}
   }
 
+  Future<String?> _askNote(BuildContext context, String title,
+      {String button = 'Save'}) async {
+    final c = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text(title),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          maxLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+              labelText: 'Note for everyone (optional)'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Back')),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(c.text.trim()),
+            style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+            child: Text(button),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cancelEvent(BuildContext context, WidgetRef ref) async {
+    final note = await _askNote(context, 'Cancel "${event['title']}"?',
+        button: 'Cancel the lesson');
+    if (note == null) return;
+    try {
+      await JamJotBackend.client.from('calendar_events').update({
+        'status': 'cancelled',
+        'status_note': note.isEmpty ? null : note,
+      }).eq('id', event['id']);
+      ref.invalidate(calendarEventsProvider);
+    } catch (_) {}
+  }
+
+  Future<void> _restoreEvent(BuildContext context, WidgetRef ref) async {
+    try {
+      await JamJotBackend.client.from('calendar_events').update({
+        'status': 'scheduled',
+        'status_note': null,
+      }).eq('id', event['id']);
+      ref.invalidate(calendarEventsProvider);
+    } catch (_) {}
+  }
+
+  Future<void> _moveEvent(BuildContext context, WidgetRef ref) async {
+    final oldStart =
+        DateTime.parse(event['starts_at'] as String).toLocal();
+    final oldEnd = event['ends_at'] == null
+        ? null
+        : DateTime.parse(event['ends_at'] as String).toLocal();
+    final duration =
+        oldEnd == null ? const Duration(minutes: 30) : oldEnd.difference(oldStart);
+    final day = await showDatePicker(
+      context: context,
+      initialDate: oldStart,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (day == null || !context.mounted) return;
+    final time = await showTimePicker(
+        context: context, initialTime: TimeOfDay.fromDateTime(oldStart));
+    if (time == null || !context.mounted) return;
+    final note = await _askNote(context, 'Reschedule "${event['title']}"',
+        button: 'Move it');
+    if (note == null) return;
+    final starts =
+        DateTime(day.year, day.month, day.day, time.hour, time.minute);
+    try {
+      await JamJotBackend.client.from('calendar_events').update({
+        'starts_at': starts.toUtc().toIso8601String(),
+        'ends_at': starts.add(duration).toUtc().toIso8601String(),
+        'status': 'scheduled',
+        'status_note': [
+          'Moved from ${DateFormat('EEE, MMM d • h:mm a').format(oldStart)}',
+          if (note.isNotEmpty) note,
+        ].join(' — '),
+      }).eq('id', event['id']);
+      ref.invalidate(calendarEventsProvider);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final text = Theme.of(context).textTheme;
     final kind = event['kind'] as String? ?? 'event';
+    final cancelled = (event['status'] as String? ?? 'scheduled') == 'cancelled';
+    final statusNote = (event['status_note'] as String?)?.trim() ?? '';
     final isFamily = kind == 'family';
     final start = DateTime.parse(event['starts_at'] as String).toLocal();
     final end = event['ends_at'] == null
@@ -689,14 +788,33 @@ class _EventCard extends ConsumerWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(event['title'] as String? ?? '',
-                  style:
-                      text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                  style: text.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      decoration:
+                          cancelled ? TextDecoration.lineThrough : null,
+                      color: cancelled ? JamJotColors.inkSoft : null)),
             ),
             Text(
               '${DateFormat('h:mm a').format(start)}${end != null ? '–${DateFormat('h:mm a').format(end)}' : ''}',
               style: text.labelMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ]),
+          if (cancelled)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                  '🚫 Cancelled${statusNote.isEmpty ? '' : ' — $statusNote'}',
+                  style: text.bodySmall?.copyWith(
+                      color: JamJotColors.recording,
+                      fontWeight: FontWeight.w600)),
+            )
+          else if (statusNote.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('🔁 $statusNote',
+                  style:
+                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+            ),
           if (teacherName != null)
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -760,17 +878,37 @@ class _EventCard extends ConsumerWidget {
             ),
           if (!isKidView)
             Row(children: [
-              if (!isMine && !isFamily)
+              if (!isMine && !isFamily && !cancelled)
                 TextButton(
                   onPressed: () => _requestChange(context, ref),
                   child: const Text('Request a change'),
                 ),
               const Spacer(),
               if (isMine)
-                IconButton(
-                  tooltip: 'Remove',
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  onPressed: () => _deleteEvent(context, ref),
+                PopupMenuButton<String>(
+                  tooltip: 'Change this event',
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  onSelected: (v) {
+                    if (v == 'cancel') _cancelEvent(context, ref);
+                    if (v == 'restore') _restoreEvent(context, ref);
+                    if (v == 'move') _moveEvent(context, ref);
+                    if (v == 'remove') _deleteEvent(context, ref);
+                  },
+                  itemBuilder: (context) => [
+                    if (!cancelled)
+                      const PopupMenuItem(
+                          value: 'cancel', child: Text('Cancel (keep on calendar)…')),
+                    if (cancelled)
+                      const PopupMenuItem(
+                          value: 'restore', child: Text('Restore')),
+                    const PopupMenuItem(
+                        value: 'move', child: Text('Reschedule…')),
+                    const PopupMenuItem(
+                        value: 'remove',
+                        child: Text('Remove entirely…',
+                            style:
+                                TextStyle(color: JamJotColors.recording))),
+                  ],
                 ),
             ]),
         ],

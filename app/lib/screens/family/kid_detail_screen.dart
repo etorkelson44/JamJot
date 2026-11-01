@@ -10,6 +10,7 @@ import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
 import '../../widgets/letter_avatar.dart';
 import '../../widgets/pin_dialog.dart' show askForNewPin;
+import '../calendar/weekly_lesson.dart' show editWeeklySchedule;
 import '../history/practice_history_screen.dart' show PracticeHistoryList;
 import '../library/library_screen.dart' show showCreateLessonDialog;
 import 'scan_sheet.dart';
@@ -377,6 +378,19 @@ class _SectionCards extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () =>
               scanSheetToLesson(context, ref, kid: kid, enrollmentId: enrollmentId),
+        ),
+        const SizedBox(height: 10),
+        JamJotCard(
+          emoji: '📅',
+          tint: JamJotColors.blueberryTint,
+          title: 'Weekly lesson day & time',
+          subtitle:
+              'Set it once — lessons fill the calendar automatically.',
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => editWeeklySchedule(context, ref,
+              kid: kid,
+              enrollmentId: enrollmentId,
+              sectionLabel: sectionLabel),
         ),
       ] else ...[
         JamJotCard(

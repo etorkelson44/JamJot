@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
+import '../calendar/weekly_lesson.dart' show editWeeklySchedule;
 import '../library/library_screen.dart' show showCreateLessonDialog;
 
 /// Pending change requests on events this teacher owns.
@@ -15,7 +17,8 @@ final changeRequestsProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final rows = await JamJotBackend.client
       .from('event_change_requests')
-      .select('*, calendar_events(title, starts_at)')
+      .select(
+          '*, calendar_events(id, title, starts_at, ends_at, status, event_students(student_id))')
       .eq('status', 'pending')
       .order('created_at', ascending: false);
   final uid = JamJotBackend.client.auth.currentUser?.id;
@@ -232,6 +235,174 @@ class TeachingScreen extends ConsumerWidget {
     );
   }
 
+  /// Approve a family's cancel request: cancel the lesson (kept on the
+  /// calendar, struck through) with a note everyone sees.
+  Future<void> _approveCancel(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> r) async {
+    final ev = r['calendar_events'] as Map<String, dynamic>?;
+    if (ev == null) return;
+    final note = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text('Cancel "${ev['title']}"?'),
+        content: TextField(
+          controller: note,
+          autofocus: true,
+          maxLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+              labelText: 'Note for the family (optional)'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Back')),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+            child: const Text('Cancel the lesson'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await JamJotBackend.client.from('calendar_events').update({
+        'status': 'cancelled',
+        'status_note': [
+          "At the family's request",
+          if (note.text.trim().isNotEmpty) note.text.trim(),
+        ].join(' — '),
+      }).eq('id', ev['id']);
+      await JamJotBackend.client
+          .from('event_change_requests')
+          .update({'status': 'handled'}).eq('id', r['id']);
+      ref.invalidate(changeRequestsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Cancelled. You can offer a make-up from the same request, or schedule one anytime.')));
+      }
+    } catch (_) {}
+  }
+
+  /// Offer a make-up (for a cancel) or move the lesson (for a reschedule):
+  /// pick a date & time, with a note attached for everyone.
+  Future<void> _offerNewTime(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> r) async {
+    final ev = r['calendar_events'] as Map<String, dynamic>?;
+    if (ev == null) return;
+    final isMakeup = r['request_kind'] == 'cancel';
+    final oldStart = DateTime.parse(ev['starts_at'] as String).toLocal();
+    final oldEnd = ev['ends_at'] == null
+        ? null
+        : DateTime.parse(ev['ends_at'] as String).toLocal();
+    final duration = oldEnd == null
+        ? const Duration(minutes: 30)
+        : oldEnd.difference(oldStart);
+    final day = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (day == null || !context.mounted) return;
+    final time = await showTimePicker(
+        context: context, initialTime: TimeOfDay.fromDateTime(oldStart));
+    if (time == null || !context.mounted) return;
+    final note = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: Text(isMakeup ? 'Offer a make-up lesson' : 'Move the lesson'),
+        content: TextField(
+          controller: note,
+          autofocus: true,
+          maxLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+              labelText: 'Note for the family (optional)'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Back')),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+            child: Text(isMakeup ? 'Offer it' : 'Move it'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final starts =
+        DateTime(day.year, day.month, day.day, time.hour, time.minute);
+    try {
+      if (isMakeup) {
+        // Cancel the original (if not already) and add a make-up lesson
+        // for the same students.
+        if (ev['status'] != 'cancelled') {
+          await JamJotBackend.client.from('calendar_events').update({
+            'status': 'cancelled',
+            'status_note': "At the family's request — make-up offered",
+          }).eq('id', ev['id']);
+        }
+        final uid = JamJotBackend.client.auth.currentUser!.id;
+        final makeup = await JamJotBackend.client
+            .from('calendar_events')
+            .insert({
+              'owner_id': uid,
+              'kind': 'extra_lesson',
+              'title': 'Make-up lesson',
+              'notes': note.text.trim().isEmpty
+                  ? 'Make-up for ${ev['title']}'
+                  : note.text.trim(),
+              'starts_at': starts.toUtc().toIso8601String(),
+              'ends_at':
+                  starts.add(duration).toUtc().toIso8601String(),
+            })
+            .select()
+            .single();
+        for (final es in ((ev['event_students'] as List?) ?? [])
+            .cast<Map<String, dynamic>>()) {
+          await JamJotBackend.client.from('event_students').insert({
+            'event_id': makeup['id'],
+            'student_id': es['student_id'],
+          });
+        }
+      } else {
+        await JamJotBackend.client.from('calendar_events').update({
+          'starts_at': starts.toUtc().toIso8601String(),
+          'ends_at': starts.add(duration).toUtc().toIso8601String(),
+          'status': 'scheduled',
+          'status_note': [
+            'Moved from ${DateFormat('EEE, MMM d • h:mm a').format(oldStart)}',
+            if (note.text.trim().isNotEmpty) note.text.trim(),
+          ].join(' — '),
+        }).eq('id', ev['id']);
+      }
+      await JamJotBackend.client
+          .from('event_change_requests')
+          .update({'status': 'handled'}).eq('id', r['id']);
+      ref.invalidate(changeRequestsProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not update the calendar — try again?')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teacher = ref.watch(myTeacherProvider).valueOrNull;
@@ -301,7 +472,26 @@ class TeachingScreen extends ConsumerWidget {
                                     true)
                                   Text(r['note'] as String,
                                       style: text.bodySmall),
-                                Row(children: [
+                                Wrap(spacing: 4, children: [
+                                  if (r['request_kind'] == 'cancel' &&
+                                      (r['calendar_events']
+                                              as Map?)?['status'] !=
+                                          'cancelled')
+                                    TextButton(
+                                      onPressed: () =>
+                                          _approveCancel(context, ref, r),
+                                      child: const Text('Cancel the lesson…'),
+                                    ),
+                                  if (r['request_kind'] == 'reschedule' ||
+                                      r['request_kind'] == 'cancel')
+                                    TextButton(
+                                      onPressed: () =>
+                                          _offerNewTime(context, ref, r),
+                                      child: Text(r['request_kind'] ==
+                                              'cancel'
+                                          ? 'Offer a make-up…'
+                                          : 'Pick a new time…'),
+                                    ),
                                   TextButton(
                                     onPressed: () async {
                                       await JamJotBackend.client
@@ -360,6 +550,18 @@ class TeachingScreen extends ConsumerWidget {
                             onPressed: () => context.go(
                                 '/history?student=${s['id']}&name=${Uri.encodeComponent(s['display_name'] as String)}'),
                             child: const Text('History'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => editWeeklySchedule(context, ref,
+                                kid: s,
+                                enrollmentId:
+                                    s['enrollment_id'] as String?,
+                                sectionLabel:
+                                    '${s['enrollment_instrument'] ?? 'Lessons'} with ${teacher?['display_name'] ?? 'me'}'),
+                            child: const Text('Weekly time'),
                           ),
                         ),
                       ]),

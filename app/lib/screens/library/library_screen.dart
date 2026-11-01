@@ -1455,6 +1455,54 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
     }
   }
 
+  /// If the assign-on date is one of the student's scheduled lesson days,
+  /// offer to pin this practice lesson to that calendar lesson.
+  Future<String?> _lessonEventOn(String sid, DateTime day) async {
+    final dayStart = DateTime(day.year, day.month, day.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+    try {
+      final rows = await JamJotBackend.client
+          .from('calendar_events')
+          .select('id, title, starts_at, event_students!inner(student_id)')
+          .eq('event_students.student_id', sid)
+          .inFilter('kind', ['lesson', 'extra_lesson'])
+          .eq('status', 'scheduled')
+          .gte('starts_at', dayStart.toUtc().toIso8601String())
+          .lt('starts_at', dayEnd.toUtc().toIso8601String())
+          .limit(1);
+      if (rows.isEmpty || !mounted) return null;
+      final ev = rows.first;
+      final at = DateFormat('h:mm a')
+          .format(DateTime.parse(ev['starts_at'] as String).toLocal());
+      final attach = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+            side: JamJotShape.border,
+          ),
+          title: const Text('That day is a lesson day 🎒'),
+          content: Text(
+              '${_nameOf(sid)} has a scheduled lesson at $at on ${DateFormat('EEE, MMM d').format(day)}. Pin this practice lesson to it? It joins that lesson on the calendar instead of showing separately.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep separate'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+              child: const Text('Pin to that lesson'),
+            ),
+          ],
+        ),
+      );
+      return attach == true ? ev['id'] as String : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _save() async {
     if (_title.text.trim().isEmpty || _picked.isEmpty) return;
     setState(() => _busy = true);
@@ -1499,9 +1547,11 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
       // 2) A real lesson for each chosen student.
       for (final sid in _checked) {
         final plan = _plans[sid]!;
+        final eventId = await _lessonEventOn(sid, plan.assignOn);
         final lesson = await JamJotBackend.client
             .from('lessons')
             .insert({
+              if (eventId != null) 'event_id': eventId,
               'student_id': sid,
               'created_by': uid,
               'title': _title.text.trim(),
