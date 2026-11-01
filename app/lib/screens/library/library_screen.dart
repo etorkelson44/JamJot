@@ -1300,6 +1300,10 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
   int _page = 0; // 0 = build lesson, 1 = assign students
   final Map<String, _StudentPlan> _plans = {};
   final Set<String> _checked = {};
+
+  /// Which teacher connection each chosen student's lesson belongs to
+  /// (null = a family-run lesson).
+  final Map<String, String?> _enrollments = {};
   bool _busy = false;
 
   bool get _singleStudent => widget.student != null;
@@ -1352,6 +1356,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
       final id = widget.student!['id'] as String;
       _checked.add(id);
       _plans[id] = _newPlan();
+      _enrollments[id] = widget.enrollmentId;
     }
   }
 
@@ -1402,11 +1407,11 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               'goal_minutes': int.tryParse(plan.minutes.text.trim()) ?? 15,
               'week_start':
                   DateFormat('yyyy-MM-dd').format(plan.assignOn),
-              // The teacher-connection tag belongs only to the student it
-              // was opened for; siblings added on get a family-run lesson.
-              if (widget.enrollmentId != null &&
-                  sid == widget.student?['id'])
-                'enrollment_id': widget.enrollmentId,
+              // Each student's lesson carries their own teacher connection
+              // (a teacher's roster student gets that teacher's; a family
+              // kid added on gets a family-run lesson).
+              if (_enrollments[sid] != null)
+                'enrollment_id': _enrollments[sid],
             })
             .select()
             .single();
@@ -1671,10 +1676,38 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
   /// students too, each with their own notes/goals/assign-on boxes.
   bool _showOthers = false;
 
+  /// Everyone this account can assign lessons to: their own kids and, for
+  /// teachers, every student on their roster (deduped, roster info wins so
+  /// the right teacher connection travels with each student).
+  List<Map<String, dynamic>> _candidateStudents() {
+    final kids = ref.watch(myStudentsProvider).valueOrNull ?? [];
+    final roster = ref.watch(teacherStudentsProvider).valueOrNull ?? [];
+    final byId = <String, Map<String, dynamic>>{};
+    for (final s in kids) {
+      byId[s['id'] as String] = s;
+    }
+    for (final s in roster) {
+      byId[s['id'] as String] = s;
+    }
+    return byId.values.toList();
+  }
+
+  void _toggleStudent(Map<String, dynamic> s, bool checked) {
+    setState(() {
+      final id = s['id'] as String;
+      if (checked) {
+        _checked.add(id);
+        _plans[id] ??= _newPlan();
+        _enrollments[id] = s['enrollment_id'] as String?;
+      } else {
+        _checked.remove(id);
+      }
+    });
+  }
+
   Widget _alsoAssignOthers(TextTheme text) {
-    final students = ref.watch(myStudentsProvider).valueOrNull ?? [];
     final others = [
-      for (final s in students)
+      for (final s in _candidateStudents())
         if (s['id'] != widget.student!['id']) s,
     ];
     if (others.isEmpty) return const SizedBox.shrink();
@@ -1700,15 +1733,10 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               controlAffinity: ListTileControlAffinity.leading,
               value: _checked.contains(s['id']),
               title: Text(s['display_name'] as String),
-              onChanged: (v) => setState(() {
-                final id = s['id'] as String;
-                if (v == true) {
-                  _checked.add(id);
-                  _plans[id] ??= _newPlan();
-                } else {
-                  _checked.remove(id);
-                }
-              }),
+              subtitle: s['enrollment_instrument'] == null
+                  ? null
+                  : Text(s['enrollment_instrument'] as String),
+              onChanged: (v) => _toggleStudent(s, v == true),
             ),
           for (final s in others)
             if (_checked.contains(s['id']))
@@ -1721,7 +1749,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
   }
 
   Widget _buildPageTwo(TextTheme text) {
-    final students = ref.watch(myStudentsProvider).valueOrNull ?? [];
+    final students = _candidateStudents();
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1734,15 +1762,10 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
             dense: true,
             value: _checked.contains(s['id']),
             title: Text(s['display_name'] as String),
-            onChanged: (v) => setState(() {
-              final id = s['id'] as String;
-              if (v == true) {
-                _checked.add(id);
-                _plans[id] ??= _newPlan();
-              } else {
-                _checked.remove(id);
-              }
-            }),
+            subtitle: s['enrollment_instrument'] == null
+                ? null
+                : Text(s['enrollment_instrument'] as String),
+            onChanged: (v) => _toggleStudent(s, v == true),
           ),
         const SizedBox(height: 8),
         for (final s in students)
