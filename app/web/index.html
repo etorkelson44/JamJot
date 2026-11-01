@@ -47,6 +47,45 @@
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) window.dispatchEvent(new Event('resize'));
     });
+
+    // ---- Auto-update: when a new version of the app is published, switch
+    // to it right away instead of waiting for two full reloads.
+    if ('serviceWorker' in navigator) {
+      var jjReloaded = false;
+      function jjActivate(reg) {
+        if (reg && reg.waiting) {
+          // A new version is downloaded and waiting — tell it to take over.
+          reg.waiting.postMessage({type: 'SKIP_WAITING'});
+          reg.waiting.postMessage('skipWaiting');
+        }
+      }
+      function jjCheck() {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (!reg) return;
+          jjActivate(reg);
+          reg.update().then(function () { jjActivate(reg); }).catch(function () {});
+          reg.addEventListener('updatefound', function () {
+            var sw = reg.installing;
+            if (!sw) return;
+            sw.addEventListener('statechange', function () {
+              if (sw.state === 'installed') jjActivate(reg);
+            });
+          });
+        }).catch(function () {});
+      }
+      // The new version took over — load it (once).
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (jjReloaded) return;
+        jjReloaded = true;
+        window.location.reload();
+      });
+      window.addEventListener('load', function () { setTimeout(jjCheck, 3000); });
+      window.addEventListener('focus', jjCheck);
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) jjCheck();
+      });
+      setInterval(jjCheck, 30 * 60 * 1000);
+    }
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
