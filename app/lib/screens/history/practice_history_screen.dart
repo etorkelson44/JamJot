@@ -25,7 +25,7 @@ final practiceHistoryProvider = FutureProvider.autoDispose
         .from(table)
         .select('session_id, assignment_id, amount')
         .eq('student_id', studentId);
-    final emoji = table == 'berry_ledger' ? '🫐' : '🕶️';
+    final emoji = table == 'berry_ledger' ? '🪙' : '🕶️';
     for (final r in ledger) {
       if (r['assignment_id'] == null) continue;
       final key = '${r['session_id']}/${r['assignment_id']}';
@@ -187,10 +187,20 @@ class _SessionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            '$soundMinutes min of real sound • $wallMinutes min total',
-            style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
-          ),
+          if (session['source'] == 'manual') ...[
+            Text(
+              '✍️ Logged by a grown-up • $soundMinutes min of practice',
+              style: text.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            if (((session['entry_note'] as String?) ?? '').trim().isNotEmpty)
+              Text((session['entry_note'] as String).trim(),
+                  style: text.bodySmall
+                      ?.copyWith(color: JamJotColors.inkSoft)),
+          ] else
+            Text(
+              '$soundMinutes min of real sound • $wallMinutes min total',
+              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+            ),
           if (segments.isNotEmpty) ...[
             const SizedBox(height: 10),
             for (final seg in segments) ...[

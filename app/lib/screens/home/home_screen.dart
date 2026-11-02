@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
+import '../../widgets/fan_stage.dart';
 import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
 import '../../widgets/jamjot_card.dart';
 import '../../widgets/letter_avatar.dart';
@@ -55,6 +56,9 @@ class HomeScreen extends ConsumerWidget {
           if (isKid) ...[
             const Center(child: DancingNote(size: 140)),
             const SizedBox(height: 16),
+            // Their stage, their crowd — grows with every practice.
+            FanStage(studentId: active['id'] as String),
+            const SizedBox(height: 16),
             JamJotCard(
               emoji: '🎻',
               title: (active['instruments'] as List?)?.join(' · ') ?? 'Music',
@@ -68,14 +72,15 @@ class HomeScreen extends ConsumerWidget {
                   .watch(berryBalanceProvider(active['id'] as String))
                   .valueOrNull;
               return JamJotCard(
-                emoji: '🫐',
+                emoji: '💰',
                 title: balance == null
-                    ? 'Berry jar'
-                    : '$balance berr${balance == 1 ? 'y' : 'ies'} in your jar',
+                    ? 'Coin pouch'
+                    : '$balance coin${balance == 1 ? '' : 's'} in your pouch',
                 subtitle: balance == null || balance == 0
-                    ? 'Practice 15+ minutes to start filling it up!'
-                    : 'Keep practicing to grow your stash for the Market.',
+                    ? 'Finish songs in practice to earn your first coins!'
+                    : "Spend them at the Farmers' Market! 🧺",
                 tint: JamJotColors.plumTint,
+                onTap: () => context.go('/market'),
               );
             }),
             const SizedBox(height: 12),

@@ -9,6 +9,7 @@ import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
 import '../../widgets/letter_avatar.dart';
+import '../../widgets/log_practice.dart' show logOfflinePractice;
 import '../../widgets/pin_dialog.dart' show askForNewPin;
 import '../calendar/weekly_lesson.dart' show editWeeklySchedule;
 import '../history/practice_history_screen.dart' show PracticeHistoryList;
@@ -48,7 +49,25 @@ class KidDetailScreen extends ConsumerWidget {
         body: TabBarView(children: [
           _OverviewTab(kid: kid),
           _TeachersTab(kid: kid),
-          PracticeHistoryList(studentId: studentId),
+          Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 42),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 14)),
+                  onPressed: () =>
+                      logOfflinePractice(context, ref, kid: kid),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Log practice done without the app'),
+                ),
+              ),
+            ),
+            Expanded(child: PracticeHistoryList(studentId: studentId)),
+          ]),
           _CaregiversTab(studentId: studentId),
         ]),
       ),
@@ -87,7 +106,9 @@ class _OverviewTab extends ConsumerWidget {
         Row(
           children: [
             LetterAvatar(
-                name: kid['display_name'] as String? ?? '?', size: 56),
+                name: kid['display_name'] as String? ?? '?',
+                avatarKey: kid['avatar_key'] as String?,
+                size: 56),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -109,7 +130,7 @@ class _OverviewTab extends ConsumerWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _statChip('🫐 ${berries ?? '…'} berries'),
+            _statChip('🪙 ${berries ?? '…'} coins'),
             _statChip('🕶️ ${fans ?? '…'} fans'),
             if (progress != null)
               _statChip(

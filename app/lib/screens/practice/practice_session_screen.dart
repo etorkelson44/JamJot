@@ -13,6 +13,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
+import '../../widgets/fan_stage.dart';
 import '../../widgets/score_frame.dart';
 
 enum _Phase { starting, practicing, saving, celebrate, micDenied, error, closed }
@@ -481,7 +482,7 @@ class _PracticeSessionScreenState
       fans = (data['fans'] as num?)?.toInt() ?? 0;
       _earnedBerries += berries;
       _earnedFans += fans;
-      _awardsLabel[id] = '🫐+$berries 🕶️+$fans';
+      _awardsLabel[id] = '🪙+$berries 🕶️+$fans';
     } catch (_) {/* rewards settle at session end if this hiccups */}
     if (!mounted) return;
     await showDialog<void>(
@@ -497,7 +498,7 @@ class _PracticeSessionScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (berries > 0)
-              Text('🫐 +$berries berries',
+              Text('🪙 +$berries coins',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w700)),
             if (fans > 0)
@@ -878,6 +879,14 @@ class _PracticeSessionScreenState
         _lessonScheduleCards(text),
         const SizedBox(height: 10),
         _goalsHeader(text),
+        const SizedBox(height: 10),
+        // The crowd so far — the practice tab plays at today's venue.
+        Builder(builder: (context) {
+          final student = ref.watch(activeStudentProvider);
+          return student == null
+              ? const SizedBox.shrink()
+              : FanStage(studentId: student['id'] as String, compact: true);
+        }),
         const SizedBox(height: 10),
         _liveBanner(text),
         Row(
@@ -1317,7 +1326,7 @@ class _PracticeSessionScreenState
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: JamJotColors.ink, width: 2),
             ),
-            child: Text('🫐 +$_berries berries in your jar!',
+            child: Text('🪙 +$_berries coins in your pouch!',
                 style:
                     text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           ),

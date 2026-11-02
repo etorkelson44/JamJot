@@ -9,6 +9,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
+import '../../widgets/log_practice.dart' show logOfflinePractice;
 import '../calendar/weekly_lesson.dart' show editWeeklySchedule;
 import '../library/library_screen.dart' show showCreateLessonDialog;
 
@@ -565,6 +566,19 @@ class TeachingScreen extends ConsumerWidget {
                           ),
                         ),
                       ]),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              minimumSize: const Size(0, 34)),
+                          onPressed: () =>
+                              logOfflinePractice(context, ref, kid: s),
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text(
+                              'Log practice done without the app'),
+                        ),
+                      ),
                       const SizedBox(height: 14),
                     ],
                 ],
