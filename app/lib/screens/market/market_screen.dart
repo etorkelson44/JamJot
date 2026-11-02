@@ -8,6 +8,7 @@ import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/coin_pouch.dart';
 import '../../widgets/fan_stage.dart';
+import '../../widgets/stickers.dart';
 
 /// Every stand this person may browse.
 final marketItemsProvider =
@@ -99,6 +100,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
       if (data['ok'] == true) {
       playSound('coin');
       playSound('pop');
+      popSticker(context, 'berry_rich', ms: 1500);
         ref.invalidate(berryBalanceProvider(studentId));
         ref.invalidate(purchasesProvider(studentId));
         ref.invalidate(myStudentsProvider);

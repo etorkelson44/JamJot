@@ -4,5 +4,8 @@
 <circle cx="40" cy="64" r="9" fill="none" stroke="#E86A5E" stroke-width="3"/>
 <path d="M 33 64 q 7 12 14 0" stroke="#E86A5E" stroke-width="2" fill="none"/>
 <path d="M 120 24 L 300 24 L 292 52 L 128 52 Z" fill="#FFD66B" stroke="#1A1A2E" stroke-width="3" stroke-linejoin="round"/>
-<text x="210" y="44" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#1A1A2E">GO MUSICIANS!</text>
+<ellipse cx="160" cy="46" rx="6.6000000000000005" ry="4.95" fill="#1A1A2E" transform="rotate(-20 160 46)"/>
+<path d="M 165.5 43.8 L 165.5 24.0 Q 174.3 26.2 175.4 32.8" stroke="#1A1A2E" stroke-width="3.3000000000000003" fill="none" stroke-linecap="round"/><ellipse cx="210" cy="44" rx="6.6000000000000005" ry="4.95" fill="#1A1A2E" transform="rotate(-20 210 44)"/>
+<path d="M 215.5 41.8 L 215.5 22.0 Q 224.3 24.2 225.4 30.799999999999997" stroke="#1A1A2E" stroke-width="3.3000000000000003" fill="none" stroke-linecap="round"/><ellipse cx="258" cy="46" rx="6.6000000000000005" ry="4.95" fill="#1A1A2E" transform="rotate(-20 258 46)"/>
+<path d="M 263.5 43.8 L 263.5 24.0 Q 272.3 26.2 273.4 32.8" stroke="#1A1A2E" stroke-width="3.3000000000000003" fill="none" stroke-linecap="round"/>
 <rect x="120" y="118" width="120" height="18" rx="4" fill="#C98F5C" stroke="#1A1A2E" stroke-width="3"/><text x="50" y="40" font-size="16" fill="#1A1A2E" opacity="0.5">♪</text><text x="310" y="34" font-size="16" fill="#1A1A2E" opacity="0.5">♪</text><text x="170" y="24" font-size="16" fill="#1A1A2E" opacity="0.5">♪</text></svg>

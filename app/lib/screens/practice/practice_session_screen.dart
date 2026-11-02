@@ -16,6 +16,7 @@ import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
 import '../../widgets/fan_stage.dart';
 import '../../widgets/score_frame.dart';
+import '../../widgets/stickers.dart';
 
 enum _Phase { starting, practicing, saving, celebrate, micDenied, error, closed }
 
@@ -213,6 +214,7 @@ class _PracticeSessionScreenState
           .select()
           .single();
       _sessionId = row['id'] as String;
+      if (mounted) popSticker(context, 'lets_jam', ms: 1400);
     } else if (_sessionSaved) {
       await JamJotBackend.client
           .from('sessions')
@@ -327,8 +329,12 @@ class _PracticeSessionScreenState
             side: JamJotShape.border,
           ),
           title: const Text('Almost there!'),
-          content: Text(
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            const StickerBadge('green_berry', size: 92),
+            const SizedBox(height: 8),
+            Text(
               'A song needs at least 2 minutes of real sound to finish — you are at ${_fmt(_songSeconds(id))} of 02:00. Keep going, you have got this!'),
+          ]),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop('back'),
@@ -486,6 +492,9 @@ class _PracticeSessionScreenState
       _awardsLabel[id] = '🪙+$berries 🕶️+$fans';
       if (berries > 0) playSound('coin');
       if (fans > 0) playSound('cheer');
+      if (rating == 'working_on_it' && mounted) {
+        popSticker(context, randomOf(keepGoingStickers), ms: 1700);
+      }
     } catch (_) {/* rewards settle at session end if this hiccups */}
     if (!mounted) return;
     await showDialog<void>(
@@ -500,6 +509,8 @@ class _PracticeSessionScreenState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(child: StickerBadge(randomOf(successStickers), size: 104)),
+            const SizedBox(height: 8),
             if (berries > 0)
               Text('🪙 +$berries coins',
                   style: const TextStyle(
@@ -1291,7 +1302,7 @@ class _PracticeSessionScreenState
     return Column(
       children: [
         const Spacer(),
-        const Text('🎉', style: TextStyle(fontSize: 56)),
+        StickerBadge(randomOf(successStickers), size: 130),
         const SizedBox(height: 8),
         Text(
             'You made $_minutes minute${_minutes == 1 ? '' : 's'} of real music!',
