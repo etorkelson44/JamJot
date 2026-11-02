@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 170" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3E6F7"/><stop offset="1" stop-color="#E2C8EC"/></linearGradient></defs><rect width="360" height="170" fill="url(#s)"/><rect y="132" width="360" height="38" fill="#E8C898" stroke="#1A1A2E" stroke-width="3"/><rect x="0" y="132" width="360" height="6" fill="#C98F5C"/>
+<line x1="40" y1="20" x2="40" y2="132" stroke="#1A1A2E" stroke-width="4"/>
+<rect x="22" y="34" width="36" height="26" rx="3" fill="#fff" stroke="#1A1A2E" stroke-width="3"/>
+<circle cx="40" cy="64" r="9" fill="none" stroke="#E86A5E" stroke-width="3"/>
+<path d="M 33 64 q 7 12 14 0" stroke="#E86A5E" stroke-width="2" fill="none"/>
+<path d="M 120 24 L 300 24 L 292 52 L 128 52 Z" fill="#FFD66B" stroke="#1A1A2E" stroke-width="3" stroke-linejoin="round"/>
+<text x="210" y="44" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#1A1A2E">GO MUSICIANS!</text>
+<rect x="120" y="118" width="120" height="18" rx="4" fill="#C98F5C" stroke="#1A1A2E" stroke-width="3"/><text x="50" y="40" font-size="16" fill="#1A1A2E" opacity="0.5">♪</text><text x="310" y="34" font-size="16" fill="#1A1A2E" opacity="0.5">♪</text><text x="170" y="24" font-size="16" fill="#1A1A2E" opacity="0.5">♪</text></svg>

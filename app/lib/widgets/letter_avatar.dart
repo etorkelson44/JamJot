@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/jamjot_theme.dart';
 
-/// Berry characters bought at the market (placeholder emoji — each key
-/// becomes a real illustrated character later).
+/// Berry characters bought at the market (JamJot-drawn placeholders — each
+/// key swaps to Erika's final artwork later, same file names).
 const berryAvatars = {
   'blueberry': '🫐',
   'strawberry': '🍓',
@@ -15,6 +16,13 @@ const berryAvatars = {
   'dragonfruit': '🐉',
   'golden': '⭐',
 };
+
+/// The drawn character for a berry key (null if unknown).
+Widget? berryArt(String? key, double size) {
+  if (key == null || !berryAvatars.containsKey(key)) return null;
+  return SvgPicture.asset('assets/art/avatar_$key.svg',
+      width: size, height: size);
+}
 
 /// Avatar tile: a bought berry character when one is worn, otherwise the
 /// first letter of the name. Swapped for real artwork later without
@@ -31,8 +39,8 @@ class LetterAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final berry = berryAvatars[avatarKey];
-    if (berry != null) {
+    final art = berryArt(avatarKey, size * 0.84);
+    if (art != null) {
       return Container(
         width: size,
         height: size,
@@ -42,7 +50,7 @@ class LetterAvatar extends StatelessWidget {
           shape: BoxShape.circle,
           border: Border.all(color: JamJotColors.ink, width: 2),
         ),
-        child: Text(berry, style: TextStyle(fontSize: size * 0.52)),
+        child: art,
       );
     }
     final letter =

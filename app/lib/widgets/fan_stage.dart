@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../services/supabase_service.dart';
 import '../state/app_state.dart';
@@ -78,19 +79,9 @@ class FanStage extends ConsumerWidget {
     final next = level < venues.length ? venues[level] : null;
 
     final crowdCount = fans <= 0 ? 0 : (fans / 4).ceil().clamp(1, 48);
+    final venueIndex = venues.indexOf(venue);
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [venue.top, venue.bottom],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: JamJotColors.ink, width: 2),
-      ),
-      child: Column(
+    final content = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
@@ -120,12 +111,12 @@ class FanStage extends ConsumerWidget {
                   style: text.bodySmall)
             else
               Wrap(
-                spacing: 2,
-                runSpacing: 0,
+                spacing: 1,
+                runSpacing: 1,
                 children: [
                   for (var i = 0; i < crowdCount; i++)
-                    Text(_fanFaces[i % _fanFaces.length],
-                        style: const TextStyle(fontSize: 15)),
+                    SvgPicture.asset('assets/art/fan_${i % 4}.svg',
+                        width: 19, height: 19),
                 ],
               ),
           ],
@@ -151,7 +142,26 @@ class FanStage extends ConsumerWidget {
             Text('Top of the ladder — the stadium is yours! 🏟️',
                 style: text.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
         ],
+      );
+
+    // The venue backdrop sits behind everything, with a soft wash so the
+    // words stay readable.
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: JamJotColors.ink, width: 2),
       ),
+      child: Stack(children: [
+        Positioned.fill(
+          child: SvgPicture.asset('assets/art/venue_$venueIndex.svg',
+              fit: BoxFit.cover),
+        ),
+        Positioned.fill(
+          child: Container(color: Colors.white.withValues(alpha: 0.55)),
+        ),
+        Padding(padding: const EdgeInsets.all(14), child: content),
+      ]),
     );
   }
 }

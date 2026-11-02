@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 170" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A2546"/><stop offset="1" stop-color="#4B4668"/></linearGradient></defs><rect width="360" height="170" fill="url(#s)"/><ellipse cx="180" cy="150" rx="200" ry="40" fill="#3A3558"/>
+<path d="M 60 20 L 84 120 M 300 20 L 276 120" stroke="#1A1A2E" stroke-width="6"/>
+<path d="M 60 20 L 150 110 Z" stroke="#FFF0C9" stroke-width="0"/>
+<path d="M 60 20 L 120 124 L 180 124 Z" fill="#FFF0C9" opacity="0.30"/>
+<path d="M 300 20 L 240 124 L 180 124 Z" fill="#FFF0C9" opacity="0.30"/>
+<circle cx="60" cy="20" r="9" fill="#FFD66B" stroke="#1A1A2E" stroke-width="3"/>
+<circle cx="300" cy="20" r="9" fill="#FFD66B" stroke="#1A1A2E" stroke-width="3"/>
+<rect x="110" y="104" width="140" height="22" rx="5" fill="#C98F5C" stroke="#1A1A2E" stroke-width="3"/>
+<rect x="150" y="54" width="60" height="30" rx="4" fill="#6C8DD9" stroke="#1A1A2E" stroke-width="3"/>
+<text x="180" y="74" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle" fill="#fff">LIVE</text><circle cx="30" cy="40" r="1.6" fill="#FFF0C9"/><circle cx="90" cy="30" r="1.6" fill="#FFF0C9"/><circle cx="140" cy="22" r="1.6" fill="#FFF0C9"/><circle cx="230" cy="24" r="1.6" fill="#FFF0C9"/><circle cx="280" cy="36" r="1.6" fill="#FFF0C9"/><circle cx="330" cy="46" r="1.6" fill="#FFF0C9"/><circle cx="200" cy="14" r="1.6" fill="#FFF0C9"/></svg>

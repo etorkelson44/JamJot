@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 
+import '../../services/sound_effects.dart';
 import '../../services/sound_meter.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
@@ -483,6 +484,8 @@ class _PracticeSessionScreenState
       _earnedBerries += berries;
       _earnedFans += fans;
       _awardsLabel[id] = '🪙+$berries 🕶️+$fans';
+      if (berries > 0) playSound('coin');
+      if (fans > 0) playSound('cheer');
     } catch (_) {/* rewards settle at session end if this hiccups */}
     if (!mounted) return;
     await showDialog<void>(
@@ -640,6 +643,7 @@ class _PracticeSessionScreenState
         _phase = _Phase.celebrate;
         _sessionSaved = true;
       });
+      playSound('fanfare');
     } catch (_) {
       setState(() {
         _minutes = _activeSeconds ~/ 60;

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 170" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DFF2EC"/><stop offset="1" stop-color="#BCE3D6"/></linearGradient></defs><rect width="360" height="170" fill="url(#s)"/><rect y="132" width="360" height="38" fill="#9BCB84" stroke="#1A1A2E" stroke-width="3"/><ellipse cx="60" cy="96" rx="34" ry="24" fill="#7CB56B" stroke="#1A1A2E" stroke-width="3"/><rect x="54" y="112" width="12" height="22" fill="#B98A5A" stroke="#1A1A2E" stroke-width="3"/>
+<path d="M 130 64 L 230 64 L 240 88 L 120 88 Z" fill="#E86A5E" stroke="#1A1A2E" stroke-width="3" stroke-linejoin="round"/>
+<path d="M 180 36 L 130 64 L 230 64 Z" fill="#F3978B" stroke="#1A1A2E" stroke-width="3" stroke-linejoin="round"/>
+<rect x="128" y="88" width="8" height="40" fill="#FFF3DC" stroke="#1A1A2E" stroke-width="2.5"/>
+<rect x="224" y="88" width="8" height="40" fill="#FFF3DC" stroke="#1A1A2E" stroke-width="2.5"/>
+<rect x="120" y="124" width="120" height="12" rx="3" fill="#C98F5C" stroke="#1A1A2E" stroke-width="3"/>
+<circle cx="300" cy="84" r="4" fill="#E57BA0"/><circle cx="318" cy="96" r="4" fill="#FFD66B"/><circle cx="290" cy="104" r="4" fill="#6C8DD9"/><text x="50" y="40" font-size="16" fill="#1A1A2E" opacity="0.5">♪</text><text x="310" y="34" font-size="16" fill="#1A1A2E" opacity="0.5">♪</text><text x="170" y="24" font-size="16" fill="#1A1A2E" opacity="0.5">♪</text></svg>

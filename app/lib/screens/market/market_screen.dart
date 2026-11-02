@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../services/sound_effects.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
@@ -96,6 +97,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
       final data = (res.data as Map?)?.cast<String, dynamic>() ?? {};
       if (!mounted) return;
       if (data['ok'] == true) {
+      playSound('coin');
+      playSound('pop');
         ref.invalidate(berryBalanceProvider(studentId));
         ref.invalidate(purchasesProvider(studentId));
         ref.invalidate(myStudentsProvider);

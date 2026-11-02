@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../state/app_state.dart';
 import '../theme/jamjot_theme.dart';
@@ -19,7 +20,7 @@ class CoinPouch extends ConsumerWidget {
       clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
-        Text('💰', style: TextStyle(fontSize: size)),
+        SvgPicture.asset('assets/art/pouch.svg', width: size, height: size),
         Positioned(
           bottom: big ? 2 : 0,
           child: Container(
@@ -51,7 +52,10 @@ class CoinPrice extends StatelessWidget {
   final int price;
   @override
   Widget build(BuildContext context) {
-    return Text('🪙 $price',
-        style: const TextStyle(fontWeight: FontWeight.w800));
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      SvgPicture.asset('assets/art/coin.svg', width: 16, height: 16),
+      const SizedBox(width: 3),
+      Text('$price', style: const TextStyle(fontWeight: FontWeight.w800)),
+    ]);
   }
 }
