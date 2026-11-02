@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../services/supabase_service.dart';
 import '../state/app_state.dart';
 import '../theme/jamjot_theme.dart';
+import 'letter_avatar.dart' show artAsset;
 
 /// The venue ladder: more fans → bigger stage. (Placeholder scenes — each
 /// venue becomes a real illustrated backdrop later.)
@@ -115,7 +115,7 @@ class FanStage extends ConsumerWidget {
                 runSpacing: 1,
                 children: [
                   for (var i = 0; i < crowdCount; i++)
-                    SvgPicture.asset('assets/art/fan_${i % 4}.svg',
+                    artAsset('fan_${i % 4}',
                         width: 19, height: 19),
                 ],
               ),
@@ -154,7 +154,7 @@ class FanStage extends ConsumerWidget {
       ),
       child: Stack(children: [
         Positioned.fill(
-          child: SvgPicture.asset('assets/art/venue_$venueIndex.svg',
+          child: artAsset('venue_$venueIndex',
               fit: BoxFit.cover),
         ),
         Positioned.fill(
@@ -189,7 +189,7 @@ class VenueBackdrop extends ConsumerWidget {
         child: SizedBox(
           height: 300,
           width: double.infinity,
-          child: SvgPicture.asset('assets/art/venue_$venueIndex.svg',
+          child: artAsset('venue_$venueIndex',
               fit: BoxFit.cover, alignment: Alignment.bottomCenter),
         ),
       ),
@@ -205,7 +205,7 @@ class VenueBackdrop extends ConsumerWidget {
               spacing: 1,
               children: [
                 for (var i = 0; i < crowdCount; i++)
-                  SvgPicture.asset('assets/art/fan_${i % 4}.svg',
+                  artAsset('fan_${i % 4}',
                       width: 17, height: 17),
               ],
             ),

@@ -3,6 +3,23 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/jamjot_theme.dart';
 
+/// Pieces of final artwork delivered as PNG (they replace the drawn SVG
+/// placeholders one file at a time — add each new drop here).
+const finalPngArt = <String>{
+  'avatar_blueberry',
+};
+
+/// Loads a piece of art by base name: Erika's final PNG when it exists,
+/// otherwise the placeholder SVG.
+Widget artAsset(String base, {double? width, double? height, BoxFit fit = BoxFit.contain}) {
+  if (finalPngArt.contains(base)) {
+    return Image.asset('assets/art/$base.png',
+        width: width, height: height, fit: fit);
+  }
+  return SvgPicture.asset('assets/art/$base.svg',
+      width: width, height: height, fit: fit);
+}
+
 /// Berry characters bought at the market (JamJot-drawn placeholders — each
 /// key swaps to Erika's final artwork later, same file names).
 const berryAvatars = {
@@ -20,8 +37,7 @@ const berryAvatars = {
 /// The drawn character for a berry key (null if unknown).
 Widget? berryArt(String? key, double size) {
   if (key == null || !berryAvatars.containsKey(key)) return null;
-  return SvgPicture.asset('assets/art/avatar_$key.svg',
-      width: size, height: size);
+  return artAsset('avatar_$key', width: size, height: size);
 }
 
 /// Avatar tile: a bought berry character when one is worn, otherwise the

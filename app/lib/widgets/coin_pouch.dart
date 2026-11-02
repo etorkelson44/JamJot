@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../state/app_state.dart';
 import '../theme/jamjot_theme.dart';
+import 'letter_avatar.dart' show artAsset;
 
 /// The coin pouch: a little money-bag with the coin count splayed on it.
 /// (Placeholder art — swap the 💰 for the real pouch illustration later.)
@@ -20,7 +20,7 @@ class CoinPouch extends ConsumerWidget {
       clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
-        SvgPicture.asset('assets/art/pouch.svg', width: size, height: size),
+        artAsset('pouch', width: size, height: size),
         Positioned(
           bottom: big ? 2 : 0,
           child: Container(
@@ -53,7 +53,7 @@ class CoinPrice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      SvgPicture.asset('assets/art/coin.svg', width: 16, height: 16),
+      artAsset('coin', width: 16, height: 16),
       const SizedBox(width: 3),
       Text('$price', style: const TextStyle(fontWeight: FontWeight.w800)),
     ]);

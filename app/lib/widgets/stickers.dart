@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/jamjot_theme.dart';
+import 'letter_avatar.dart' show artAsset;
 
 /// The pun stickers: drawn art + its phrase. Appears at the right moments
 /// all over the app. (Art is JamJot-drawn placeholder — final art swaps in
@@ -43,7 +43,7 @@ class StickerBadge extends StatelessWidget {
     final s = stickers[key_];
     if (s == null) return const SizedBox.shrink();
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      SvgPicture.asset('assets/art/${s.asset}.svg',
+      artAsset('${s.asset}',
           width: size, height: size),
       const SizedBox(height: 2),
       Text(
