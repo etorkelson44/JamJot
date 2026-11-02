@@ -11,13 +11,17 @@ const finalPngArt = <String>{
 
 /// Loads a piece of art by base name: Erika's final PNG when it exists,
 /// otherwise the placeholder SVG.
-Widget artAsset(String base, {double? width, double? height, BoxFit fit = BoxFit.contain}) {
+Widget artAsset(String base,
+    {double? width,
+    double? height,
+    BoxFit fit = BoxFit.contain,
+    Alignment alignment = Alignment.center}) {
   if (finalPngArt.contains(base)) {
     return Image.asset('assets/art/$base.png',
-        width: width, height: height, fit: fit);
+        width: width, height: height, fit: fit, alignment: alignment);
   }
   return SvgPicture.asset('assets/art/$base.svg',
-      width: width, height: height, fit: fit);
+      width: width, height: height, fit: fit, alignment: alignment);
 }
 
 /// Berry characters bought at the market (JamJot-drawn placeholders — each
