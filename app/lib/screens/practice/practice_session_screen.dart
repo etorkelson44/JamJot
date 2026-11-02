@@ -908,12 +908,13 @@ class _PracticeSessionScreenState
         const SizedBox(height: 10),
         _goalsHeader(text),
         const SizedBox(height: 10),
-        // The crowd so far — the practice tab plays at today's venue.
+        // Which stage today's practice plays at (the venue itself is the
+        // page background).
         Builder(builder: (context) {
-          final student = ref.watch(activeStudentProvider);
-          return student == null
+          final s2 = ref.watch(activeStudentProvider);
+          return s2 == null
               ? const SizedBox.shrink()
-              : FanStage(studentId: student['id'] as String, compact: true);
+              : FanIndicator(studentId: s2['id'] as String);
         }),
         const SizedBox(height: 10),
         _liveBanner(text),

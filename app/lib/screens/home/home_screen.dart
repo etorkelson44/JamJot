@@ -57,8 +57,9 @@ class HomeScreen extends ConsumerWidget {
           if (isKid) ...[
             const Center(child: DancingNote(size: 140)),
             const SizedBox(height: 16),
-            // Their stage, their crowd — grows with every practice.
-            FanStage(studentId: active['id'] as String),
+            // Which stage they're playing (the venue itself is the page
+            // background behind everything).
+            FanIndicator(studentId: active['id'] as String),
             const SizedBox(height: 16),
             JamJotCard(
               emoji: '🎻',

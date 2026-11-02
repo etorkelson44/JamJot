@@ -217,3 +217,62 @@ class VenueBackdrop extends ConsumerWidget {
     ]);
   }
 }
+
+
+/// The compact venue indicator that rides on top of the backdrop: which
+/// stage this is, the fan count, and how far to the next venue.
+class FanIndicator extends ConsumerWidget {
+  const FanIndicator({super.key, required this.studentId});
+  final String studentId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+    final fans = ref.watch(fanTotalProvider(studentId)).valueOrNull ?? 0;
+    final (level, venue) = venueFor(fans);
+    final next = level < venues.length ? venues[level] : null;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: JamJotColors.ink, width: 2),
+      ),
+      child: Row(children: [
+        Text(venue.scene, style: const TextStyle(fontSize: 22)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Level $level — ${venue.name}',
+                  style: text.labelLarge
+                      ?.copyWith(fontWeight: FontWeight.w800)),
+              Text(
+                next == null
+                    ? '🕶️ $fans fans — top of the ladder!'
+                    : '🕶️ $fans fan${fans == 1 ? '' : 's'} • ${next.minFans - fans} more to the ${next.name} ${next.scene}',
+                style: text.labelSmall
+                    ?.copyWith(color: JamJotColors.inkSoft),
+              ),
+              if (next != null) ...[
+                const SizedBox(height: 3),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: ((fans - venue.minFans) /
+                            (next.minFans - venue.minFans))
+                        .clamp(0.0, 1.0),
+                    minHeight: 5,
+                    backgroundColor: JamJotColors.blueberryTint,
+                    color: JamJotColors.ink,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
