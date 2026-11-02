@@ -13,6 +13,7 @@ import '../../services/sound_meter.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/coin_pouch.dart';
 import '../../widgets/dancing_note.dart';
 import '../../widgets/fan_stage.dart';
 import '../../widgets/score_frame.dart';
@@ -492,6 +493,12 @@ class _PracticeSessionScreenState
       _awardsLabel[id] = '🪙+$berries 🕶️+$fans';
       if (berries > 0) playSound('coin');
       if (fans > 0) playSound('cheer');
+      final sid = _lesson?['student_id'] as String? ??
+          ref.read(activeStudentProvider)?['id'] as String?;
+      if (sid != null) {
+        ref.invalidate(berryBalanceProvider(sid));
+        ref.invalidate(fanTotalProvider(sid));
+      }
       if (rating == 'working_on_it' && mounted) {
         popSticker(context, randomOf(keepGoingStickers), ms: 1700);
       }
@@ -876,15 +883,20 @@ class _PracticeSessionScreenState
         card('📅', 'Next lesson', sched?['next']),
       ]),
       const SizedBox(height: 8),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: OutlinedButton.icon(
-          onPressed: () => context.go(
-              '/lesson-sheet?student=${student['id']}&name=${Uri.encodeComponent(student['display_name'] as String? ?? 'Student')}'),
-          icon: const Icon(Icons.print, size: 16),
-          label: const Text("Print this week's lesson sheet"),
+      Row(children: [
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => context.go(
+                  '/lesson-sheet?student=${student['id']}&name=${Uri.encodeComponent(student['display_name'] as String? ?? 'Student')}'),
+              icon: const Icon(Icons.print, size: 16),
+              label: const Text("Print this week's lesson sheet"),
+            ),
+          ),
         ),
-      ),
+        CoinPouch(studentId: student['id'] as String),
+      ]),
     ]);
   }
 

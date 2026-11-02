@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
+import '../../widgets/coin_pouch.dart';
 import '../../widgets/fan_stage.dart';
 import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
 import '../../widgets/jamjot_card.dart';
@@ -72,14 +73,15 @@ class HomeScreen extends ConsumerWidget {
                   .watch(berryBalanceProvider(active['id'] as String))
                   .valueOrNull;
               return JamJotCard(
-                emoji: '💰',
+                emoji: '🧺',
                 title: balance == null
                     ? 'Coin pouch'
                     : '$balance coin${balance == 1 ? '' : 's'} in your pouch',
                 subtitle: balance == null || balance == 0
                     ? 'Finish songs in practice to earn your first coins!'
-                    : "Spend them at the Farmers' Market! 🧺",
+                    : "Spend them at the Farmers' Market!",
                 tint: JamJotColors.plumTint,
+                trailing: CoinPouch(studentId: active['id'] as String),
                 onTap: () => context.go('/market'),
               );
             }),

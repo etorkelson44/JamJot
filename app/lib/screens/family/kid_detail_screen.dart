@@ -8,6 +8,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
+import '../../widgets/coin_pouch.dart';
 import '../../widgets/letter_avatar.dart';
 import '../../widgets/log_practice.dart' show logOfflinePractice;
 import '../../widgets/pin_dialog.dart' show askForNewPin;
@@ -130,7 +131,7 @@ class _OverviewTab extends ConsumerWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _statChip('🪙 ${berries ?? '…'} coins'),
+            CoinPouch(studentId: kid['id'] as String),
             _statChip('🕶️ ${fans ?? '…'} fans'),
             if (progress != null)
               _statChip(
