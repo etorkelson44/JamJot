@@ -901,7 +901,8 @@ class _PracticeSessionScreenState
   }
 
   Widget _buildSongList(TextTheme text) {
-    return Column(
+    final student = ref.watch(activeStudentProvider);
+    final list = Column(
       children: [
         _lessonScheduleCards(text),
         const SizedBox(height: 10),
@@ -1026,6 +1027,9 @@ class _PracticeSessionScreenState
           ),
       ],
     );
+    return student == null
+        ? list
+        : VenueBackdrop(studentId: student['id'] as String, child: list);
   }
 
   /// This song's practice-minutes suggestion: the teacher's number if set,

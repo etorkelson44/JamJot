@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -10,14 +11,14 @@ import '../../theme/jamjot_theme.dart';
 /// Everything on the family's calendar that this person may see.
 final calendarEventsProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final from = DateTime.now().subtract(const Duration(days: 14));
+  final from = DateTime.now().subtract(const Duration(days: 62));
   final rows = await JamJotBackend.client
       .from('calendar_events')
       .select(
           '*, event_students(student_id, students(display_name)), teachers(display_name)')
       .gte('starts_at', from.toUtc().toIso8601String())
       .order('starts_at', ascending: true)
-      .limit(200);
+      .limit(500);
   return rows.cast<Map<String, dynamic>>();
 });
 
@@ -60,11 +61,107 @@ Color studentColor(String id) {
   return palette[id.hashCode.abs() % palette.length];
 }
 
-class CalendarScreen extends ConsumerWidget {
+class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
+  @override
+  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends ConsumerState<CalendarScreen> {
+  /// Google-style views: 'day' | 'week' | 'month' | 'agenda'.
+  String _mode = 'agenda';
+  DateTime _anchor = DateTime.now();
+
+  /// The private subscribe link for Google/Apple/Skylight/Cozi.
+  Future<void> _syncDialog(BuildContext context) async {
+    final client = JamJotBackend.client;
+    final uid = client.auth.currentUser!.id;
+    var rows = await client.from('calendar_feeds').select().limit(1);
+    if (rows.isEmpty) {
+      rows = [
+        await client
+            .from('calendar_feeds')
+            .insert({'profile_id': uid})
+            .select()
+            .single()
+      ];
+    }
+    final link =
+        '${JamJotBackend.url}/functions/v1/calendar-feed?token=${rows.first['token']}';
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: const Text('Sync to other calendars'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'Subscribe any calendar app to this private link and JamJot lessons & events appear there (updates flow in automatically):'),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: JamJotColors.blueberryTint,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: SelectableText(link,
+                      style: const TextStyle(fontSize: 12)),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: link));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Link copied! 📋')));
+                    }
+                  },
+                  icon: const Icon(Icons.copy, size: 18),
+                  label: const Text('Copy the link'),
+                ),
+                const SizedBox(height: 12),
+                const Text('Where to paste it:',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                const Text(
+                    '• Google Calendar: Other calendars → + → From URL\n'
+                    '• Apple Calendar: File → New Calendar Subscription (or Settings → Accounts → Add Subscribed Calendar on iPhone)\n'
+                    '• Skylight: Settings → Add Calendar → iCal/ICS link\n'
+                    '• Cozi: Settings → Linked Calendars → Subscribe by URL',
+                    style: TextStyle(fontSize: 12.5)),
+                const SizedBox(height: 10),
+                Text(
+                  'This link is private but anyone who has it can see your JamJot calendar — share it only with calendar apps you trust.',
+                  style: TextStyle(
+                      fontSize: 12, color: JamJotColors.inkSoft),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final events = ref.watch(calendarEventsProvider).valueOrNull ?? [];
     final activeKid = ref.watch(activeStudentProvider);
     final teacher = ref.watch(myTeacherProvider).valueOrNull;
@@ -125,22 +222,123 @@ class CalendarScreen extends ConsumerWidget {
               'Family events stay private to your family — teachers and studios never see them.',
               style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
             ),
-            const SizedBox(height: 10),
-          ],
-          if (dayKeys.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                activeKid == null
-                    ? 'Nothing scheduled yet. Lessons from teachers and your family events will all land here.'
-                    : 'Nothing on your calendar yet — your lessons and performances will show up here! 🎵',
-                textAlign: TextAlign.center,
-                style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(0, 36)),
+                onPressed: () => _syncDialog(context),
+                icon: const Icon(Icons.sync, size: 18),
+                label: const Text(
+                    'Sync to Google / Apple / Skylight / Cozi…'),
               ),
-            )
-          else
-            for (final key in dayKeys) ...[
-              Padding(
+            ),
+            const SizedBox(height: 6),
+          ],
+          // ---- Day / Week / Month / All views, like a grown-up calendar.
+          Center(
+            child: SegmentedButton<String>(
+              style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+              segments: const [
+                ButtonSegment(value: 'day', label: Text('Day')),
+                ButtonSegment(value: 'week', label: Text('Week')),
+                ButtonSegment(value: 'month', label: Text('Month')),
+                ButtonSegment(value: 'agenda', label: Text('All')),
+              ],
+              selected: {_mode},
+              onSelectionChanged: (v) => setState(() => _mode = v.first),
+            ),
+          ),
+          if (_mode != 'agenda') ...[
+            Row(children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => setState(() {
+                  _anchor = switch (_mode) {
+                    'day' => _anchor.subtract(const Duration(days: 1)),
+                    'week' => _anchor.subtract(const Duration(days: 7)),
+                    _ => DateTime(_anchor.year, _anchor.month - 1,
+                        _anchor.day.clamp(1, 28)),
+                  };
+                }),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    switch (_mode) {
+                      'day' =>
+                        DateFormat('EEEE, MMM d').format(_anchor),
+                      'week' => () {
+                          final mon = DateTime(_anchor.year,
+                                  _anchor.month, _anchor.day)
+                              .subtract(
+                                  Duration(days: _anchor.weekday - 1));
+                          return '${DateFormat('MMM d').format(mon)} – ${DateFormat('MMM d').format(mon.add(const Duration(days: 6)))}';
+                        }(),
+                      _ => DateFormat('MMMM yyyy').format(_anchor),
+                    },
+                    style: text.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => setState(() {
+                  _anchor = switch (_mode) {
+                    'day' => _anchor.add(const Duration(days: 1)),
+                    'week' => _anchor.add(const Duration(days: 7)),
+                    _ => DateTime(_anchor.year, _anchor.month + 1,
+                        _anchor.day.clamp(1, 28)),
+                  };
+                }),
+              ),
+              TextButton(
+                onPressed: () =>
+                    setState(() => _anchor = DateTime.now()),
+                child: const Text('Today'),
+              ),
+            ]),
+          ],
+          if (_mode == 'month') ...[
+            _MonthGrid(
+              anchor: _anchor,
+              byDay: byDay,
+              selectedKey: DateFormat('yyyy-MM-dd').format(_anchor),
+              onPick: (d) => setState(() => _anchor = d),
+            ),
+            const SizedBox(height: 8),
+          ],
+          Builder(builder: (context) {
+            String keyOf(DateTime d) =>
+                DateFormat('yyyy-MM-dd').format(d);
+            final List<String> showKeys;
+            switch (_mode) {
+              case 'day':
+              case 'month':
+                showKeys = [keyOf(_anchor)];
+              case 'week':
+                final mon = DateTime(
+                        _anchor.year, _anchor.month, _anchor.day)
+                    .subtract(Duration(days: _anchor.weekday - 1));
+                showKeys = [
+                  for (var i = 0; i < 7; i++)
+                    keyOf(mon.add(Duration(days: i)))
+                ];
+              default:
+                showKeys = dayKeys;
+            }
+            final children = <Widget>[];
+            for (final key in showKeys) {
+              final items = byDay[key] ?? const [];
+              if (items.isEmpty && (_mode == 'week' || _mode == 'agenda')) {
+                continue;
+              }
+              children.add(Padding(
                 padding: const EdgeInsets.only(top: 10, bottom: 6),
                 child: Text(
                   key == todayKey
@@ -153,20 +351,41 @@ class CalendarScreen extends ConsumerWidget {
                           ? JamJotColors.blueberry
                           : JamJotColors.ink),
                 ),
-              ),
-              for (final e in byDay[key]!) ...[
-                if (e.containsKey('_lesson'))
-                  _AssignedLessonCard(
-                      lesson: e['_lesson'] as Map<String, dynamic>)
-                else
-                  _EventCard(
-                    event: e,
-                    isMine: e['owner_id'] == uid,
-                    isKidView: activeKid != null,
-                  ),
-                const SizedBox(height: 8),
-              ],
-            ],
+              ));
+              if (items.isEmpty) {
+                children.add(Text('Nothing scheduled this day.',
+                    style: text.bodySmall
+                        ?.copyWith(color: JamJotColors.inkSoft)));
+              }
+              for (final e in items) {
+                children.add(e.containsKey('_lesson')
+                    ? _AssignedLessonCard(
+                        lesson: e['_lesson'] as Map<String, dynamic>)
+                    : _EventCard(
+                        event: e,
+                        isMine: e['owner_id'] == uid,
+                        isKidView: activeKid != null,
+                      ));
+                children.add(const SizedBox(height: 8));
+              }
+            }
+            if (children.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  activeKid == null
+                      ? 'Nothing scheduled here yet. Lessons from teachers and your family events will all land on this calendar.'
+                      : 'Nothing on your calendar yet — your lessons and performances will show up here! 🎵',
+                  textAlign: TextAlign.center,
+                  style: text.bodyMedium
+                      ?.copyWith(color: JamJotColors.inkSoft),
+                ),
+              );
+            }
+            return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: children);
+          }),
         ],
       ),
     );
@@ -499,6 +718,117 @@ class CalendarScreen extends ConsumerWidget {
             content: Text('Could not add it just now — try again?')));
       }
     }
+  }
+}
+
+/// The month at a glance: dots mark days with lessons or events; tapping a
+/// day shows it below.
+class _MonthGrid extends StatelessWidget {
+  const _MonthGrid(
+      {required this.anchor,
+      required this.byDay,
+      required this.selectedKey,
+      required this.onPick});
+  final DateTime anchor;
+  final Map<String, List<Map<String, dynamic>>> byDay;
+  final String selectedKey;
+  final ValueChanged<DateTime> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final first = DateTime(anchor.year, anchor.month, 1);
+    final daysInMonth = DateTime(anchor.year, anchor.month + 1, 0).day;
+    final lead = first.weekday - 1; // Monday first
+    final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final cells = <Widget>[
+      for (final d in ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
+        Center(
+            child: Text(d,
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: JamJotColors.inkSoft))),
+      for (var i = 0; i < lead; i++) const SizedBox.shrink(),
+      for (var day = 1; day <= daysInMonth; day++)
+        Builder(builder: (context) {
+          final date = DateTime(anchor.year, anchor.month, day);
+          final key = DateFormat('yyyy-MM-dd').format(date);
+          final items = byDay[key] ?? const [];
+          final selected = key == selectedKey;
+          final isToday = key == todayKey;
+          return InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => onPick(date),
+            child: Container(
+              margin: const EdgeInsets.all(1.5),
+              decoration: BoxDecoration(
+                color: selected
+                    ? JamJotColors.blueberryTint
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: selected
+                        ? JamJotColors.ink
+                        : isToday
+                            ? JamJotColors.blueberry
+                            : Colors.transparent,
+                    width: selected ? 2 : 1.5),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('$day',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isToday || selected
+                              ? FontWeight.w800
+                              : FontWeight.w500)),
+                  SizedBox(
+                    height: 7,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (var i = 0;
+                            i < (items.length > 3 ? 3 : items.length);
+                            i++)
+                          Container(
+                            width: 5,
+                            height: 5,
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 1),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: items[i].containsKey('_lesson')
+                                  ? JamJotColors.blueberry
+                                  : (items[i]['kind'] == 'family'
+                                      ? JamJotColors.leaf
+                                      : JamJotColors.plum),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: JamJotColors.ink, width: 2),
+      ),
+      child: GridView.count(
+        crossAxisCount: 7,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        childAspectRatio: 1.15,
+        children: cells,
+      ),
+    );
   }
 }
 

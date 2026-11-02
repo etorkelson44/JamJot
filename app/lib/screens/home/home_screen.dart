@@ -29,7 +29,7 @@ class HomeScreen extends ConsumerWidget {
     }
     final isKid = active != null;
 
-    return SafeArea(
+    final page = SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         children: [
@@ -210,5 +210,8 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
     );
+    return isKid
+        ? VenueBackdrop(studentId: active['id'] as String, child: page)
+        : page;
   }
 }

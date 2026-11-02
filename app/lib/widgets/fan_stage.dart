@@ -165,3 +165,55 @@ class FanStage extends ConsumerWidget {
     );
   }
 }
+
+
+/// The kid's current venue as a soft full-page backdrop: the stage scene
+/// with their earned crowd standing in it, washed back so the page on top
+/// stays easy to read.
+class VenueBackdrop extends ConsumerWidget {
+  const VenueBackdrop(
+      {super.key, required this.studentId, required this.child});
+  final String studentId;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fans = ref.watch(fanTotalProvider(studentId)).valueOrNull ?? 0;
+    final (_, venue) = venueFor(fans);
+    final venueIndex = venues.indexOf(venue);
+    final crowdCount = fans <= 0 ? 0 : (fans / 4).ceil().clamp(1, 36);
+    return Stack(fit: StackFit.expand, children: [
+      // The stage scene, anchored to the bottom of the page.
+      Align(
+        alignment: Alignment.bottomCenter,
+        child: SizedBox(
+          height: 300,
+          width: double.infinity,
+          child: SvgPicture.asset('assets/art/venue_$venueIndex.svg',
+              fit: BoxFit.cover, alignment: Alignment.bottomCenter),
+        ),
+      ),
+      // Their crowd, gathered at the stage.
+      if (crowdCount > 0)
+        Positioned(
+          left: 10,
+          right: 10,
+          bottom: 8,
+          child: IgnorePointer(
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 1,
+              children: [
+                for (var i = 0; i < crowdCount; i++)
+                  SvgPicture.asset('assets/art/fan_${i % 4}.svg',
+                      width: 17, height: 17),
+              ],
+            ),
+          ),
+        ),
+      // The wash that keeps everything readable.
+      Container(color: const Color(0xFFFAF6EE).withValues(alpha: 0.82)),
+      child,
+    ]);
+  }
+}
