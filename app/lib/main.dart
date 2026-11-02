@@ -149,7 +149,6 @@ final _router = GoRouter(
     GoRoute(
         path: '/practice-session',
         builder: (_, __) => const PracticeSessionScreen()),
-    GoRoute(path: '/library', builder: (_, __) => const LibraryScreen()),
     GoRoute(path: '/teaching', builder: (_, __) => const TeachingScreen()),
     GoRoute(path: '/messages', builder: (_, __) => const MessagesScreen()),
     GoRoute(
@@ -207,6 +206,9 @@ final _router = GoRouter(
         ]),
         StatefulShellBranch(routes: [
           GoRoute(path: '/practice', builder: (_, __) => const PracticeScreen()),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(path: '/library', builder: (_, __) => const LibraryScreen()),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(path: '/market', builder: (_, __) => const MarketScreen()),
