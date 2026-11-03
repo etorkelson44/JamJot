@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="JamJot — every minute of music goes in the jar.">
+  <!-- viewport-fit + resizes-content keep the app glued to the real window,
+       even when call banners or keyboards squish the screen. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="JamJot">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#FAF6EE">
+  <title>JamJot</title>
+  <style>
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      /* Dynamic viewport height: follows Safari's toolbars & banners live. */
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #FAF6EE;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    // Safari announces banner/keyboard size changes on visualViewport but
+    // not always as a window resize — relay them so the app re-measures.
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function () {
+        window.dispatchEvent(new Event('resize'));
+      });
+    }
+    // Belt & suspenders: re-measure when the tab becomes visible again,
+    // and right after the device is rotated (some browsers are slow to
+    // announce the new size).
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) window.dispatchEvent(new Event('resize'));
+    });
+    window.addEventListener('orientationchange', function () {
+      setTimeout(function () {
+        window.dispatchEvent(new Event('resize'));
+      }, 250);
+    });
+
+    // ---- Little placeholder sound effects, synthesized right here (no
+    // files). Swapped for recorded sounds later. jjSound('coin'|'cheer'|
+    // 'fanfare'|'pop').
+    (function () {
+      var ctx = null;
+      function ac() {
+        if (!ctx) {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          ctx = new AC();
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+        return ctx;
+      }
+      function tone(c, freq, start, dur, type, vol, slideTo) {
+        var o = c.createOscillator();
+        var g = c.createGain();
+        o.type = type || 'triangle';
+        o.frequency.setValueAtTime(freq, c.currentTime + start);
+        if (slideTo) {
+          o.frequency.exponentialRampToValueAtTime(
+              slideTo, c.currentTime + start + dur);
+        }
+        g.gain.setValueAtTime(0, c.currentTime + start);
+        g.gain.linearRampToValueAtTime(vol || 0.18, c.currentTime + start + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0008, c.currentTime + start + dur);
+        o.connect(g).connect(c.destination);
+        o.start(c.currentTime + start);
+        o.stop(c.currentTime + start + dur + 0.05);
+      }
+      function noise(c, start, dur, vol, freq) {
+        var len = Math.floor(c.sampleRate * dur);
+        var buf = c.createBuffer(1, len, c.sampleRate);
+        var d = buf.getChannelData(0);
+        for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        var src = c.createBufferSource();
+        src.buffer = buf;
+        var f = c.createBiquadFilter();
+        f.type = 'bandpass';
+        f.frequency.value = freq || 1200;
+        f.Q.value = 0.8;
+        var g = c.createGain();
+        g.gain.setValueAtTime(0, c.currentTime + start);
+        g.gain.linearRampToValueAtTime(vol, c.currentTime + start + dur * 0.3);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + start + dur);
+        src.connect(f).connect(g).connect(c.destination);
+        src.start(c.currentTime + start);
+      }
+      window.jjSound = function (name) {
+        try {
+          var c = ac();
+          if (!c) return;
+          if (name === 'coin') {
+            tone(c, 1046, 0, 0.09, 'square', 0.08);
+            tone(c, 1568, 0.07, 0.22, 'square', 0.08);
+          } else if (name === 'cheer') {
+            noise(c, 0, 1.1, 0.16, 1000);
+            noise(c, 0.1, 0.9, 0.1, 2600);
+            // a couple of whistles in the crowd
+            tone(c, 1800, 0.15, 0.3, 'sine', 0.035, 2600);
+            tone(c, 2200, 0.5, 0.25, 'sine', 0.03, 1700);
+          } else if (name === 'fanfare') {
+            tone(c, 523, 0, 0.16, 'triangle', 0.16);
+            tone(c, 659, 0.14, 0.16, 'triangle', 0.16);
+            tone(c, 784, 0.28, 0.2, 'triangle', 0.16);
+            tone(c, 1046, 0.44, 0.5, 'triangle', 0.18);
+            noise(c, 0.44, 0.7, 0.07, 3000);
+          } else if (name === 'pop') {
+            tone(c, 420, 0, 0.07, 'sine', 0.14, 820);
+          }
+        } catch (e) {/* sounds are a treat, never a crash */}
+      };
+    })();
+
+    // ---- Auto-update: when a new version of the app is published, switch
+    // to it right away instead of waiting for two full reloads.
+    if ('serviceWorker' in navigator) {
+      var jjReloaded = false;
+      function jjActivate(reg) {
+        if (reg && reg.waiting) {
+          // A new version is downloaded and waiting — tell it to take over.
+          reg.waiting.postMessage({type: 'SKIP_WAITING'});
+          reg.waiting.postMessage('skipWaiting');
+        }
+      }
+      function jjCheck() {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (!reg) return;
+          jjActivate(reg);
+          reg.update().then(function () { jjActivate(reg); }).catch(function () {});
+          reg.addEventListener('updatefound', function () {
+            var sw = reg.installing;
+            if (!sw) return;
+            sw.addEventListener('statechange', function () {
+              if (sw.state === 'installed') jjActivate(reg);
+            });
+          });
+        }).catch(function () {});
+      }
+      // The new version took over — load it (once).
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (jjReloaded) return;
+        jjReloaded = true;
+        window.location.reload();
+      });
+      window.addEventListener('load', function () { setTimeout(jjCheck, 3000); });
+      window.addEventListener('focus', jjCheck);
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) jjCheck();
+      });
+      setInterval(jjCheck, 30 * 60 * 1000);
+    }
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
