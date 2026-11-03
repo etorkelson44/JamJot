@@ -1,0 +1,23 @@
+Analyzing app...                                                
+
+warning • The value of the local variable 'berries' isn't used. Try removing the variable or using it • lib/screens/family/kid_detail_screen.dart:100:11 • unused_local_variable
+warning • Unused import: '../../theme/jamjot_theme.dart'. Try removing the import directive • lib/screens/family/scan_sheet.dart:10:8 • unused_import
+   info • 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/screens/invite/invite_screen.dart:265:15 • deprecated_member_use
+   info • 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/screens/invite/invite_screen.dart:267:15 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/screens/lessons/lesson_builder_screen.dart:65:16 • use_build_context_synchronously
+warning • The declaration '_busyAction' isn't referenced. Try removing the declaration of '_busyAction' • lib/screens/library/library_screen.dart:263:16 • unused_element
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext • lib/screens/library/library_screen.dart:682:38 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext • lib/screens/library/library_screen.dart:698:40 • use_build_context_synchronously
+warning • A value for optional parameter 'teacherId' isn't ever given. Try removing the unused parameter • lib/screens/market/market_screen.dart:197:60 • unused_element_parameter
+warning • The receiver can't be null, so the null-aware operator '?[' is unnecessary. Try replacing the operator '?[' with '[' • lib/screens/teaching/teaching_screen.dart:564:95 • invalid_null_aware_operator
+   info • Dangling library doc comment. Add a 'library' directive after the library comment • lib/services/folder_picker.dart:1:1 • dangling_library_doc_comments
+   info • Dangling library doc comment. Add a 'library' directive after the library comment • lib/services/session_flags.dart:1:1 • dangling_library_doc_comments
+   info • Dangling library doc comment. Add a 'library' directive after the library comment • lib/services/sound_meter.dart:1:1 • dangling_library_doc_comments
+   info • 'anonKey' is deprecated and shouldn't be used. Use publishableKey instead. anonKey will be removed in a future major version. Try replacing the use of the deprecated member with the replacement • lib/services/supabase_service.dart:10:41 • deprecated_member_use
+   info • Dangling library doc comment. Add a 'library' directive after the library comment • lib/services/unload_guard.dart:1:1 • dangling_library_doc_comments
+warning • Unnecessary cast. Try removing the cast • lib/state/app_state.dart:51:32 • unnecessary_cast
+warning • The declaration '_fanFaces' isn't referenced. Try removing the declaration of '_fanFaces' • lib/widgets/fan_stage.dart:64:7 • unused_element
+   info • Dangling library doc comment. Add a 'library' directive after the library comment • lib/widgets/score_frame.dart:1:1 • dangling_library_doc_comments
+   info • Unnecessary use of string interpolation. Try replacing the string literal with the variable name • lib/widgets/stickers.dart:46:16 • unnecessary_string_interpolations
+
+19 issues found. (ran in 7.7s)

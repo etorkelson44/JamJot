@@ -1,0 +1,12 @@
+00:00 +0: loading <checkout>/app/test/practice_session_test.dart
+00:00 +0: <checkout>/app/test/widget_test.dart: JamJot theme builds
+00:00 +1: <checkout>/app/test/lesson_sheet_test.dart: (setUpAll)
+00:00 +1: <checkout>/app/test/lesson_practice_report_test.dart: lesson window includes manual and recorded practice, excludes unfinished and next week
+00:00 +2: <checkout>/app/test/lesson_sheet_test.dart: manual practice prints even when the student has no assigned lesson
+00:00 +3: <checkout>/app/test/lesson_sheet_test.dart: manual practice prints even when the student has no assigned lesson
+00:00 +4: <checkout>/app/test/lesson_sheet_test.dart: manual practice prints even when the student has no assigned lesson
+00:00 +5: <checkout>/app/test/practice_session_test.dart: one-minute completion prompts for song goal and saves only fresh seconds
+00:01 +6: <checkout>/app/test/practice_session_test.dart: under-minute dialog remains usable with large text and keeps progress
+00:01 +7: <checkout>/app/test/practice_session_test.dart: failed song save preserves progress and never celebrates
+00:01 +8: <checkout>/app/test/practice_session_test.dart: (tearDownAll)
+00:01 +8: All tests passed!

@@ -2,3 +2,5 @@
 bool get printingSupported => false;
 
 void printPage() {}
+
+bool printLessonSheet(String html) => false;

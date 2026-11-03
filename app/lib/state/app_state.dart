@@ -33,7 +33,10 @@ final myStudentsProvider =
   return [
     for (final r in rows)
       if (r['students'] != null)
-        {...(r['students'] as Map<String, dynamic>), 'is_primary': r['is_primary']},
+        {
+          ...(r['students'] as Map<String, dynamic>),
+          'is_primary': r['is_primary']
+        },
   ];
 });
 
@@ -103,8 +106,9 @@ final lessonForEnrollmentProvider = FutureProvider.autoDispose
   query = enrollmentId == null
       ? query.isFilter('enrollment_id', null)
       : query.eq('enrollment_id', enrollmentId);
-  final rows =
-      await query.order('created_at', ascending: false).limit(10);
+  final rows = await query
+      .order('week_start', ascending: false, nullsFirst: false)
+      .order('created_at', ascending: false);
   final today = DateTime.now();
   for (final r in rows) {
     final ws = r['week_start'] as String?;
@@ -130,8 +134,8 @@ final currentLessonProvider = FutureProvider.autoDispose
       .from('lessons')
       .select('*, assignments(*)')
       .eq('student_id', studentId)
-      .order('created_at', ascending: false)
-      .limit(25);
+      .order('week_start', ascending: false, nullsFirst: false)
+      .order('created_at', ascending: false);
   if (rows.isEmpty) return null;
   final today = DateTime.now();
   final newestPerConnection = <String, Map<String, dynamic>>{};
@@ -160,8 +164,8 @@ final currentLessonProvider = FutureProvider.autoDispose
     final source = entry.key == 'family' ? null : labels[entry.key];
     final assignments = (l['assignments'] as List? ?? [])
         .cast<Map<String, dynamic>>()
-      ..sort((a, b) => (a['order_idx'] as int? ?? 0)
-          .compareTo(b['order_idx'] as int? ?? 0));
+      ..sort((a, b) =>
+          (a['order_idx'] as int? ?? 0).compareTo(b['order_idx'] as int? ?? 0));
     for (final a in assignments) {
       merged.add({...a, if (source != null) 'source': source});
     }
@@ -187,8 +191,7 @@ final lessonScheduleProvider = FutureProvider.autoDispose
     .family<Map<String, Map<String, dynamic>?>, String>((ref, studentId) async {
   final rows = await JamJotBackend.client
       .from('event_students')
-      .select(
-          'calendar_events(kind, title, starts_at, teachers(display_name))')
+      .select('calendar_events(kind, title, starts_at, teachers(display_name))')
       .eq('student_id', studentId);
   final now = DateTime.now();
   Map<String, dynamic>? last;
@@ -222,10 +225,11 @@ final weeklyProgressProvider =
       .subtract(Duration(days: now.weekday - 1));
   final rows = await JamJotBackend.client
       .from('sessions')
-      .select('started_at, total_seconds')
+      .select('id, started_at, total_seconds')
       .eq('student_id', studentId)
       .gte('started_at', monday.toUtc().toIso8601String());
   final days = <String>{};
+  final sessionSeconds = <String, int>{};
   var todaySeconds = 0;
   final todayKey = '${now.year}-${now.month}-${now.day}';
   for (final r in rows) {
@@ -234,9 +238,17 @@ final weeklyProgressProvider =
     final dt = DateTime.parse(r['started_at'] as String).toLocal();
     final key = '${dt.year}-${dt.month}-${dt.day}';
     days.add(key);
-    if (key == todayKey) todaySeconds += secs;
+    if (key == todayKey) {
+      todaySeconds += secs;
+      sessionSeconds['session/${r['id']}'] = secs;
+    }
   }
-  return {'days': days.length, 'today_minutes': todaySeconds ~/ 60};
+  return {
+    'days': days.length,
+    'today_minutes': todaySeconds ~/ 60,
+    'today_seconds': todaySeconds,
+    ...sessionSeconds
+  };
 });
 
 /// Everyone caring for one kid, with their permission grants.
@@ -373,7 +385,8 @@ final practiceCutoffProvider = FutureProvider.autoDispose
   final now = DateTime.now();
   final rows = await JamJotBackend.client
       .from('event_students')
-      .select('calendar_events(kind, starts_at, title, teachers(finalize_hour))')
+      .select(
+          'calendar_events(kind, starts_at, title, teachers(finalize_hour))')
       .eq('student_id', studentId);
   for (final r in rows) {
     final ev = r['calendar_events'] as Map<String, dynamic>?;
@@ -384,8 +397,8 @@ final practiceCutoffProvider = FutureProvider.autoDispose
         ((ev['teachers'] as Map?)?['finalize_hour'] as num?)?.toInt() ?? 21;
     final dayBefore = DateTime(startsAt.year, startsAt.month, startsAt.day)
         .subtract(const Duration(days: 1));
-    final cutoff = DateTime(
-        dayBefore.year, dayBefore.month, dayBefore.day, finalizeHour);
+    final cutoff =
+        DateTime(dayBefore.year, dayBefore.month, dayBefore.day, finalizeHour);
     if (!now.isBefore(cutoff) && now.isBefore(startsAt)) {
       return {'lesson_at': startsAt, 'title': ev['title']};
     }

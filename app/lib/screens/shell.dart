@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/app_state.dart';
+import '../services/practice_navigation.dart';
 import '../theme/jamjot_theme.dart';
 import '../widgets/jamjot_icons.dart';
 
@@ -57,8 +58,16 @@ class AppShell extends ConsumerWidget {
         ),
         child: NavigationBar(
           selectedIndex: selected,
-          onDestinationSelected: (i) => shell.goBranch(branches[i],
-              initialLocation: branches[i] == shell.currentIndex),
+          onDestinationSelected: (i) async {
+            final target = branches[i];
+            if (shell.currentIndex == 1 && target != 1) {
+              final guard = ref.read(practiceExitGuardProvider).beforeLeave;
+              if (guard != null && !await guard()) return;
+              if (!context.mounted) return;
+            }
+            shell.goBranch(target,
+                initialLocation: target == shell.currentIndex);
+          },
           backgroundColor: Colors.white,
           destinations: destinations,
         ),

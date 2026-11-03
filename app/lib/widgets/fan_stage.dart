@@ -23,7 +23,8 @@ const venues = [
   Venue(60, 'Street Corner', '🚏', Color(0xFFE3EDF7), Color(0xFFC7DBEE)),
   Venue(120, 'Park Bandstand', '⛲', Color(0xFFDFF2EC), Color(0xFFBCE3D6)),
   Venue(220, 'School Gym', '🏫', Color(0xFFF3E6F7), Color(0xFFE2C8EC)),
-  Venue(350, "Farmers' Market Stage", '🧺', Color(0xFFFCEBDD), Color(0xFFF6D1B3)),
+  Venue(
+      350, "Farmers' Market Stage", '🧺', Color(0xFFFCEBDD), Color(0xFFF6D1B3)),
   Venue(550, 'Town Theater', '🎭', Color(0xFFEDE4F9), Color(0xFFD3BFF0)),
   Venue(800, 'Concert Hall', '🎻', Color(0xFFE4ECF9), Color(0xFFBDD1F0)),
   Venue(1200, 'Big Arena', '🎤', Color(0xFFFBE3E8), Color(0xFFF3BCC9)),
@@ -46,13 +47,16 @@ final weeklyFansProvider =
       .subtract(Duration(days: now.weekday - 1));
   final rows = await JamJotBackend.client
       .from('fan_ledger')
-      .select('amount')
-      .eq('student_id', studentId)
-      .gte('created_at', monday.toUtc().toIso8601String());
+      .select('amount, created_at, sessions(started_at)')
+      .eq('student_id', studentId);
   var total = 0;
   for (final r in rows) {
     final a = (r['amount'] as num).toInt();
-    if (a > 0) total += a;
+    final at = DateTime.parse(
+            (r['sessions'] as Map?)?['started_at'] as String? ??
+                r['created_at'] as String)
+        .toLocal();
+    if (!at.isBefore(monday) && !at.isAfter(now)) total += a;
   }
   return total;
 });
@@ -82,67 +86,64 @@ class FanStage extends ConsumerWidget {
     final venueIndex = venues.indexOf(venue);
 
     final content = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Text(venue.scene, style: const TextStyle(fontSize: 26)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Level $level — ${venue.name}',
-                      style: text.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w800)),
-                  Text(
-                    '🕶️ $fans fan${fans == 1 ? '' : 's'} ever • +$weekly this week${possible > 0 ? ' (of ~$possible possible)' : ''}',
-                    style: text.bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Text(venue.scene, style: const TextStyle(fontSize: 26)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Level $level — ${venue.name}',
+                    style:
+                        text.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                Text(
+                  '🕶️ $fans fan${fans == 1 ? '' : 's'} ever • +$weekly this week${possible > 0 ? ' (of ~$possible possible)' : ''}',
+                  style: text.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
-          ]),
-          if (!compact) ...[
-            const SizedBox(height: 8),
-            // The crowd (one little face per few fans).
-            if (crowdCount == 0)
-              Text('The seats are waiting for your first fans! 🎵',
-                  style: text.bodySmall)
-            else
-              Wrap(
-                spacing: 1,
-                runSpacing: 1,
-                children: [
-                  for (var i = 0; i < crowdCount; i++)
-                    artAsset('fan_${i % 4}',
-                        width: 19, height: 19),
-                ],
-              ),
-          ],
-          if (next != null) ...[
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: ((fans - venue.minFans) /
-                        (next.minFans - venue.minFans))
-                    .clamp(0.0, 1.0),
-                minHeight: 8,
-                backgroundColor: Colors.white.withValues(alpha: 0.6),
-                color: JamJotColors.ink,
-              ),
+          ),
+        ]),
+        if (!compact) ...[
+          const SizedBox(height: 8),
+          // The crowd (one little face per few fans).
+          if (crowdCount == 0)
+            Text('The seats are waiting for your first fans! 🎵',
+                style: text.bodySmall)
+          else
+            Wrap(
+              spacing: 1,
+              runSpacing: 1,
+              children: [
+                for (var i = 0; i < crowdCount; i++)
+                  artAsset('fan_${i % 4}', width: 19, height: 19),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              '${next.minFans - fans} more fans to the ${next.name} ${next.scene}',
-              style: text.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ] else
-            Text('Top of the ladder — the stadium is yours! 🏟️',
-                style: text.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
         ],
-      );
+        if (next != null) ...[
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: ((fans - venue.minFans) / (next.minFans - venue.minFans))
+                  .clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: Colors.white.withValues(alpha: 0.6),
+              color: JamJotColors.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${next.minFans - fans} more fans to the ${next.name} ${next.scene}',
+            style: text.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ] else
+          Text('Top of the ladder — the stadium is yours! 🏟️',
+              style: text.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
+      ],
+    );
 
     // The venue backdrop sits behind everything, with a soft wash so the
     // words stay readable.
@@ -154,8 +155,7 @@ class FanStage extends ConsumerWidget {
       ),
       child: Stack(children: [
         Positioned.fill(
-          child: artAsset('venue_$venueIndex',
-              fit: BoxFit.cover),
+          child: artAsset('venue_$venueIndex', fit: BoxFit.cover),
         ),
         Positioned.fill(
           child: Container(color: Colors.white.withValues(alpha: 0.55)),
@@ -165,7 +165,6 @@ class FanStage extends ConsumerWidget {
     );
   }
 }
-
 
 /// The kid's current venue as a soft full-page backdrop: the stage scene
 /// with their earned crowd standing in it, washed back so the page on top
@@ -205,8 +204,7 @@ class VenueBackdrop extends ConsumerWidget {
               spacing: 1,
               children: [
                 for (var i = 0; i < crowdCount; i++)
-                  artAsset('fan_${i % 4}',
-                      width: 17, height: 17),
+                  artAsset('fan_${i % 4}', width: 17, height: 17),
               ],
             ),
           ),
@@ -217,7 +215,6 @@ class VenueBackdrop extends ConsumerWidget {
     ]);
   }
 }
-
 
 /// The compact venue indicator that rides on top of the backdrop: which
 /// stage this is, the fan count, and how far to the next venue.
@@ -246,14 +243,13 @@ class FanIndicator extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Level $level — ${venue.name}',
-                  style: text.labelLarge
-                      ?.copyWith(fontWeight: FontWeight.w800)),
+                  style:
+                      text.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
               Text(
                 next == null
                     ? '🕶️ $fans fans — top of the ladder!'
                     : '🕶️ $fans fan${fans == 1 ? '' : 's'} • ${next.minFans - fans} more to the ${next.name} ${next.scene}',
-                style: text.labelSmall
-                    ?.copyWith(color: JamJotColors.inkSoft),
+                style: text.labelSmall?.copyWith(color: JamJotColors.inkSoft),
               ),
               if (next != null) ...[
                 const SizedBox(height: 3),

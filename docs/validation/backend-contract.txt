@@ -1,0 +1,13 @@
+PASS correction permissions: parent, teacher, studio; deny child, unrelated, limited caregiver
+PASS manual entry: 15 minutes counts for goal, retry creates one entry
+PASS minute override and restore recalculate credited minutes, coins and goal
+PASS one-minute song, extra-practice fans, repeated settlement and unauthorized denial
+PASS recording and song deletion remove their minutes and rewards, queue private media cleanup
+PASS entire-session deletion
+PASS atomic purchase: retry, avatar ownership, insufficient funds and spending permissions
+PASS correction preserves purchased reward, future earnings repay negative balance
+PASS direct override/delete and private audit access denied
+PASS library assignment: retry creates one complete lesson, failed song rolls back entire assignment
+PASS daily goals combine sessions, respect teacher minutes and change after corrections
+PASS minimum boundary: 59 seconds earns no song coins, 60 seconds earns song coins
+PASS unrelated lesson assignment, unowned avatar and anonymous privileged access denied

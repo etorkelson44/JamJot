@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// JamJot design tokens — the single source of truth for the app's look.
 /// Blueberry + Marigold scheme chosen 2026-10-29 (see mockup canvas).
@@ -46,7 +45,8 @@ abstract final class JamJotShape {
 }
 
 ThemeData buildJamJotTheme() {
-  final textTheme = GoogleFonts.spaceGroteskTextTheme().apply(
+  final textTheme = ThemeData.light().textTheme.apply(
+    fontFamily: 'SpaceGrotesk',
     bodyColor: JamJotColors.ink,
     displayColor: JamJotColors.ink,
   );

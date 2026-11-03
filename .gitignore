@@ -11,3 +11,6 @@ app/macos/
 app/windows/
 app/.idea/
 *.iml
+
+supabase/.temp/
+supabase/tests/node_modules/

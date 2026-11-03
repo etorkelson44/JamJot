@@ -3,13 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 
 import '../../services/sound_effects.dart';
-import '../../services/sound_meter.dart';
+import '../../services/recording_file.dart';
+import '../../services/practice_navigation.dart';
+import '../../services/unload_guard.dart';
+import '../history/practice_history_screen.dart';
+import '../lesson/lesson_sheet_screen.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
@@ -19,7 +23,18 @@ import '../../widgets/fan_stage.dart';
 import '../../widgets/score_frame.dart';
 import '../../widgets/stickers.dart';
 
-enum _Phase { starting, practicing, saving, celebrate, micDenied, error, closed }
+final practiceRecorderProvider =
+    Provider<AudioRecorder>((ref) => AudioRecorder());
+
+enum _Phase {
+  starting,
+  practicing,
+  saving,
+  celebrate,
+  micDenied,
+  error,
+  closed
+}
 
 class PracticeSessionScreen extends ConsumerStatefulWidget {
   const PracticeSessionScreen({super.key});
@@ -29,10 +44,20 @@ class PracticeSessionScreen extends ConsumerStatefulWidget {
       _PracticeSessionScreenState();
 }
 
-class _PracticeSessionScreenState
-    extends ConsumerState<PracticeSessionScreen> {
-  final _recorder = AudioRecorder();
-  final _meter = SoundMeter();
+class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
+    with WidgetsBindingObserver {
+  late final AudioRecorder _recorder;
+  bool _busy = false;
+  bool _deciding = false;
+  late final PracticeExitGuard _exitGuard;
+  late final Future<bool> Function() _exitHandler;
+  bool _dialogOpen = false;
+  bool _sampling = false;
+  final Stopwatch _clipClock = Stopwatch();
+  int _sampleAt = 0;
+  String? _clipSongKey;
+  String? _clipId;
+  String? _notice;
 
   _Phase _phase = _Phase.starting;
   String? _sessionId;
@@ -44,12 +69,12 @@ class _PracticeSessionScreenState
 
   /// Is the mic actively recording right now (record button pressed)?
   bool _live = false;
-  bool _meterStarted = false;
 
   /// Uploaded clips not yet attached to a saved song summary,
   /// keyed by song id ('_freeplay' for no-song recording).
   /// Each entry: {path, at, wall_seconds, sound_seconds}.
   final Map<String, List<Map<String, dynamic>>> _pendingClips = {};
+  final Map<String, String> _segmentIds = {};
 
   /// Stamps for the clip currently rolling.
   DateTime? _clipStartedAt;
@@ -74,7 +99,7 @@ class _PracticeSessionScreenState
             .maybeSingle();
         final path = score?['original_path'] as String?;
         if (path == null) return null;
-        return JamJotBackend.client.storage
+        return await JamJotBackend.client.storage
             .from('scores')
             .createSignedUrl(path, 3600 * 6);
       } catch (_) {
@@ -97,10 +122,10 @@ class _PracticeSessionScreenState
   final Map<String, int> _bankedWallMs = {};
 
   /// Loudness gate: room must be louder than this to count.
-  static const _threshold = 0.035;
+  static const _thresholdDb = -40.0;
 
   /// Minimum real-sound time to finish a song (or bank extra practice).
-  static const _minSongSeconds = 120;
+  static const _minSongSeconds = 60;
 
   /// Sound-ms already paid out per song (so repeats earn on NEW time only).
   final Map<String, int> _bankedMs = {};
@@ -124,6 +149,11 @@ class _PracticeSessionScreenState
   @override
   void initState() {
     super.initState();
+    _recorder = ref.read(practiceRecorderProvider);
+    WidgetsBinding.instance.addObserver(this);
+    _exitGuard = ref.read(practiceExitGuardProvider);
+    _exitHandler = _confirmLeavePractice;
+    _exitGuard.beforeLeave = _exitHandler;
     _begin();
   }
 
@@ -142,12 +172,11 @@ class _PracticeSessionScreenState
         if (mounted) setState(() => _phase = _Phase.closed);
         return;
       }
-      final lesson = await ref
-          .read(currentLessonProvider(student['id'] as String).future);
+      final lesson =
+          await ref.read(currentLessonProvider(student['id'] as String).future);
       _lesson = lesson;
-      _songs = (lesson?['assignments'] as List?)
-              ?.cast<Map<String, dynamic>>() ??
-          [];
+      _songs =
+          (lesson?['assignments'] as List?)?.cast<Map<String, dynamic>>() ?? [];
       // Coming back on the same day? Reopen today's session and keep adding.
       final now = DateTime.now();
       final dayStart = DateTime(now.year, now.month, now.day);
@@ -155,6 +184,8 @@ class _PracticeSessionScreenState
           .from('sessions')
           .select('*, session_segments(*)')
           .eq('student_id', student['id'])
+          .eq('source', 'app')
+          .isFilter('manual_override_seconds', null)
           .gte('started_at', dayStart.toUtc().toIso8601String())
           .order('started_at', ascending: false)
           .limit(1);
@@ -224,88 +255,171 @@ class _PracticeSessionScreenState
     }
   }
 
+  void _showProblem(String message) {
+    if (!mounted) return;
+    setState(() => _notice = message);
+  }
+
   Future<void> _toggleLive() async {
-    if (_live) {
-      // Stop: close out this clip and upload it to its song.
-      _sampler?.cancel();
-      setState(() => _live = false);
-      try {
-        final url = await _recorder.stop();
-        if (url != null) await _uploadClip(url);
-      } catch (_) {}
-      return;
-    }
-    // Start listening & recording a fresh clip.
+    if (_busy) return;
+    setState(() => _busy = true);
     try {
-      final hasMic = await _recorder.hasPermission();
-      if (!_meterStarted) {
-        final meterOk = await _meter.start();
-        if (!hasMic || !meterOk) {
-          setState(() => _phase = _Phase.micDenied);
+      if (_live) {
+        await _stopClip();
+      } else {
+        if (!await _recorder.hasPermission()) {
+          if (mounted) setState(() => _phase = _Phase.micDenied);
           return;
         }
-        _meterStarted = true;
-      } else if (!hasMic) {
-        setState(() => _phase = _Phase.micDenied);
-        return;
-      }
-      await _ensureSession();
-      await _recorder.start(const RecordConfig(), path: '');
-      _clipStartedAt = DateTime.now();
-      _clipStartSoundMs = _soundMsTotal;
-      // Sample the room 5x a second; count the slices that have sound.
-      _sampler = Timer.periodic(const Duration(milliseconds: 200), (_) {
-        final loud = _meter.level > _threshold;
-        final open = _openSong;
-        if (open != null) {
-          final id = open['id'] as String;
-          _wallMsBySong[id] = (_wallMsBySong[id] ?? 0) + 200;
-        }
-        if (loud) {
-          _soundMsTotal += 200;
-          if (open != null) {
-            final id = open['id'] as String;
-            _soundMsBySong[id] = (_soundMsBySong[id] ?? 0) + 200;
+        await _retryUploads();
+        await _ensureSession();
+        _clipId = const Uuid().v4();
+        _clipSongKey = (_openSong?['id'] as String?) ?? '_freeplay';
+        // WAV is supported by the recorder on Safari, Chrome, iOS and Android.
+        // Meter the recorder's own input instead of opening a second microphone.
+        await _recorder.start(
+            const RecordConfig(
+              encoder: AudioEncoder.wav,
+              sampleRate: 22050,
+              numChannels: 1,
+              echoCancel: false,
+              noiseSuppress: false,
+              autoGain: false,
+            ),
+            path: await recordingPath(_clipId!));
+        if (await _recorder.isPaused()) await _recorder.resume();
+        _clipStartedAt = DateTime.now();
+        _clipStartSoundMs = _soundMsTotal;
+        _sampleAt = 0;
+        _clipClock
+          ..reset()
+          ..start();
+        _sampler = Timer.periodic(const Duration(milliseconds: 200), (_) async {
+          if (_sampling || !_live) return;
+          _sampling = true;
+          try {
+            final amplitude = await _recorder.getAmplitude();
+            if (!_live || !mounted) return;
+            final elapsed = _clipClock.elapsedMilliseconds;
+            final delta = (elapsed - _sampleAt).clamp(0, 500).toInt();
+            _sampleAt = elapsed;
+            final loud =
+                amplitude.current.isFinite && amplitude.current > _thresholdDb;
+            final id = _clipSongKey;
+            if (id != null && id != '_freeplay') {
+              _wallMsBySong[id] = (_wallMsBySong[id] ?? 0) + delta;
+            }
+            if (loud) {
+              _soundMsTotal += delta;
+              if (id != null && id != '_freeplay') {
+                _soundMsBySong[id] = (_soundMsBySong[id] ?? 0) + delta;
+              }
+            }
+            setState(() => _soundNow = loud);
+          } catch (_) {
+            _showProblem(
+                'The microphone level could not be read. Stop and try recording again.');
+          } finally {
+            _sampling = false;
           }
+        });
+        setUnloadGuard(true);
+        if (mounted) {
+          setState(() {
+            _live = true;
+            _notice = null;
+          });
         }
-        if (mounted) setState(() => _soundNow = loud);
-      });
-      setState(() => _live = true);
+      }
     } catch (_) {
-      setState(() => _phase = _Phase.error);
+      _showProblem(
+          'The recording could not be started or saved. Your progress is still here. Try again before leaving this page.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
-  /// Uploads one finished clip and files it under the song it belongs to,
-  /// stamped with when it started and both of its times.
-  Future<void> _uploadClip(String blobUrl) async {
-    final student = ref.read(activeStudentProvider);
-    if (student == null || _sessionId == null) return;
-    final startedAt = _clipStartedAt ?? DateTime.now();
-    final wallSeconds = DateTime.now().difference(startedAt).inSeconds;
-    final soundSeconds = (_soundMsTotal - _clipStartSoundMs) ~/ 1000;
-    try {
-      final bytes = (await http.get(Uri.parse(blobUrl))).bodyBytes;
-      if (bytes.isEmpty) return;
-      final songKey = (_openSong?['id'] as String?) ?? '_freeplay';
-      final path =
-          '${student['id']}/$_sessionId/$songKey-${startedAt.millisecondsSinceEpoch}.webm';
-      await JamJotBackend.client.storage.from('recordings').uploadBinary(
-            path,
-            bytes,
-            fileOptions: const FileOptions(contentType: 'audio/webm'),
-          );
-      (_pendingClips[songKey] ??= []).add({
-        'path': path,
-        'at': startedAt.toUtc().toIso8601String(),
-        'wall_seconds': wallSeconds,
-        'sound_seconds': soundSeconds,
+  Future<void> _stopClip({bool discard = false}) async {
+    _sampler?.cancel();
+    _clipClock.stop();
+    final key = _clipSongKey ?? '_freeplay';
+    if (discard) {
+      await _recorder.cancel();
+      final removed = _soundMsTotal - _clipStartSoundMs;
+      _soundMsTotal -= removed;
+      if (key != '_freeplay') {
+        _soundMsBySong[key] =
+            ((_soundMsBySong[key] ?? 0) - removed).clamp(0, 1 << 40);
+        _wallMsBySong[key] =
+            ((_wallMsBySong[key] ?? 0) - _sampleAt).clamp(0, 1 << 40);
+      }
+    } else {
+      final local = await _recorder.stop();
+      if (local == null) throw StateError('No recording was returned.');
+      final student = ref.read(activeStudentProvider)!;
+      (_pendingClips[key] ??= []).add({
+        'path': '${student['id']}/$_sessionId/$key-$_clipId.wav',
+        'local_path': local,
+        'at': _clipStartedAt!.toUtc().toIso8601String(),
+        'wall_seconds': _clipClock.elapsed.inSeconds,
+        'sound_seconds': (_soundMsTotal - _clipStartSoundMs) ~/ 1000,
       });
-    } catch (_) {/* stats still count even if a clip fails to upload */}
+    }
+    if (mounted) {
+      setState(() {
+        _live = false;
+        _soundNow = false;
+      });
+    }
+    if (!discard) await _retryUploads();
+  }
+
+  Future<void> _retryUploads() async {
+    for (final clips in _pendingClips.values) {
+      for (final clip in clips) {
+        final local = clip['local_path'] as String?;
+        if (local == null) continue;
+        final bytes = await readRecording(local);
+        if (bytes.isEmpty) throw StateError('The recording is empty.');
+        await JamJotBackend.client.storage
+            .from('recordings')
+            .uploadBinary(
+              clip['path'] as String,
+              bytes,
+              fileOptions: const FileOptions(contentType: 'audio/wav'),
+            )
+            .catchError((Object error) {
+          // A timed-out upload may already have succeeded. Keep its stable path.
+          if (error.toString().contains('Duplicate') ||
+              error.toString().contains('already exists')) {
+            return clip['path'] as String;
+          }
+          throw error;
+        });
+        clip.remove('local_path');
+        await releaseRecording(local);
+      }
+    }
+  }
+
+  Future<T?> _practiceDialog<T>({required WidgetBuilder builder}) async {
+    if (mounted) setState(() => _dialogOpen = true);
+    try {
+      return await showDialog<T>(context: context, builder: builder);
+    } finally {
+      if (mounted) setState(() => _dialogOpen = false);
+    }
+  }
+
+  Future<void> _leaveSong() async {
+    if (_busy) return;
+    if (_live) await _toggleLive();
+    if (_live || !mounted) return;
+    await _stopAndMaybeFinishSong(_openSong!);
   }
 
   List<Map<String, dynamic>> _takeClips(String songKey) {
-    return _pendingClips.remove(songKey) ?? [];
+    return _pendingClips[songKey] ?? [];
   }
 
   /// The two clip columns a segment row carries.
@@ -316,15 +430,32 @@ class _PracticeSessionScreenState
 
   /// Stop pressed on a song page: pause, confirm, rate, reward.
   Future<void> _stopAndMaybeFinishSong(Map<String, dynamic> song) async {
+    if (_deciding || _busy) return;
+    _deciding = true;
+    try {
+      await _songDecision(song);
+    } finally {
+      _deciding = false;
+    }
+  }
+
+  Future<void> _songDecision(Map<String, dynamic> song) async {
     final id = song['id'] as String;
     if (_live) await _toggleLive(); // pause the mic while we talk
-    if (!mounted) return;
+    if (!mounted || _live) return;
+    try {
+      await _retryUploads();
+    } catch (_) {
+      _showProblem(
+          'Your recording is waiting to upload. Try again before leaving.');
+      return;
+    }
 
     // Not enough real sound yet? Encourage, don't finish.
     if (_songSeconds(id) < _minSongSeconds) {
-      final choice = await showDialog<String>(
-        context: context,
+      final choice = await _practiceDialog<String>(
         builder: (context) => AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
             side: JamJotShape.border,
@@ -334,12 +465,16 @@ class _PracticeSessionScreenState
             const StickerBadge('green_berry', size: 92),
             const SizedBox(height: 8),
             Text(
-              'A song needs at least 2 minutes of real sound to finish — you are at ${_fmt(_songSeconds(id))} of 02:00. Keep going, you have got this!'),
+                'A song needs at least 1 minute of real sound to finish — you are at ${_fmt(_songSeconds(id))} of 01:00. Keep going, you have got this!'),
           ]),
           actions: [
             TextButton(
+              onPressed: () => Navigator.of(context).pop('discard'),
+              child: const Text('Discard this take & return to songs'),
+            ),
+            TextButton(
               onPressed: () => Navigator.of(context).pop('back'),
-              child: const Text('Back to my songs'),
+              child: const Text('Keep progress & return to songs'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop('keep'),
@@ -352,22 +487,25 @@ class _PracticeSessionScreenState
       if (!mounted) return;
       if (choice == 'keep') {
         await _toggleLive();
+      } else if (choice == 'discard') {
+        await _discardPendingTake(id);
+        if (mounted) setState(() => _openSong = null);
       } else if (choice == 'back') {
         setState(() => _openSong = null);
       }
       return;
     }
 
-    final choice = await showDialog<String>(
-      context: context,
+    final choice = await _practiceDialog<String>(
       builder: (context) => AlertDialog(
+        scrollable: true,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
           side: JamJotShape.border,
         ),
         title: Text('Done with ${song['title']}?'),
         content: Text(
-            'You made ${_fmt(_songSeconds(id))} of real sound on this one. All finished, or keep going?'),
+            'You made ${_fmt(_songSeconds(id))} of real sound toward your ${_suggestedMinutes(song)} minute goal. ${_songSeconds(id) < _suggestedMinutes(song) * 60 ? 'A little more practice will help you reach it! You can also save and move on.' : 'You reached your minutes goal! Ready to save?'}'),
         actions: [
           OutlinedButton(
             onPressed: () => Navigator.of(context).pop('keep'),
@@ -376,7 +514,7 @@ class _PracticeSessionScreenState
           FilledButton(
             onPressed: () => Navigator.of(context).pop('done'),
             style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
-            child: const Text("I'm done!"),
+            child: const Text('Save & move on'),
           ),
         ],
       ),
@@ -419,8 +557,7 @@ class _PracticeSessionScreenState
                   const SizedBox(width: 10),
                   Expanded(
                       child: Text(label,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700))),
+                          style: const TextStyle(fontWeight: FontWeight.w700))),
                 ],
               ),
             ),
@@ -429,9 +566,9 @@ class _PracticeSessionScreenState
       );
     }
 
-    return showDialog<String>(
-      context: context,
+    return _practiceDialog<String>(
       builder: (context) => AlertDialog(
+        scrollable: true,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
           side: JamJotShape.border,
@@ -454,20 +591,21 @@ class _PracticeSessionScreenState
 
   Future<void> _completeSong(Map<String, dynamic> song, String rating) async {
     final id = song['id'] as String;
-    setState(() {
-      _done.add(id);
-      _openSong = null;
-    });
+    if (_busy) return;
+    setState(() => _busy = true);
+    var saved = false;
     var berries = 0;
     var fans = 0;
     try {
-      final seg = await JamJotBackend.client
+      await JamJotBackend.client
           .from('session_segments')
-          .insert({
+          .upsert({
+            'id': _segmentIds.putIfAbsent(id, () => const Uuid().v4()),
             'session_id': _sessionId,
             'assignment_id': id,
             'kind': 'playing',
-            'seconds': _songSeconds(id),
+            'seconds':
+                ((_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0)) ~/ 1000,
             'completed': true,
             'goal_results': {'self_rating': rating},
             ..._clipFields(_takeClips(id)),
@@ -476,16 +614,20 @@ class _PracticeSessionScreenState
           })
           .select()
           .single();
+      _segmentIds.remove(id);
+      _pendingClips.remove(id);
       _bankedMs[id] = _soundMsBySong[id] ?? 0;
       _bankedWallMs[id] = _wallMsBySong[id] ?? 0;
+      saved = true;
+      _done.add(id);
+      _openSong = null;
       _ratings[id] = rating;
-      final res = await JamJotBackend.client.functions.invoke('award-song',
-          body: {
-            'session_id': _sessionId,
-            'assignment_id': id,
-            'segment_id': seg['id'],
-          });
-      final data = res.data as Map<String, dynamic>? ?? {};
+      await JamJotBackend.client
+          .from('sessions')
+          .update({'total_seconds': _activeSeconds}).eq('id', _sessionId!);
+      final data = Map<String, dynamic>.from(await JamJotBackend.client.rpc(
+          'settle_practice_session',
+          params: {'p_session_id': _sessionId}));
       berries = (data['berries'] as num?)?.toInt() ?? 0;
       fans = (data['fans'] as num?)?.toInt() ?? 0;
       _earnedBerries += berries;
@@ -498,15 +640,23 @@ class _PracticeSessionScreenState
       if (sid != null) {
         ref.invalidate(berryBalanceProvider(sid));
         ref.invalidate(fanTotalProvider(sid));
+        ref.invalidate(weeklyFansProvider(sid));
       }
       if (rating == 'working_on_it' && mounted) {
         popSticker(context, randomOf(keepGoingStickers), ms: 1700);
       }
-    } catch (_) {/* rewards settle at session end if this hiccups */}
+    } catch (_) {
+      _showProblem(saved
+          ? 'Your song is saved. Rewards could not be confirmed yet.'
+          : 'Your song could not be saved. Your progress is still here; please try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+    if (!saved) return;
     if (!mounted) return;
-    await showDialog<void>(
-      context: context,
+    await _practiceDialog<void>(
       builder: (context) => AlertDialog(
+        scrollable: true,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
           side: JamJotShape.border,
@@ -527,7 +677,8 @@ class _PracticeSessionScreenState
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w700)),
             if (berries == 0 && fans == 0)
-              const Text('Saved! Your rewards tally up at the end.'),
+              const Text(
+                  'Practice saved. Rewards have not been confirmed yet.'),
           ],
         ),
         actions: [
@@ -541,19 +692,39 @@ class _PracticeSessionScreenState
     );
   }
 
-  /// Extra practice on an already-finished song: every fresh 2+ minutes of
+  /// Extra practice on an already-finished song: every fresh 1+ minute of
   /// sound can be banked for bonus fans.
   Future<void> _bankExtra(Map<String, dynamic> song) async {
+    if (_deciding || _busy) return;
+    _deciding = true;
+    try {
+      await _saveExtra(song);
+    } finally {
+      _deciding = false;
+    }
+  }
+
+  Future<void> _saveExtra(Map<String, dynamic> song) async {
     final id = song['id'] as String;
     final extraMs = (_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0);
     final extraSeconds = extraMs ~/ 1000;
     if (extraSeconds < _minSongSeconds) return;
+    if (_busy) return;
     if (_live) await _toggleLive();
+    if (_live) return;
+    try {
+      await _retryUploads();
+    } catch (_) {
+      _showProblem(
+          'Your recording is waiting to upload. Try again before leaving.');
+      return;
+    }
     var fans = 0;
     try {
-      final seg = await JamJotBackend.client
+      await JamJotBackend.client
           .from('session_segments')
-          .insert({
+          .upsert({
+            'id': _segmentIds.putIfAbsent(id, () => const Uuid().v4()),
             'session_id': _sessionId,
             'assignment_id': id,
             'kind': 'playing',
@@ -566,22 +737,27 @@ class _PracticeSessionScreenState
           })
           .select()
           .single();
+      _segmentIds.remove(id);
+      _pendingClips.remove(id);
       _bankedMs[id] = _soundMsBySong[id] ?? 0;
       _bankedWallMs[id] = _wallMsBySong[id] ?? 0;
-      final res = await JamJotBackend.client.functions.invoke('award-song',
-          body: {
-            'session_id': _sessionId,
-            'assignment_id': id,
-            'segment_id': seg['id'],
-          });
-      final data = res.data as Map<String, dynamic>? ?? {};
+      await JamJotBackend.client
+          .from('sessions')
+          .update({'total_seconds': _activeSeconds}).eq('id', _sessionId!);
+      final data = Map<String, dynamic>.from(await JamJotBackend.client.rpc(
+          'settle_practice_session',
+          params: {'p_session_id': _sessionId}));
       fans = (data['fans'] as num?)?.toInt() ?? 0;
       _earnedFans += fans;
-    } catch (_) {}
+    } catch (_) {
+      _showProblem(
+          'Extra practice could not be confirmed. Your progress is still here; try again before leaving.');
+      return;
+    }
     if (!mounted) return;
-    await showDialog<void>(
-      context: context,
+    await _practiceDialog<void>(
       builder: (context) => AlertDialog(
+        scrollable: true,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
           side: JamJotShape.border,
@@ -605,21 +781,25 @@ class _PracticeSessionScreenState
   Future<void> _finish() async {
     // Close any clip still rolling, so it gets uploaded to its song.
     if (_live) await _toggleLive();
+    if (_live || _busy || !mounted) return;
     setState(() => _phase = _Phase.saving);
     _sampler?.cancel();
-    _meter.stop();
-    _meterStarted = false;
+    if (_sessionId == null) {
+      setState(() => _phase = _Phase.practicing);
+      return;
+    }
 
     try {
-      // Unfinished songs keep their progress & clips as in-progress summaries.
+      await _retryUploads();
+      // Persist new progress, including extra takes on completed songs.
       for (final song in _songs) {
         final id = song['id'] as String;
-        if (_done.contains(id)) continue;
         final freshSeconds =
             ((_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0)) ~/ 1000;
         final clips = _takeClips(id);
         if (freshSeconds < 5 && clips.isEmpty) continue;
-        await JamJotBackend.client.from('session_segments').insert({
+        await JamJotBackend.client.from('session_segments').upsert({
+          'id': _segmentIds.putIfAbsent(id, () => const Uuid().v4()),
           'session_id': _sessionId,
           'assignment_id': id,
           'kind': 'playing',
@@ -629,57 +809,137 @@ class _PracticeSessionScreenState
           'wall_seconds':
               ((_wallMsBySong[id] ?? 0) - (_bankedWallMs[id] ?? 0)) ~/ 1000,
         });
+        _segmentIds.remove(id);
+        _pendingClips.remove(id);
         _bankedMs[id] = _soundMsBySong[id] ?? 0;
         _bankedWallMs[id] = _wallMsBySong[id] ?? 0;
       }
       // Free play (recording with no song open) is kept too.
       final freeClips = _takeClips('_freeplay');
       if (freeClips.isNotEmpty) {
-        await JamJotBackend.client.from('session_segments').insert({
+        await JamJotBackend.client.from('session_segments').upsert({
+          'id': _segmentIds.putIfAbsent('_freeplay', () => const Uuid().v4()),
           'session_id': _sessionId,
           'kind': 'free_play',
           'seconds': 0,
           'completed': false,
           ..._clipFields(freeClips),
         });
+        _segmentIds.remove('_freeplay');
+        _pendingClips.remove('_freeplay');
       }
 
       await JamJotBackend.client.from('sessions').update({
         'ended_at': DateTime.now().toUtc().toIso8601String(),
         'total_seconds': _activeSeconds,
       }).eq('id', _sessionId!);
-      final res = await JamJotBackend.client.functions
-          .invoke('award-practice', body: {'session_id': _sessionId});
-      final data = res.data as Map<String, dynamic>? ?? {};
+      final data = Map<String, dynamic>.from(await JamJotBackend.client.rpc(
+          'settle_practice_session',
+          params: {'p_session_id': _sessionId}));
       setState(() {
         _minutes = (data['minutes'] as num?)?.toInt() ?? _activeSeconds ~/ 60;
-        _berries =
-            ((data['berries'] as num?)?.toInt() ?? 0) + _earnedBerries;
+        _berries = ((data['berries'] as num?)?.toInt() ?? 0) + _earnedBerries;
         _fans = _earnedFans;
         _songsDone = _done.length;
         _goalMet = data['goal_met'] == true;
         _phase = _Phase.celebrate;
         _sessionSaved = true;
       });
+      setUnloadGuard(false);
       playSound('fanfare');
     } catch (_) {
-      setState(() {
-        _minutes = _activeSeconds ~/ 60;
-        _berries = _earnedBerries;
-        _fans = _earnedFans;
-        _songsDone = _done.length;
-        _goalMet = false;
-        _phase = _Phase.celebrate;
-        _sessionSaved = true;
-      });
+      if (mounted) {
+        setState(() => _phase = _Phase.practicing);
+        _showProblem(
+            'Your practice could not be fully saved. Keep this page open and tap Finish & save again.');
+      }
+    }
+    final sid = ref.read(activeStudentProvider)?['id'] as String?;
+    if (sid != null) {
+      ref.invalidate(weeklyProgressProvider(sid));
+      ref.invalidate(practiceHistoryProvider(sid));
+      ref.invalidate(sheetLessonsProvider(sid));
+      ref.invalidate(berryBalanceProvider(sid));
+      ref.invalidate(fanTotalProvider(sid));
+      ref.invalidate(weeklyFansProvider(sid));
+    }
+  }
+
+  Future<void> _discardPendingTake(String id) async {
+    final clips = _pendingClips[id];
+    if (clips == null || clips.isEmpty) return;
+    final clip = clips.last;
+    // Discard only the latest take. Earlier progress and recordings stay intact.
+    final seconds = (clip['sound_seconds'] as num).toInt();
+    final wall = (clip['wall_seconds'] as num).toInt();
+    final local = clip['local_path'] as String?;
+    if (local != null) await releaseRecording(local);
+    if (local == null) {
+      try {
+        final result = await JamJotBackend.client.functions.invoke(
+            'discard-recording',
+            body: {'session_id': _sessionId, 'path': clip['path']});
+        if ((result.data as Map?)?['ok'] != true) {
+          throw StateError('Discard failed');
+        }
+      } catch (_) {
+        _showProblem(
+            'This take could not be discarded yet. Your recording is still kept. Try again.');
+        return;
+      }
+    }
+    clips.removeLast();
+    _soundMsTotal = (_soundMsTotal - seconds * 1000).clamp(0, 1 << 40);
+    _soundMsBySong[id] =
+        ((_soundMsBySong[id] ?? 0) - seconds * 1000).clamp(0, 1 << 40);
+    _wallMsBySong[id] =
+        ((_wallMsBySong[id] ?? 0) - wall * 1000).clamp(0, 1 << 40);
+  }
+
+  Future<bool> _confirmLeavePractice() async {
+    if (_busy || _deciding || _phase == _Phase.saving) return false;
+    if (_sessionSaved || (_sessionId == null && !_live)) return true;
+    if (_live) await _toggleLive();
+    if (_live || !mounted) return false;
+    final choice = await _practiceDialog<bool>(
+        builder: (context) => AlertDialog(
+              scrollable: true,
+              title: const Text('Save before leaving?'),
+              content: const Text(
+                  'Keep your practice minutes and recordings together before you go.'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Continue practicing')),
+                FilledButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Save & leave')),
+              ],
+            ));
+    if (choice != true || !mounted) return false;
+    await _finish();
+    return _sessionSaved;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if ((state == AppLifecycleState.paused ||
+            state == AppLifecycleState.hidden) &&
+        _live &&
+        !_busy) {
+      unawaited(_toggleLive());
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (identical(_exitGuard.beforeLeave, _exitHandler)) {
+      _exitGuard.beforeLeave = null;
+    }
+    setUnloadGuard(false);
     _sampler?.cancel();
     _recorder.dispose();
-    _meter.stop();
     super.dispose();
   }
 
@@ -692,8 +952,6 @@ class _PracticeSessionScreenState
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final student = ref.watch(activeStudentProvider);
-
     Widget body;
     switch (_phase) {
       case _Phase.starting:
@@ -737,14 +995,37 @@ class _PracticeSessionScreenState
         body = _buildCelebrate(text);
     }
 
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: body,
-        ),
-      ),
-    );
+    return PopScope(
+        canPop: _sessionSaved || (_sessionId == null && !_live),
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final router = GoRouter.of(context);
+          if (await _confirmLeavePractice() && mounted && router.canPop()) {
+            router.pop();
+          }
+        },
+        child: Scaffold(
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(children: [
+                if (_busy)
+                  const LinearProgressIndicator(
+                      semanticsLabel: 'Preparing or saving your recording'),
+                if (_notice != null)
+                  MaterialBanner(
+                    content: Text(_notice!),
+                    actions: [
+                      TextButton(
+                          onPressed: () => setState(() => _notice = null),
+                          child: const Text('OK'))
+                    ],
+                  ),
+                Expanded(child: body),
+              ]),
+            ),
+          ),
+        ));
   }
 
   Widget _goalsHeader(TextTheme text) {
@@ -758,7 +1039,9 @@ class _PracticeSessionScreenState
             .valueOrNull;
     final days = progress?['days'] ?? 0;
     final baseToday = progress?['today_minutes'] ?? 0;
-    final todayMinutes = baseToday + _activeSeconds ~/ 60;
+    final baseSeconds = progress?['today_seconds'] ?? baseToday * 60;
+    final persisted = progress?['session/$_sessionId'] ?? 0;
+    final todayMinutes = (baseSeconds + _activeSeconds - persisted) ~/ 60;
     Widget chip(String label, bool met) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
@@ -783,10 +1066,9 @@ class _PracticeSessionScreenState
 
   Widget _recordButton() {
     return FilledButton(
-      onPressed: _toggleLive,
+      onPressed: _busy ? null : _toggleLive,
       style: FilledButton.styleFrom(
-        backgroundColor:
-            _live ? JamJotColors.recording : JamJotColors.ink,
+        backgroundColor: _live ? JamJotColors.recording : JamJotColors.ink,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -816,9 +1098,7 @@ class _PracticeSessionScreenState
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: _soundNow
-                  ? JamJotColors.recording
-                  : JamJotColors.outline,
+              color: _soundNow ? JamJotColors.recording : JamJotColors.outline,
               shape: BoxShape.circle,
             ),
           ),
@@ -839,12 +1119,10 @@ class _PracticeSessionScreenState
   Widget _lessonScheduleCards(TextTheme text) {
     final student = ref.watch(activeStudentProvider);
     if (student == null) return const SizedBox.shrink();
-    final sched = ref
-        .watch(lessonScheduleProvider(student['id'] as String))
-        .valueOrNull;
+    final sched =
+        ref.watch(lessonScheduleProvider(student['id'] as String)).valueOrNull;
     Widget card(String emoji, String label, Map<String, dynamic>? ev) {
-      final teacher =
-          (ev?['teachers'] as Map?)?['display_name'] as String?;
+      final teacher = (ev?['teachers'] as Map?)?['display_name'] as String?;
       final when = ev == null
           ? null
           : DateFormat('EEE, MMM d • h:mm a')
@@ -861,14 +1139,13 @@ class _PracticeSessionScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('$emoji $label',
-                  style: text.labelSmall
-                      ?.copyWith(fontWeight: FontWeight.w700)),
+                  style:
+                      text.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
               Text(
                 ev == null
                     ? 'Not scheduled yet'
                     : '$when${teacher != null ? '\nwith $teacher' : ''}',
-                style: text.labelSmall
-                    ?.copyWith(color: JamJotColors.inkSoft),
+                style: text.labelSmall?.copyWith(color: JamJotColors.inkSoft),
               ),
             ],
           ),
@@ -902,7 +1179,7 @@ class _PracticeSessionScreenState
 
   Widget _buildSongList(TextTheme text) {
     final student = ref.watch(activeStudentProvider);
-    final list = Column(
+    final list = ListView(
       children: [
         _lessonScheduleCards(text),
         const SizedBox(height: 10),
@@ -918,100 +1195,94 @@ class _PracticeSessionScreenState
         }),
         const SizedBox(height: 10),
         _liveBanner(text),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             const DancingNote(size: 56),
             const SizedBox(width: 12),
             Text(_fmt(_activeSeconds),
-                style: text.displaySmall
-                    ?.copyWith(fontWeight: FontWeight.w700)),
+                style:
+                    text.displaySmall?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(width: 8),
             Text('of real\nsound', style: text.labelSmall),
           ],
         ),
         const SizedBox(height: 10),
-        Expanded(
-          child: _songs.isEmpty
-              ? Center(
-                  child: Text(
-                    'No songs assigned yet!\nAsk your grown-up or teacher to add this week\'s songs.',
-                    textAlign: TextAlign.center,
-                    style: text.titleSmall
-                        ?.copyWith(color: JamJotColors.inkSoft),
-                  ),
-                )
-              : Builder(builder: (context) {
-                  final nextUp = _songs
-                      .where((s) => !_done.contains(s['id']))
-                      .toList();
-                  final practiced = _songs
-                      .where((s) => _done.contains(s['id']))
-                      .toList();
-                  Widget header(String label) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8, top: 4),
-                        child: Text(label,
-                            style: text.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w700)),
-                      );
-                  return ListView(
-                    children: [
-                      if (nextUp.isNotEmpty) header('🎵 Next up'),
-                      for (final song in nextUp) ...[
-                        _SongTile(
-                          title: song['title'] as String,
-                          note: [
-                            if (song['source'] != null)
-                              '🎻 ${song['source']}',
-                            if ((song['song_note'] as String? ?? '')
-                                .isNotEmpty)
-                              song['song_note'] as String,
-                          ].join(' • '),
-                          minutes:
-                              (song['suggested_minutes'] as num?)?.toInt(),
-                          spentSeconds: _songSeconds(song['id'] as String),
-                          done: false,
-                          onTap: () => setState(() => _openSong = song),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                      if (practiced.isNotEmpty) header('✅ Practiced'),
-                      for (final song in practiced) ...[
-                        Builder(builder: (context) {
-                          final id = song['id'] as String;
-                          const ratingLabels = {
-                            'got_it': '🌟 Got it down',
-                            'getting_there': '👍 Getting there',
-                            'working_on_it': '💪 Working on it',
-                          };
-                          final parts = [
-                            if (_ratings[id] != null)
-                              ratingLabels[_ratings[id]] ?? '',
-                            if (_awardsLabel[id] != null) _awardsLabel[id]!,
-                          ];
-                          return _SongTile(
-                            title: song['title'] as String,
-                            note: parts.isEmpty
-                                ? (song['song_note'] as String? ?? '')
-                                : parts.join(' • '),
-                            minutes:
-                                (song['suggested_minutes'] as num?)?.toInt(),
-                            spentSeconds: _songSeconds(id),
-                            done: true,
-                            onTap: () => setState(() => _openSong = song),
-                          );
-                        }),
-                        const SizedBox(height: 10),
-                      ],
+        _songs.isEmpty
+            ? Center(
+                child: Text(
+                  'No songs assigned yet!\nAsk your grown-up or teacher to add this week\'s songs.',
+                  textAlign: TextAlign.center,
+                  style: text.titleSmall?.copyWith(color: JamJotColors.inkSoft),
+                ),
+              )
+            : Builder(builder: (context) {
+                final nextUp =
+                    _songs.where((s) => !_done.contains(s['id'])).toList();
+                final practiced =
+                    _songs.where((s) => _done.contains(s['id'])).toList();
+                Widget header(String label) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8, top: 4),
+                      child: Text(label,
+                          style: text.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700)),
+                    );
+                return ListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    if (nextUp.isNotEmpty) header('🎵 Next up'),
+                    for (final song in nextUp) ...[
+                      _SongTile(
+                        title: song['title'] as String,
+                        note: [
+                          if (song['source'] != null) '🎻 ${song['source']}',
+                          if ((song['song_note'] as String? ?? '').isNotEmpty)
+                            song['song_note'] as String,
+                        ].join(' • '),
+                        minutes: (song['suggested_minutes'] as num?)?.toInt(),
+                        spentSeconds: _songSeconds(song['id'] as String),
+                        done: false,
+                        onTap: () => setState(() => _openSong = song),
+                      ),
+                      const SizedBox(height: 10),
                     ],
-                  );
-                }),
-        ),
+                    if (practiced.isNotEmpty) header('✅ Practiced'),
+                    for (final song in practiced) ...[
+                      Builder(builder: (context) {
+                        final id = song['id'] as String;
+                        const ratingLabels = {
+                          'got_it': '🌟 Got it down',
+                          'getting_there': '👍 Getting there',
+                          'working_on_it': '💪 Working on it',
+                        };
+                        final parts = [
+                          if (_ratings[id] != null)
+                            ratingLabels[_ratings[id]] ?? '',
+                          if (_awardsLabel[id] != null) _awardsLabel[id]!,
+                        ];
+                        return _SongTile(
+                          title: song['title'] as String,
+                          note: parts.isEmpty
+                              ? (song['song_note'] as String? ?? '')
+                              : parts.join(' • '),
+                          minutes: (song['suggested_minutes'] as num?)?.toInt(),
+                          spentSeconds: _songSeconds(id),
+                          done: true,
+                          onTap: () => setState(() => _openSong = song),
+                        );
+                      }),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
+                );
+              }),
         const SizedBox(height: 8),
         // Recording lives inside each song — tap one to start.
         if (_sessionId != null && !_sessionSaved)
           FilledButton(
-            onPressed: _finish,
+            onPressed: _busy ? null : _finish,
             child: const Text('Finish & save practice session'),
           )
         else if (_sessionSaved)
@@ -1041,7 +1312,7 @@ class _PracticeSessionScreenState
     final goal = (_lesson?['goal_minutes'] as num?)?.toInt() ?? 15;
     final songs = _songs.isEmpty ? 1 : _songs.length;
     final share = (goal / songs).ceil();
-    return share < 2 ? 2 : share;
+    return share < 1 ? 1 : share;
   }
 
   Widget _buildSongPage(TextTheme text) {
@@ -1058,47 +1329,36 @@ class _PracticeSessionScreenState
       builder: (context, snap) {
         final loading = snap.connectionState != ConnectionState.done;
         final url = snap.data;
-        final hasScore = loading || url != null;
+        final hasScore = !_dialogOpen && (loading || url != null);
         final hasNotes = note.isNotEmpty || lessonNote.isNotEmpty;
 
-        final header = Row(
-          children: [
+        final header =
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
             IconButton(
-              onPressed: () => setState(() => _openSong = null),
-              icon: const Icon(Icons.arrow_back),
-            ),
+                tooltip: 'Return to songs',
+                onPressed: _busy ? null : _leaveSong,
+                icon: const Icon(Icons.arrow_back)),
             Expanded(
-              child: Text(song['title'] as String,
-                  style:
-                      text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Real sound counted so far, next to this song's share of
-                // the daily minutes goal.
+                child: Text(song['title'] as String,
+                    style: text.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w700))),
+          ]),
+          Padding(
+              padding: const EdgeInsets.only(left: 48, bottom: 12),
+              child: Wrap(spacing: 16, runSpacing: 4, children: [
+                Text('${_fmt(_songSeconds(id))} sound / $target min goal',
+                    style:
+                        text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                 Text(
-                  '${_fmt(_songSeconds(id))} sound / $target min goal',
-                  style:
-                      text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                // While recording: time since this take started, live.
+                    '${_fmt((_wallMsBySong[id] ?? 0) ~/ 1000)} recorded in all',
+                    style:
+                        text.labelSmall?.copyWith(color: JamJotColors.inkSoft)),
                 if (_live && _clipStartedAt != null)
-                  Text(
-                    '⏺ ${_fmt(DateTime.now().difference(_clipStartedAt!).inSeconds)} this recording',
-                    style: text.labelSmall?.copyWith(
-                        color: JamJotColors.recording,
-                        fontWeight: FontWeight.w700),
-                  ),
-                Text(
-                  '${_fmt((_wallMsBySong[id] ?? 0) ~/ 1000)} recorded in all',
-                  style:
-                      text.labelSmall?.copyWith(color: JamJotColors.inkSoft),
-                ),
-              ],
-            ),
-          ],
-        );
+                  Text('This take: ${_fmt(_clipClock.elapsed.inSeconds)}',
+                      style: text.labelSmall),
+              ])),
+        ]);
 
         final notesPanel = Container(
           width: double.infinity,
@@ -1155,7 +1415,7 @@ class _PracticeSessionScreenState
 
         final controls = <Widget>[
           if (_done.contains(id)) ...[
-            // Already finished — fresh 2-minute chunks earn bonus fans.
+            // Already finished — fresh 1-minute chunks earn bonus fans.
             _recordButton(),
             const SizedBox(height: 8),
             Builder(builder: (context) {
@@ -1168,14 +1428,14 @@ class _PracticeSessionScreenState
                 );
               }
               return Text(
-                'Finished ✅ — ${_fmt(extraSec)} / 02:00 of extra practice toward bonus fans',
+                'Finished ✅ — ${_fmt(extraSec)} / 01:00 of extra practice toward bonus fans',
                 textAlign: TextAlign.center,
                 style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
               );
             }),
           ] else if (_live) ...[
             FilledButton(
-              onPressed: () => _stopAndMaybeFinishSong(song),
+              onPressed: _busy ? null : () => _stopAndMaybeFinishSong(song),
               style: FilledButton.styleFrom(
                   backgroundColor: JamJotColors.recording),
               child: Row(
@@ -1192,7 +1452,7 @@ class _PracticeSessionScreenState
             if (_songSeconds(id) > 0) ...[
               const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: () => _stopAndMaybeFinishSong(song),
+                onPressed: _busy ? null : () => _stopAndMaybeFinishSong(song),
                 child: const Text('Done with this song'),
               ),
             ],
@@ -1226,8 +1486,8 @@ class _PracticeSessionScreenState
                                   minimumSize: const Size(0, 32),
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10)),
-                              onPressed: () => setState(
-                                  () => _scoreSmall = !_scoreSmall),
+                              onPressed: () =>
+                                  setState(() => _scoreSmall = !_scoreSmall),
                               icon: Icon(
                                   _scoreSmall
                                       ? Icons.chevron_left
@@ -1265,9 +1525,7 @@ class _PracticeSessionScreenState
             _liveBanner(text),
             Expanded(
               child: !hasScore
-                  ? (hasNotes
-                      ? notesPanel
-                      : const SizedBox.expand())
+                  ? (hasNotes ? notesPanel : const SizedBox.expand())
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -1277,30 +1535,27 @@ class _PracticeSessionScreenState
                             style: TextButton.styleFrom(
                                 visualDensity: VisualDensity.compact,
                                 minimumSize: const Size(0, 32),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10)),
-                            onPressed: () => setState(
-                                () => _scoreSmall = !_scoreSmall),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10)),
+                            onPressed: () =>
+                                setState(() => _scoreSmall = !_scoreSmall),
                             icon: Icon(
                                 _scoreSmall
                                     ? Icons.unfold_more
                                     : Icons.unfold_less,
                                 size: 16),
-                            label: Text(_scoreSmall
-                                ? 'Bigger music'
-                                : 'Smaller music'),
+                            label: Text(
+                                _scoreSmall ? 'Bigger music' : 'Smaller music'),
                           ),
                         ),
-                        Expanded(
-                            flex: _scoreSmall ? 2 : 5, child: scoreBox()),
+                        Expanded(flex: _scoreSmall ? 2 : 5, child: scoreBox()),
                         if (hasNotes) ...[
                           const SizedBox(height: 10),
                           if (_scoreSmall)
                             Expanded(flex: 3, child: notesPanel)
                           else
                             ConstrainedBox(
-                              constraints:
-                                  const BoxConstraints(maxHeight: 120),
+                              constraints: const BoxConstraints(maxHeight: 120),
                               child: notesPanel,
                             ),
                         ],
@@ -1316,6 +1571,7 @@ class _PracticeSessionScreenState
   }
 
   Widget _buildCelebrate(TextTheme text) {
+    final goal = (_lesson?['goal_minutes'] as num?)?.toInt() ?? 15;
     return Column(
       children: [
         const Spacer(),
@@ -1324,22 +1580,20 @@ class _PracticeSessionScreenState
         Text(
             'You made $_minutes minute${_minutes == 1 ? '' : 's'} of real music!',
             textAlign: TextAlign.center,
-            style:
-                text.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+            style: text.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 16),
         if (_songsDone > 0)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: Text('$_songsDone song${_songsDone == 1 ? '' : 's'} finished',
-                style:
-                    text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            child: Text(
+                '$_songsDone song${_songsDone == 1 ? '' : 's'} finished',
+                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           ),
         if (_fans > 0)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               decoration: BoxDecoration(
                 color: JamJotColors.marigoldTint,
                 borderRadius: BorderRadius.circular(20),
@@ -1359,8 +1613,7 @@ class _PracticeSessionScreenState
               border: Border.all(color: JamJotColors.ink, width: 2),
             ),
             child: Text('🪙 +$_berries coins in your pouch!',
-                style:
-                    text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           ),
           if (_goalMet)
             Padding(
@@ -1370,7 +1623,7 @@ class _PracticeSessionScreenState
             ),
         ] else ...[
           Text(
-            'The session goal is 15 sound-minutes — a little more next time and the berries start rolling in!',
+            'Your daily goal is $goal sound-minutes. Every bit of practice helps — keep going when you are ready!',
             textAlign: TextAlign.center,
             style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
           ),
@@ -1446,8 +1699,7 @@ class _SongTile extends StatelessWidget {
                 minutes == null
                     ? (spentMin > 0 ? '$spentMin min' : '')
                     : '$spentMin/$minutes min',
-                style:
-                    text.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: text.labelMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               if (!done) const Icon(Icons.chevron_right),
             ],
