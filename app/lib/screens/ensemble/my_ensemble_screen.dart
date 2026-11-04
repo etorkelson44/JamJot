@@ -332,7 +332,8 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
     // Within reach right now: unlocked, purchasable, and affordable.
     final affordable =
         !owned && !venueLocked && !acc.bundleOnly && coins >= acc.price;
-    return InkWell(
+    // The story behind the piece: hover on desktop, long-press on touch.
+    final tile = InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
         if (owned) {
@@ -409,6 +410,19 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         ),
       ),
     );
+    if (acc.lore.isEmpty) return tile;
+    return Tooltip(
+      message: '${acc.emoji} ${acc.name}\n${acc.lore}',
+      waitDuration: const Duration(milliseconds: 400),
+      showDuration: const Duration(seconds: 5),
+      textAlign: TextAlign.center,
+      margin: const EdgeInsets.symmetric(horizontal: 32),
+      decoration: BoxDecoration(
+        color: JamJotColors.ink,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: tile,
+    );
   }
 
   /// Which band member an accessory arrives with.
@@ -430,6 +444,14 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
           Text(acc.emoji, style: const TextStyle(fontSize: 44)),
           Text(acc.name,
               style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          if (acc.lore.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(acc.lore,
+                textAlign: TextAlign.center,
+                style: text.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: JamJotColors.inkSoft)),
+          ],
           const SizedBox(height: 6),
           if (acc.bundleOnly) ...[
             Text(

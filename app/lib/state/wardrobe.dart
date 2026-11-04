@@ -14,7 +14,7 @@ import '../widgets/fan_stage.dart' show venues;
 /// backend note and ships with the venue-world release.
 class Accessory {
   const Accessory(this.id, this.name, this.emoji, this.price,
-      {this.venueLevel, this.bundleOnly = false});
+      {this.venueLevel, this.bundleOnly = false, this.lore = ''});
   final String id;
   final String name;
 
@@ -28,32 +28,75 @@ class Accessory {
 
   /// Comes only with its avatar — never sold on its own.
   final bool bundleOnly;
+
+  /// The real-world story behind the piece (hover on desktop, long-press
+  /// on touch screens).
+  final String lore;
 }
 
 /// The full accessory catalog: two exclusives per venue on the tour.
 const accessoryCatalog = <Accessory>[
-  Accessory('beret', 'Jazz Beret', '🎩', 15, venueLevel: 0),
-  Accessory('candle', 'Cozy Candle', '🕯️', 10, venueLevel: 0),
-  Accessory('blue_shades', 'Round Blue Shades', '🕶️', 20, venueLevel: 1),
-  Accessory('bass_pin', 'Upright-Bass Pin', '🎻', 15, venueLevel: 1),
-  Accessory('leather_jacket', 'Leather Jacket', '🧥', 35, venueLevel: 2),
-  Accessory('nameplate', 'Neon Nameplate', '💡', 25, venueLevel: 2),
-  Accessory('bow_tie', 'Sparkly Bow Tie', '🎀', 30, venueLevel: 3),
-  Accessory('golden_mic', 'Golden Microphone', '🎤', 40, venueLevel: 3),
-  Accessory('white_gloves', 'White Gloves', '🧤', 30, venueLevel: 4),
-  Accessory('baton', "Conductor's Baton", '🪄', 35, venueLevel: 4),
-  Accessory('bandana', 'Red-Rock Bandana', '🧣', 25, venueLevel: 5),
-  Accessory('hiking_boots', 'Hiking Boots', '🥾', 30, venueLevel: 5),
-  Accessory('star_shades', 'Star Shades', '⭐', 40, venueLevel: 6),
-  Accessory('sparkler', 'Fireworks Sparkler', '🎇', 30, venueLevel: 6),
-  Accessory('champ_jacket', 'Championship Jacket', '🏆', 50, venueLevel: 7),
-  Accessory('wristband', 'Light-Up Wristband', '💫', 35, venueLevel: 7),
-  Accessory('stadium_scarf', 'Stadium Scarf', '🧶', 45, venueLevel: 8),
-  Accessory('crown_headset', 'Crown Headset', '👑', 60, venueLevel: 8),
-  Accessory('golden_cape', 'Golden Cape', '🦸', 80, venueLevel: 9),
-  Accessory('jar_crown', 'Jam-Jar Crown', '🫙', 100, venueLevel: 9),
+  Accessory('beret', 'Jazz Beret', '🎩', 15, venueLevel: 0,
+      lore: 'Jazz players in tiny basement clubs made the beret famous — '
+          'cool heads play cool solos.'),
+  Accessory('candle', 'Candle-in-a-Bottle', '🕯️', 10, venueLevel: 0,
+      lore: 'Real jazz cellars light their tables with candles stuck in old '
+          'bottles — the Jam Cellar glows the very same way.'),
+  Accessory('blue_shades', 'Round Blue Shades', '🕶️', 20, venueLevel: 1,
+      lore: 'Round shades were THE look of late-night jazz legends — half '
+          'mystery, half style.'),
+  Accessory('bass_pin', 'Upright-Bass Pin', '🎻', 15, venueLevel: 1,
+      lore: 'The upright bass is the heartbeat of every jazz room. Wear the '
+          'heartbeat.'),
+  Accessory('leather_jacket', 'Leather Jacket', '🧥', 35, venueLevel: 2,
+      lore: 'Every rock legend who played the Sunset Strip owned one. Now '
+          'you do too.'),
+  Accessory('nameplate', 'Neon Nameplate', '💡', 25, venueLevel: 2,
+      lore: 'Clubs like the Roxy put brand-new stars\' names up in lights — '
+          'this one is yours.'),
+  Accessory('bow_tie', 'Sparkly Bow Tie', '🎀', 30, venueLevel: 3,
+      lore: 'At the Jampollo\'s Amateur Night, dressing sharp is half the '
+          'performance.'),
+  Accessory('golden_mic', 'Golden Microphone', '🎤', 40, venueLevel: 3,
+      lore: 'Legends found their voices on this stage — golden pipes earn a '
+          'golden mic.'),
+  Accessory('white_gloves', 'White Gloves', '🧤', 30, venueLevel: 4,
+      lore: 'Conductors in grand halls wear white gloves so even the last '
+          'row can follow every wave.'),
+  Accessory('baton', "Conductor's Baton", '🪄', 35, venueLevel: 4,
+      lore: 'Jarnegie Hall opened with a world-famous composer conducting — '
+          'batons have been magic wands ever since.'),
+  Accessory('bandana', 'Red-Rock Bandana', '🧣', 25, venueLevel: 5,
+      lore: 'Open-air shows in the mountain sun call for a bandana — Red '
+          'Jam Rocks style.'),
+  Accessory('hiking_boots', 'Hiking Boots', '🥾', 30, venueLevel: 5,
+      lore: 'Red Jam Rocks is carved into a real mountainside — artists '
+          'literally hike to this stage.'),
+  Accessory('star_shades', 'Star Shades', '⭐', 40, venueLevel: 6,
+      lore: 'Under the Hollyberry night sky, the stars wear stars.'),
+  Accessory('sparkler', 'Fireworks Sparkler', '🎇', 30, venueLevel: 6,
+      lore: 'The Hollyberry Bowl ends its biggest nights with fireworks '
+          'bursting over the shell.'),
+  Accessory('champ_jacket', 'Championship Jacket', '🏆', 50, venueLevel: 7,
+      lore: 'Championship banners hang from the Jar Garden\'s rafters — and '
+          'champions get jackets.'),
+  Accessory('wristband', 'Light-Up Wristband', '💫', 35, venueLevel: 7,
+      lore: 'Arena crowds glow with wristbands that pulse in time with the '
+          'music.'),
+  Accessory('stadium_scarf', 'Stadium Scarf', '🧶', 45, venueLevel: 8,
+      lore: 'At Jamberly Stadium, 90,000 voices sing as one — scarves held '
+          'high.'),
+  Accessory('crown_headset', 'Crown Headset', '👑', 60, venueLevel: 8,
+      lore: 'Headline a stadium under the great arch and you are pop '
+          'royalty. Crown included.'),
+  Accessory('golden_cape', 'Golden Cape', '🦸', 80, venueLevel: 9,
+      lore: 'Only the grandest finale of them all deserves a cape.'),
+  Accessory('jar_crown', 'Jam-Jar Crown', '🫙', 100, venueLevel: 9,
+      lore: 'The crown of JamJot Stadium itself — jam royalty, forever.'),
   // Bundle-only pieces that arrive with their avatar.
-  Accessory('mustache', 'Marvelous Mustache', '🥸', 0, bundleOnly: true),
+  Accessory('mustache', 'Marvelous Mustache', '🥸', 0, bundleOnly: true,
+      lore: 'Jalapresto\'s signature look. The fastest players need '
+          'aerodynamic facial hair.'),
 ];
 
 /// What each avatar brings to the closet when earned (JJ-014 revision,
