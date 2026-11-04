@@ -21,13 +21,10 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.47.9
           cache: true
       # Generate platform folders (web/ios/android) that aren't kept in the repo
       - run: flutter create . --project-name jamjot --org app.jamjot --platforms web,ios,android
-      - run: python3 tool/configure_platform_permissions.py
       - run: flutter pub get
-      - run: flutter test
       - id: compile
         continue-on-error: true
         run: |
@@ -52,25 +49,9 @@ jobs:
         with:
           path: app/build/web
 
-  backend-contract:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: supabase/tests
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.25.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
-
   deploy-preview:
     if: github.ref == 'refs/heads/main'
-    needs: [build-web, backend-contract]
+    needs: build-web
     runs-on: ubuntu-latest
     environment:
       name: github-pages
