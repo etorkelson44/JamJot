@@ -333,7 +333,23 @@ class VenueBackdrop extends ConsumerWidget {
               fit: BoxFit.cover, alignment: Alignment.bottomCenter),
         ),
       ),
-      // The kid's own avatar, standing on their stage.
+      // A wash that keeps the content readable, fading as it reaches the
+      // stage so the venue stays present without stealing focus.
+      Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0.0, 0.55, 1.0],
+            colors: [
+              Color(0xE8FAF6EE), // solid enough for text up top
+              Color(0xC9FAF6EE),
+              Color(0x7DFAF6EE), // the stage shows through down here
+            ],
+          ),
+        ),
+      ),
+      // The kid's own avatar and their crowd sit crisp ABOVE the wash.
       Positioned(
         bottom: 34,
         left: 0,
@@ -360,8 +376,6 @@ class VenueBackdrop extends ConsumerWidget {
                     .minFans),
           ),
         ),
-      // The wash that keeps everything readable.
-      Container(color: const Color(0xFFFAF6EE).withValues(alpha: 0.82)),
       child,
     ]);
   }
