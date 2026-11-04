@@ -355,7 +355,7 @@ class _SessionCard extends StatelessWidget {
               if (goalMet) const Text('🎯', style: TextStyle(fontSize: 18)),
               if (onCorrect != null)
                 PopupMenuButton<String>(
-                  tooltip: 'Correct practice',
+                  tooltip: 'Edit practice',
                   onSelected: (action) => onCorrect!(action),
                   itemBuilder: (_) => [
                     const PopupMenuItem(

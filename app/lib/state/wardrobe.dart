@@ -33,7 +33,7 @@ class Accessory {
 /// The full accessory catalog: two exclusives per venue on the tour.
 const accessoryCatalog = <Accessory>[
   Accessory('beret', 'Jazz Beret', '🎩', 15, venueLevel: 0),
-  Accessory('candle', 'Candle-in-a-Bottle', '🕯️', 10, venueLevel: 0),
+  Accessory('candle', 'Cozy Candle', '🕯️', 10, venueLevel: 0),
   Accessory('blue_shades', 'Round Blue Shades', '🕶️', 20, venueLevel: 1),
   Accessory('bass_pin', 'Upright-Bass Pin', '🎻', 15, venueLevel: 1),
   Accessory('leather_jacket', 'Leather Jacket', '🧥', 35, venueLevel: 2),

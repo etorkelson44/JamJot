@@ -30,8 +30,16 @@ class MyEnsembleScreen extends ConsumerStatefulWidget {
   ConsumerState<MyEnsembleScreen> createState() => _MyEnsembleScreenState();
 }
 
-class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
+class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
+    with TickerProviderStateMixin {
   String? _ghost; // locked item being "imagined" in the mirror
+  late final TabController _tabs = TabController(length: 3, vsync: this);
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,28 +77,25 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
       }
     });
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Row(mainAxisSize: MainAxisSize.min, children: [
-            Text(venue.motif, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
-            const Text('My Ensemble'),
-          ]),
-          bottom: const TabBar(tabs: [
-            Tab(text: 'On Stage'),
-            Tab(text: 'Dressing Room'),
-            Tab(text: 'Tour'),
-          ]),
-        ),
-        body: TabBarView(children: [
-          _onStage(context, sid, wornKey, owned, wardrobe, venue, level,
-              fans, coins),
-          _dressingRoom(context, sid, wornKey, wardrobe, coins, level),
-          _tour(context, sid, wornKey, owned, wardrobe, level, fans),
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(venue.motif, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 8),
+          const Text('My Ensemble'),
+        ]),
+        bottom: TabBar(controller: _tabs, tabs: const [
+          Tab(text: 'On Stage'),
+          Tab(text: 'Dressing Room'),
+          Tab(text: 'Tour'),
         ]),
       ),
+      body: TabBarView(controller: _tabs, children: [
+        _onStage(context, sid, wornKey, owned, wardrobe, venue, level,
+            fans, coins),
+        _dressingRoom(context, sid, wornKey, wardrobe, coins, level),
+        _tour(context, sid, wornKey, owned, wardrobe, level, fans),
+      ]),
     );
   }
 
@@ -152,8 +157,6 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (key == wornKey)
-                            const Text('🎤', style: TextStyle(fontSize: 20)),
                           AnimatedOpacity(
                             duration: const Duration(milliseconds: 350),
                             opacity: key == wornKey ? 1 : 0.82,
@@ -326,6 +329,9 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
     final owned = wardrobe.owned.contains(acc.id);
     final worn = wardrobe.outfitFor(wornKey).contains(acc.id);
     final venueLocked = acc.venueLevel != null && level < acc.venueLevel! + 1;
+    // Within reach right now: unlocked, purchasable, and affordable.
+    final affordable =
+        !owned && !venueLocked && !acc.bundleOnly && coins >= acc.price;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
@@ -339,17 +345,29 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: owned ? Colors.white : const Color(0xFFEFE8DA),
+          color: owned
+              ? Colors.white
+              : affordable
+                  ? const Color(0xFFFFF8E7)
+                  : const Color(0xFFEFE8DA),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: worn ? JamJotColors.marigold : JamJotColors.ink,
-              width: worn ? 3 : 2),
+              color: worn
+                  ? JamJotColors.marigold
+                  : affordable
+                      ? JamJotColors.marigold
+                      : JamJotColors.ink,
+              width: worn ? 3 : affordable ? 2.5 : 2),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Opacity(
-              opacity: owned ? 1 : 0.4,
+              opacity: owned
+                  ? 1
+                  : affordable
+                      ? 0.95
+                      : 0.35,
               child: Text(acc.emoji, style: const TextStyle(fontSize: 34)),
             ),
             const SizedBox(height: 4),
@@ -382,8 +400,11 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
                   style: text.labelSmall)
             else
               Text('🪙 ${acc.price}',
-                  style:
-                      text.labelSmall?.copyWith(fontWeight: FontWeight.w800)),
+                  style: text.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: affordable
+                          ? const Color(0xFFB07A10)
+                          : JamJotColors.inkSoft)),
           ],
         ),
       ),
@@ -434,8 +455,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
             FilledButton(
               onPressed: () {
                 Navigator.pop(sheet);
-                context.go('/ensemble');
-                DefaultTabController.maybeOf(context)?.animateTo(2);
+                _tabs.animateTo(2);
               },
               child: const Text('See the Tour 🗺️'),
             ),
