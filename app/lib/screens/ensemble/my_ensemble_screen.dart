@@ -139,14 +139,17 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
             ]),
           ),
           const Spacer(),
-          // The band on stage; the spotlight follows the active member.
+          // The band on stage, centered so the active member stands right
+          // under the venue's spotlight beam; others flank them.
           SizedBox(
             height: 230,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              children: [
-                for (final key in owned)
+            child: Center(
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  for (final key in _stageOrder(owned, wornKey))
                   GestureDetector(
                     onTap: () => _choose(sid, key),
                     child: AnimatedContainer(
@@ -167,9 +170,10 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                                       boxShadow: [
                                         BoxShadow(
                                             color: const Color(0xFFFFF0C9)
-                                                .withValues(alpha: 0.95),
-                                            blurRadius: 46,
-                                            spreadRadius: 14),
+                                                .withValues(alpha: 0.85),
+                                            offset: const Offset(0, 12),
+                                            blurRadius: 34,
+                                            spreadRadius: 6),
                                       ],
                                     )
                                   : null,
@@ -202,7 +206,8 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                       ),
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
           ),
           // Their crowd at the stage edge, in true scale.
@@ -423,6 +428,18 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       ),
       child: tile,
     );
+  }
+
+  /// The active member stands center; the rest flank them evenly, so the
+  /// spotlight holder is always under the venue's painted beam.
+  List<String> _stageOrder(List<String> owned, String wornKey) {
+    final others = owned.where((k) => k != wornKey).toList();
+    final left = <String>[];
+    final right = <String>[];
+    for (var i = 0; i < others.length; i++) {
+      (i.isEven ? right : left).add(others[i]);
+    }
+    return [...left.reversed, if (owned.contains(wornKey)) wornKey, ...right];
   }
 
   /// Which band member an accessory arrives with.
