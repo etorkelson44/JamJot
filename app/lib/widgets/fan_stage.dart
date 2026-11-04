@@ -160,12 +160,21 @@ class CrowdStrip extends StatelessWidget {
         child: FractionallySizedBox(
           widthFactor: fraction,
           child: ClipRect(
-            child: Image.asset(
-              dark ? 'assets/art/crowd_black.png' : 'assets/art/crowd_color.png',
+            // Draw the crowd at its true proportions (people ~the height of
+            // the strip) and tile it sideways as the crowd grows — never
+            // stretched or cropped lengthwise.
+            child: Container(
               height: height,
-              fit: BoxFit.cover,
-              alignment: Alignment.bottomCenter,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage(dark
+                      ? 'assets/art/crowd_black.png'
+                      : 'assets/art/crowd_color.png'),
+                  repeat: ImageRepeat.repeatX,
+                  alignment: Alignment.bottomCenter,
+                  scale: (dark ? 445 : 402) / height,
+                ),
+              ),
             ),
           ),
         ),

@@ -112,7 +112,7 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
                       child: Padding(
                           padding: const EdgeInsets.fromLTRB(12, 4, 8, 12),
                           child: Row(children: [
-                            FallingCoinPot(
+                            FallingCoinJar(
                                 key: ValueKey(_sequence),
                                 animate:
                                     !MediaQuery.disableAnimationsOf(context),
@@ -127,7 +127,7 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
                                         children: [
                                   Text('+$_earned coins!',
                                       style: text.titleLarge),
-                                  Text('A little more music in your pot.',
+                                  Text('A little more jam in your jar.',
                                       style: text.bodyMedium),
                                 ]))),
                             Semantics(

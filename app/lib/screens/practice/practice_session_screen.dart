@@ -1173,7 +1173,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             ),
           ),
         ),
-        CoinPot(studentId: student['id'] as String),
+        JamJar(studentId: student['id'] as String),
       ]),
     ]);
   }
@@ -1615,7 +1615,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: JamJotColors.ink, width: 2),
             ),
-            child: CoinLabel('+$_berries coins in your pot!',
+            child: CoinLabel('+$_berries coins in your Jam Jar!',
                 style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           ),
           if (_goalMet)

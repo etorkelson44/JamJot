@@ -12,7 +12,10 @@ class JamJotCard extends StatelessWidget {
     this.tint,
     this.onTap,
     this.trailing,
+    this.leading,
   });
+
+  /// Custom leading widget shown in the tile slot instead of [emoji].
 
   final String title;
   final String? subtitle;
@@ -20,6 +23,7 @@ class JamJotCard extends StatelessWidget {
   final Color? tint;
   final VoidCallback? onTap;
   final Widget? trailing;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +41,7 @@ class JamJotCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              if (emoji != null) ...[
+              if (leading != null || emoji != null) ...[
                 Container(
                   width: 42,
                   height: 42,
@@ -46,7 +50,7 @@ class JamJotCard extends StatelessWidget {
                     color: tint ?? JamJotColors.neutral,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Text(emoji!, style: const TextStyle(fontSize: 20)),
+                  child: leading ?? Text(emoji!, style: const TextStyle(fontSize: 20)),
                 ),
                 const SizedBox(width: 12),
               ],

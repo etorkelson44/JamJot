@@ -282,7 +282,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
             border: Border.all(color: JamJotColors.ink, width: 3),
           ),
           child: Column(children: [
-            const Text('💡 💡 💡 💡 💡', style: TextStyle(fontSize: 16)),
+            const _MirrorBulbs(),
             const SizedBox(height: 6),
             DressedAvatar(
                 avatarKey: wornKey,
@@ -297,7 +297,6 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                     ? 'Fresh from the garden — try something on!'
                     : 'Wearing ${outfit.length} item${outfit.length == 1 ? '' : 's'}',
                 style: text.bodySmall),
-            const Text('💡 💡 💡 💡 💡', style: TextStyle(fontSize: 16)),
           ]),
         ),
         const SizedBox(height: 14),
@@ -739,6 +738,37 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
           ),
         ]);
       },
+    );
+  }
+}
+
+
+/// A row of warm little vanity-mirror bulbs across the top of the
+/// dressing-room mirror — real backstage style, one strip only.
+class _MirrorBulbs extends StatelessWidget {
+  const _MirrorBulbs();
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        for (var i = 0; i < 7; i++)
+          Container(
+            width: 12,
+            height: 12,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                  colors: [Color(0xFFFFF3C2), Color(0xFFF5B82E)]),
+              boxShadow: [
+                BoxShadow(
+                    color: Color(0x66F5B82E),
+                    blurRadius: 10,
+                    spreadRadius: 1.5),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

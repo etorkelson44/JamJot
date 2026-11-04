@@ -517,11 +517,11 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                   style: text.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.w700)),
             ),
-            if (shopperId != null) CoinPot(studentId: shopperId, big: true),
+            if (shopperId != null) JamJar(studentId: shopperId, big: true),
           ]),
           const SizedBox(height: 4),
           Text(
-            'Practice fills your coin pot — spend your coins at the stands!',
+            'Practice fills your Jam Jar — spend your coins at the stands!',
             style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
           ),
           if (iAmGrownUp && kids.length > 1) ...[

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
+import '../../services/session_flags.dart';
 import '../../widgets/maestro_loader.dart';
 
 /// Decides where a freshly signed-in person goes: onboarding if their
@@ -47,6 +48,21 @@ class _GateScreenState extends ConsumerState<GateScreen> {
         context.go('/onboarding');
       }
     } else {
+      // A refresh mid-session shouldn't dump the kid back on the profile
+      // picker: restore the same profile if this tab was active recently.
+      final storedId = freshActiveStudent(kidSessionIdle);
+      if (storedId != null) {
+        Map<String, dynamic>? kid;
+        for (final s in students) {
+          if (s['id'] == storedId) kid = s;
+        }
+        if (kid != null) {
+          ref.read(activeStudentProvider.notifier).state = kid;
+          touchActiveSession();
+          context.go('/home');
+          return;
+        }
+      }
       context.go('/profiles');
     }
   }

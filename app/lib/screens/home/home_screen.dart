@@ -1,10 +1,12 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
-import '../../widgets/dancing_note.dart';
+import '../../state/wardrobe.dart';
+import '../../widgets/dressed_avatar.dart';
 import '../../widgets/coin_pouch.dart';
 import '../../widgets/fan_stage.dart';
 import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
@@ -60,7 +62,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           if (isKid) ...[
-            const Center(child: DancingNote(size: 140)),
+            Center(child: _HomeAvatar(student: active)),
             const SizedBox(height: 16),
             // Which stage they're playing (the venue itself is the page
             // background behind everything).
@@ -79,15 +81,15 @@ class HomeScreen extends ConsumerWidget {
                   .watch(berryBalanceProvider(active['id'] as String))
                   .valueOrNull;
               return JamJotCard(
-                emoji: '🧺',
+                leading: const JamCoin(size: 28),
                 title: balance == null
-                    ? 'Coin pot'
-                    : '$balance coin${balance == 1 ? '' : 's'} in your pot',
+                    ? 'Jam Jar'
+                    : '$balance coin${balance == 1 ? '' : 's'} in your Jam Jar',
                 subtitle: balance == null || balance == 0
                     ? 'Finish songs in practice to earn your first coins!'
                     : "Spend them at the Farmers' Market!",
                 tint: JamJotColors.plumTint,
-                trailing: CoinPot(studentId: active['id'] as String),
+                trailing: JamJar(studentId: active['id'] as String),
                 onTap: () => context.go('/market'),
               );
             }),
@@ -220,5 +222,45 @@ class HomeScreen extends ConsumerWidget {
         : page;
     // Maestro Marmalade is always one tap away on the main page.
     return Stack(children: [body, const AskMaestroTab()]);
+  }
+}
+
+
+/// The kid's own dressed avatar greets them on their landing page,
+/// bobbing gently (Maestro still lives in the Ask tab).
+class _HomeAvatar extends ConsumerStatefulWidget {
+  const _HomeAvatar({required this.student});
+  final Map<String, dynamic> student;
+  @override
+  ConsumerState<_HomeAvatar> createState() => _HomeAvatarState();
+}
+
+class _HomeAvatarState extends ConsumerState<_HomeAvatar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _bob = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 2400))
+    ..repeat();
+
+  @override
+  void dispose() {
+    _bob.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sid = widget.student['id'] as String;
+    final avatarKey = (widget.student['avatar_key'] as String?) ?? 'sonatina';
+    final outfit = ref.watch(wardrobeProvider(sid)).outfitFor(avatarKey);
+    return AnimatedBuilder(
+      animation: _bob,
+      builder: (context, child) => Transform.translate(
+        offset: Offset(0, math.sin(_bob.value * 2 * math.pi) * 4),
+        child: Transform.rotate(
+            angle: math.sin(_bob.value * 2 * math.pi + 0.8) * 0.03,
+            child: child),
+      ),
+      child: DressedAvatar(avatarKey: avatarKey, outfit: outfit, size: 140),
+    );
   }
 }

@@ -144,7 +144,7 @@ class PracticeHistoryList extends ConsumerWidget {
                         ),
                       const SizedBox(height: 8),
                       const Text(
-                          'Previously bought rewards stay owned. If a correction reduces the coin pot below zero, future coins cover the difference.'),
+                          'Previously bought rewards stay owned. If a correction reduces the Jam Jar below zero, future coins cover the difference.'),
                     ]),
                 actions: [
                   TextButton(

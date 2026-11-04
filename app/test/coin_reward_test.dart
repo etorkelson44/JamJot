@@ -63,13 +63,13 @@ void main() {
           home: Scaffold(
               body: Builder(
                   builder: (context) => Column(children: [
-                        const CoinPot(studentId: 'a'),
+                        const JamJar(studentId: 'a'),
                         const Spacer(),
                         TextButton(
                             onPressed: () => Navigator.of(context).push(
                                 MaterialPageRoute<void>(
                                     builder: (_) => const Scaffold(
-                                        body: CoinPot(studentId: 'a')))),
+                                        body: JamJar(studentId: 'a')))),
                             child: const Text('Another page')),
                       ]))),
         )));
@@ -89,20 +89,20 @@ void main() {
   testWidgets('new rewards show once across navigation; spending stays quiet',
       (tester) async {
     await open(tester);
-    expect(find.byType(FallingCoinPot), findsNothing);
+    expect(find.byType(FallingCoinJar), findsNothing);
     expect(plays, 0);
     await update(tester, 80);
     expect(find.text('+5 coins!'), findsOneWidget);
     expect(plays, 1);
-    expect(tester.widget<FallingCoinPot>(find.byType(FallingCoinPot)).animate,
+    expect(tester.widget<FallingCoinJar>(find.byType(FallingCoinJar)).animate,
         true);
     await tester.tap(find.text('Another page'));
     await tester.pumpAndSettle();
-    expect(find.byType(CoinPot, skipOffstage: false), findsNWidgets(2));
+    expect(find.byType(JamJar, skipOffstage: false), findsNWidgets(2));
     expect(plays, 1); // two mounted coin pots must not play two jingles
     await tester.pump(const Duration(seconds: 5));
     await update(tester, 55);
-    expect(find.byType(FallingCoinPot), findsNothing);
+    expect(find.byType(FallingCoinJar), findsNothing);
     expect(plays, 1);
     await update(tester, 55);
     expect(plays, 1);
@@ -134,11 +134,11 @@ void main() {
     expect(plays, 2);
     container.read(activeStudentProvider.notifier).state = {'id': 'b'};
     await tester.pumpAndSettle();
-    expect(find.byType(FallingCoinPot), findsNothing);
+    expect(find.byType(FallingCoinJar), findsNothing);
     expect(plays, 2);
     container.read(activeStudentProvider.notifier).state = null;
     await tester.pumpAndSettle();
-    expect(find.byType(FallingCoinPot), findsNothing);
+    expect(find.byType(FallingCoinJar), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -149,7 +149,7 @@ void main() {
     await update(tester, 85);
     expect(plays, 0);
     expect(find.text('+10 coins!'), findsOneWidget);
-    expect(tester.widget<FallingCoinPot>(find.byType(FallingCoinPot)).animate,
+    expect(tester.widget<FallingCoinJar>(find.byType(FallingCoinJar)).animate,
         false);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

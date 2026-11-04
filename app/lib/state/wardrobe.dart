@@ -108,8 +108,8 @@ const avatarBundles = <String, List<String>>{
   'jalapeno': ['mustache'], // Jalapresto's signature look
   'grape': ['white_gloves'], // Arpeggio climbs in gloves
   'lemon': ['blue_shades'], // Sharp. Obviously.
-  'raspberry': ['bandana'], // Reggae Raspberry
-  'blueberry': ['beret'], // Bebop plays the clubs
+  'raspberry': ['bandana'], // Raspberry Rhapsody
+  'blueberry': ['beret'], // Bravura takes a bow
 };
 
 Accessory? accessoryById(String id) {

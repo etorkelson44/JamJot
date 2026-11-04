@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/app_state.dart';
+import '../services/session_flags.dart';
 import '../services/practice_navigation.dart';
 import '../theme/jamjot_theme.dart';
 import '../widgets/jamjot_icons.dart';
@@ -12,7 +14,7 @@ import '../widgets/jamjot_icons.dart';
 /// grown-ups: Home · Library · Market · Calendar
 /// (Grown-ups don't practice themselves — each kid's practice lives on
 /// that kid's page, where off-app practices can be logged too.)
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key, required this.shell});
 
   final StatefulNavigationShell shell;
@@ -23,9 +25,39 @@ class AppShell extends ConsumerWidget {
   static const _grownUpBranches = [0, 2, 3, 4];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  Timer? _idleCheck;
+  StatefulNavigationShell get shell => widget.shell;
+
+  @override
+  void initState() {
+    super.initState();
+    // Every minute: if the tab has been idle too long with a kid signed in,
+    // return to the profile picker.
+    _idleCheck = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted) return;
+      if (ref.read(activeStudentProvider) == null) return;
+      if (freshActiveStudent(kidSessionIdle) == null) {
+        ref.read(activeStudentProvider.notifier).state = null;
+        storeActiveStudent(null);
+        if (mounted) context.go('/profiles');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _idleCheck?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isKid = ref.watch(activeStudentProvider) != null;
-    final branches = isKid ? _kidBranches : _grownUpBranches;
+    final branches = isKid ? AppShell._kidBranches : AppShell._grownUpBranches;
     var selected = branches.indexOf(shell.currentIndex);
     if (selected < 0) selected = 0; // current branch hidden for this role
 
@@ -51,7 +83,11 @@ class AppShell extends ConsumerWidget {
                 icon: Icon(JamJotIcons.calendar), label: 'Calendar'),
           ];
 
-    return Scaffold(
+    return Listener(
+      onPointerDown: (_) {
+        if (isKid) touchActiveSession();
+      },
+      child: Scaffold(
       body: shell,
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
@@ -74,6 +110,7 @@ class AppShell extends ConsumerWidget {
           destinations: destinations,
         ),
       ),
+    ),
     );
   }
 }

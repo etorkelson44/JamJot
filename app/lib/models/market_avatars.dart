@@ -24,13 +24,13 @@ const musicalAvatars =
     emoji: '🍋'
   ),
   'raspberry': (
-    name: 'Reggae Raspberry',
-    description: 'One love, one beat.',
+    name: 'Raspberry Rhapsody',
+    description: 'One berry, a thousand notes.',
     emoji: '🫐'
   ),
   'blueberry': (
-    name: 'Blueberry Bebop',
-    description: 'Cool berry, hot licks.',
+    name: 'Blueberry Bravura',
+    description: 'Bold. Brilliant. Blue.',
     emoji: '🫐'
   ),
 };

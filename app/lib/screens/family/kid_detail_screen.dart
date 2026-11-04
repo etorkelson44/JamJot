@@ -133,7 +133,7 @@ class _OverviewTab extends ConsumerWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            CoinPot(studentId: kid['id'] as String),
+            JamJar(studentId: kid['id'] as String),
             _statChip('🕶️ ${fans ?? '…'} fans'),
             if (progress != null)
               _statChip(

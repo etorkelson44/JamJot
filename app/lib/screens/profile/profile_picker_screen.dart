@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
+import '../../services/session_flags.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/letter_avatar.dart';
 import '../../widgets/pin_dialog.dart';
@@ -30,6 +31,7 @@ class ProfilePickerScreen extends ConsumerWidget {
     }
     if (!context.mounted) return;
     ref.read(activeStudentProvider.notifier).state = null;
+    storeActiveStudent(null);
     await rememberActiveStudent(null);
     if (context.mounted) context.go(destination);
   }
@@ -65,6 +67,7 @@ class ProfilePickerScreen extends ConsumerWidget {
     }
     if (!context.mounted) return;
     ref.read(activeStudentProvider.notifier).state = kid;
+    storeActiveStudent(kid['id'] as String);
     await rememberActiveStudent(kid['id'] as String);
     if (context.mounted) context.go('/home');
   }
@@ -150,6 +153,7 @@ class ProfilePickerScreen extends ConsumerWidget {
               onPressed: () async {
                 await JamJotBackend.client.auth.signOut();
                 ref.read(activeStudentProvider.notifier).state = null;
+                storeActiveStudent(null);
                 if (context.mounted) context.go('/');
               },
             ),
