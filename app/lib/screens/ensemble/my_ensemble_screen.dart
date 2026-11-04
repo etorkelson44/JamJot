@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../state/wardrobe.dart';
+import '../../services/sound_effects.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/ask_maestro.dart' show TisdaleImprint;
 import '../../widgets/dressed_avatar.dart';
@@ -32,6 +35,7 @@ class MyEnsembleScreen extends ConsumerStatefulWidget {
 
 class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
     with TickerProviderStateMixin {
+  int _cheerSeq = 0;
   String? _ghost; // locked item being "imagined" in the mirror
   late final TabController _tabs = TabController(length: 3, vsync: this);
 
@@ -177,10 +181,14 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                                       ],
                                     )
                                   : null,
-                              child: DressedAvatar(
-                                avatarKey: key,
-                                outfit: wardrobe.outfitFor(key),
-                                size: key == wornKey ? 132 : 88,
+                              child: _CheerBurst(
+                                active: key == wornKey,
+                                seq: _cheerSeq,
+                                child: DressedAvatar(
+                                  avatarKey: key,
+                                  outfit: wardrobe.outfitFor(key),
+                                  size: key == wornKey ? 132 : 88,
+                                ),
                               ),
                             ),
                           ),
@@ -237,7 +245,12 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
 
   Future<void> _choose(String sid, String key) async {
     final active = ref.read(activeStudentProvider);
-    if (active?['avatar_key'] == key) return;
+    if (active?['avatar_key'] == key) {
+      // Already in the spotlight: tapping them is a cheer, as promised.
+      playSound('cheer');
+      setState(() => _cheerSeq++);
+      return;
+    }
     var ok = false;
     if (key != 'sonatina') {
       try {
@@ -769,6 +782,72 @@ class _MirrorBulbs extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+
+/// A quick hooray when the kid taps their musician in the spotlight: the
+/// avatar does a happy hop while notes and stars burst up and fade.
+class _CheerBurst extends StatefulWidget {
+  const _CheerBurst(
+      {required this.child, required this.seq, required this.active});
+  final Widget child;
+  final int seq;
+  final bool active;
+  @override
+  State<_CheerBurst> createState() => _CheerBurstState();
+}
+
+class _CheerBurstState extends State<_CheerBurst>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1100));
+
+  @override
+  void didUpdateWidget(covariant _CheerBurst old) {
+    super.didUpdateWidget(old);
+    if (widget.active && widget.seq != old.seq) _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  static const _sparks = ['🎶', '⭐', '🎵', '✨', '🎶'];
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.active) return widget.child;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, child) {
+        final t = _c.value;
+        final hopping = _c.isAnimating;
+        // Two quick hops.
+        final hop = hopping
+            ? -14 *
+                (math.sin(t * math.pi * 2).abs() * (1 - t)).toDouble()
+            : 0.0;
+        return Stack(clipBehavior: Clip.none, alignment: Alignment.center,
+            children: [
+          Transform.translate(offset: Offset(0, hop), child: child),
+          if (hopping)
+            for (var i = 0; i < _sparks.length; i++)
+              Positioned(
+                top: -8 - t * (44 + 14 * i % 3),
+                left: 18.0 + i * 24,
+                child: Opacity(
+                  opacity: ((1 - t) * 1.4).clamp(0.0, 1.0),
+                  child: Text(_sparks[i],
+                      style: TextStyle(fontSize: 16 + (i % 3) * 4)),
+                ),
+              ),
+        ]);
+      },
+      child: widget.child,
     );
   }
 }
