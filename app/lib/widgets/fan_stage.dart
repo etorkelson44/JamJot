@@ -130,6 +130,50 @@ const venues = [
 int displayedFans(WidgetRef ref, String studentId) =>
     starterFans + (ref.watch(fanTotalProvider(studentId)).valueOrNull ?? 0);
 
+/// The crowd, drawn as a silhouette audience (founder reference style) in
+/// sensible ratio to the stage: a thin sliver of people at 10 fans, a packed
+/// house as the venue fills toward its next target.
+class CrowdStrip extends StatelessWidget {
+  const CrowdStrip(
+      {super.key,
+      required this.fans,
+      this.height = 48,
+      this.dark = false,
+      this.full = 300});
+  final int fans;
+  final double height;
+
+  /// Black silhouettes for bright venues, colored for dark stages.
+  final bool dark;
+
+  /// How many fans fill the frame completely.
+  final int full;
+
+  @override
+  Widget build(BuildContext context) {
+    final fraction = (fans / full).clamp(0.12, 1.0).toDouble();
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: FractionallySizedBox(
+          widthFactor: fraction,
+          child: ClipRect(
+            child: Image.asset(
+              dark ? 'assets/art/crowd_black.png' : 'assets/art/crowd_color.png',
+              height: height,
+              fit: BoxFit.cover,
+              alignment: Alignment.bottomCenter,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Fans earned since Monday.
 final weeklyFansProvider =
     FutureProvider.autoDispose.family<int, String>((ref, studentId) async {
@@ -197,19 +241,15 @@ class FanStage extends ConsumerWidget {
         ]),
         if (!compact) ...[
           const SizedBox(height: 8),
-          // The crowd (one little face per few fans).
+          // The crowd, in true scale to the stage.
           if (crowdCount == 0)
             Text('The seats are waiting for your first fans! 🎵',
                 style: text.bodySmall)
           else
-            Wrap(
-              spacing: 1,
-              runSpacing: 1,
-              children: [
-                for (var i = 0; i < crowdCount; i++)
-                  artAsset('fan_${i % 4}', width: 19, height: 19),
-              ],
-            ),
+            CrowdStrip(
+                fans: fans,
+                height: 34,
+                full: next?.minFans ?? venue.minFans + 500),
         ],
         if (next != null) ...[
           const SizedBox(height: 8),
@@ -296,21 +336,19 @@ class VenueBackdrop extends ConsumerWidget {
           ),
         ),
       ),
-      // Their crowd, gathered at the stage.
+      // Their crowd, gathered at the stage in true scale.
       if (crowdCount > 0)
         Positioned(
-          left: 10,
-          right: 10,
-          bottom: 8,
+          left: 0,
+          right: 0,
+          bottom: 0,
           child: IgnorePointer(
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 1,
-              children: [
-                for (var i = 0; i < crowdCount; i++)
-                  artAsset('fan_${i % 4}', width: 17, height: 17),
-              ],
-            ),
+            child: CrowdStrip(
+                fans: fans,
+                height: 52,
+                full: venues[(venues.indexOf(venue) + 1)
+                        .clamp(0, venues.length - 1)]
+                    .minFans),
           ),
         ),
       // The wash that keeps everything readable.

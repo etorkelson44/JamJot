@@ -35,6 +35,13 @@ const _defaultFit = <String, _Fit>{
   'crown_headset': _Fit(0.5, 0.04, 1.0),
   'golden_cape': _Fit(0.93, 0.6, 1.1),
   'jar_crown': _Fit(0.5, 0.02, 1.1),
+  'mustache': _Fit(0.5, 0.56, 1.1),
+};
+
+/// Accessories with real drawn art (instead of emoji placeholders); value is
+/// the assets/art base name. More pieces move here with each art drop.
+const _accessoryImages = <String, String>{
+  'mustache': 'acc_mustache',
 };
 
 /// Per-avatar overrides: body shapes differ, so hats/collars move.
@@ -43,17 +50,51 @@ const _avatarFits = <String, Map<String, _Fit>>{
     'beret': _Fit(0.24, 0.06, 1.0),
     'bow_tie': _Fit(0.5, 0.72, 0.9),
     'stadium_scarf': _Fit(0.5, 0.7, 1.1),
+    'mustache': _Fit(0.5, 0.52, 0.9),
   },
-  'blueberry': {
-    'beret': _Fit(0.3, 0.1, 1.0),
-    'jar_crown': _Fit(0.5, 0.06, 1.1),
-  },
-  'lemon': {
-    'beret': _Fit(0.3, 0.12, 1.0),
+  // The band (photo bodies; head/mouth positions from the composites).
+  'strawberry': {
+    'beret': _Fit(0.32, 0.12, 1.1),
+    'mustache': _Fit(0.5, 0.62, 1.1),
+    'bow_tie': _Fit(0.5, 0.78, 0.9),
+    'blue_shades': _Fit(0.5, 0.42, 1.2),
+    'star_shades': _Fit(0.5, 0.42, 1.2),
   },
   'jalapeno': {
-    'beret': _Fit(0.35, 0.02, 0.9),
-    'bow_tie': _Fit(0.5, 0.6, 0.9),
+    'beret': _Fit(0.42, 0.06, 0.8),
+    'mustache': _Fit(0.5, 0.42, 1.0),
+    'bow_tie': _Fit(0.5, 0.56, 0.8),
+    'blue_shades': _Fit(0.5, 0.31, 0.9),
+    'star_shades': _Fit(0.5, 0.31, 0.9),
+  },
+  'grape': {
+    'beret': _Fit(0.3, 0.14, 1.0),
+    'mustache': _Fit(0.5, 0.56, 1.0),
+    'bow_tie': _Fit(0.5, 0.72, 0.9),
+    'blue_shades': _Fit(0.49, 0.39, 1.15),
+    'star_shades': _Fit(0.49, 0.39, 1.15),
+  },
+  'lemon': {
+    'beret': _Fit(0.34, 0.16, 1.0),
+    'mustache': _Fit(0.5, 0.6, 1.0),
+    'bow_tie': _Fit(0.5, 0.76, 0.9),
+    'blue_shades': _Fit(0.5, 0.43, 1.15),
+    'star_shades': _Fit(0.5, 0.43, 1.15),
+  },
+  'raspberry': {
+    'beret': _Fit(0.32, 0.14, 1.0),
+    'mustache': _Fit(0.5, 0.64, 1.0),
+    'bow_tie': _Fit(0.5, 0.8, 0.9),
+    'blue_shades': _Fit(0.5, 0.46, 1.2),
+    'star_shades': _Fit(0.5, 0.46, 1.2),
+  },
+  'blueberry': {
+    'beret': _Fit(0.3, 0.14, 1.1),
+    'mustache': _Fit(0.5, 0.58, 1.1),
+    'bow_tie': _Fit(0.5, 0.74, 0.9),
+    'blue_shades': _Fit(0.5, 0.44, 1.25),
+    'star_shades': _Fit(0.5, 0.44, 1.25),
+    'jar_crown': _Fit(0.5, 0.06, 1.1),
   },
 };
 
@@ -100,6 +141,7 @@ class DressedAvatar extends StatelessWidget {
     final fit = _avatarFits[avatarKey]?[id] ?? _defaultFit[id];
     if (fit == null) return const [];
     final itemSize = size * 0.34 * fit.scale;
+    final image = _accessoryImages[id];
     return [
       Positioned(
         left: fit.dx * size - itemSize / 2,
@@ -107,7 +149,11 @@ class DressedAvatar extends StatelessWidget {
         child: IgnorePointer(
           child: Opacity(
             opacity: opacity,
-            child: Text(acc.emoji, style: TextStyle(fontSize: itemSize)),
+            child: image != null
+                ? Image.asset('assets/art/$image.png',
+                    width: itemSize, height: itemSize,
+                    fit: BoxFit.contain)
+                : Text(acc.emoji, style: TextStyle(fontSize: itemSize)),
           ),
         ),
       ),

@@ -8,6 +8,8 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import '../../services/sound_effects.dart';
 import '../../models/market_avatars.dart';
 import '../../widgets/letter_avatar.dart';
+import '../../widgets/dressed_avatar.dart';
+import '../../state/wardrobe.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
@@ -127,6 +129,13 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         ref.invalidate(berryBalanceProvider(studentId));
         ref.invalidate(purchasesProvider(studentId));
         ref.invalidate(myStudentsProvider);
+        // A new band member brings their accessories into the closet,
+        // worn from the start.
+        if (item['kind'] == 'avatar' && item['asset_key'] != null) {
+          ref
+              .read(wardrobeProvider(studentId).notifier)
+              .grantBundle(item['asset_key'] as String);
+        }
         final active = ref.read(activeStudentProvider);
         if (active?['id'] == studentId && item['kind'] == 'avatar') {
           ref.read(activeStudentProvider.notifier).state = {
@@ -312,13 +321,20 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
   }
 
   Widget _marketArt(Map<String, dynamic> item, double size) {
-    final art = item['kind'] == 'avatar'
-        ? berryArt(item['asset_key'] as String?, size)
-        : null;
+    final key = item['asset_key'] as String?;
+    if (item['kind'] == 'avatar' &&
+        key != null &&
+        berryAvatars.containsKey(key)) {
+      // Shown wearing the accessories they come with (JJ-014 revision).
+      return ExcludeSemantics(
+          child: DressedAvatar(
+              avatarKey: key,
+              outfit: avatarBundles[key] ?? const [],
+              size: size));
+    }
     return ExcludeSemantics(
-        child: art ??
-            Text(item['emoji'] as String? ?? '🎁',
-                style: const TextStyle(fontSize: 26)));
+        child: Text(item['emoji'] as String? ?? '🎁',
+            style: const TextStyle(fontSize: 26)));
   }
 
   Widget _musicalAvatarCards(

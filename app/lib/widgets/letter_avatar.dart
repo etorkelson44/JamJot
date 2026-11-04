@@ -5,17 +5,22 @@ import '../theme/jamjot_theme.dart';
 
 /// Pieces of final artwork delivered as PNG (they replace the drawn SVG
 /// placeholders one file at a time — add each new drop here).
-const finalPngArt = <String>{
-  'avatar_blueberry',
-};
+const finalPngArt = <String>{};
 
-/// Founder-supplied PNG placeholders, kept distinct from finished artwork.
+/// Founder-supplied photo bodies with drawn faces (JJ-012), pending the
+/// final art pass.
 const placeholderPngArt = <String>{
   'avatar_strawberry',
   'avatar_jalapeno',
   'avatar_grape',
   'avatar_lemon',
+  'avatar_raspberry',
+  'avatar_blueberry',
   'avatar_sonatina', // JJ-011/JJ-012 starter: founder's seed photo, rigged
+  'acc_mustache', // Jalapresto's bundled accessory
+  'brand_tisdale', // Tisdale Applications imprint
+  'crowd_color', // fan crowd silhouettes (founder reference style)
+  'crowd_black',
 };
 
 /// Loads the provided PNG when available, otherwise the existing SVG.

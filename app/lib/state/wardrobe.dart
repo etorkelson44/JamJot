@@ -14,7 +14,7 @@ import '../widgets/fan_stage.dart' show venues;
 /// backend note and ships with the venue-world release.
 class Accessory {
   const Accessory(this.id, this.name, this.emoji, this.price,
-      {this.venueLevel});
+      {this.venueLevel, this.bundleOnly = false});
   final String id;
   final String name;
 
@@ -25,6 +25,9 @@ class Accessory {
   /// Unlocks only once the student has played this venue (0-based index
   /// into [venues]); null = always purchasable.
   final int? venueLevel;
+
+  /// Comes only with its avatar — never sold on its own.
+  final bool bundleOnly;
 }
 
 /// The full accessory catalog: two exclusives per venue on the tour.
@@ -49,7 +52,22 @@ const accessoryCatalog = <Accessory>[
   Accessory('crown_headset', 'Crown Headset', '👑', 60, venueLevel: 8),
   Accessory('golden_cape', 'Golden Cape', '🦸', 80, venueLevel: 9),
   Accessory('jar_crown', 'Jam-Jar Crown', '🫙', 100, venueLevel: 9),
+  // Bundle-only pieces that arrive with their avatar.
+  Accessory('mustache', 'Marvelous Mustache', '🥸', 0, bundleOnly: true),
 ];
+
+/// What each avatar brings to the closet when earned (JJ-014 revision,
+/// founder-directed 2026-11-04). Bundle items are auto-worn the first time
+/// and shown worn in the Market; once in the closet they dress ANY avatar.
+const avatarBundles = <String, List<String>>{
+  'sonatina': [],
+  'strawberry': ['bow_tie'], // Staccato: short, sweet, dressed up
+  'jalapeno': ['mustache'], // Jalapresto's signature look
+  'grape': ['white_gloves'], // Arpeggio climbs in gloves
+  'lemon': ['blue_shades'], // Sharp. Obviously.
+  'raspberry': ['bandana'], // Reggae Raspberry
+  'blueberry': ['beret'], // Bebop plays the clubs
+};
 
 Accessory? accessoryById(String id) {
   for (final a in accessoryCatalog) {
@@ -112,6 +130,44 @@ class WardrobeNotifier extends StateNotifier<Wardrobe> {
     state = Wardrobe(
         owned: {...state.owned, accessoryId}, outfits: state.outfits);
     _save();
+  }
+
+  /// When an avatar is earned, its bundled accessories join the closet and
+  /// become its starting outfit (unless the kid has already dressed it).
+  void grantBundle(String avatarKey) {
+    final bundle = avatarBundles[avatarKey] ?? const [];
+    if (bundle.isEmpty) return;
+    final owned = {...state.owned, ...bundle};
+    final outfits = {...state.outfits};
+    if ((outfits[avatarKey] ?? const []).isEmpty) {
+      outfits[avatarKey] = [...bundle];
+    }
+    state = Wardrobe(owned: owned, outfits: outfits);
+    _save();
+  }
+
+  /// Reconcile: make sure every owned avatar's bundle is in the closet
+  /// (covers avatars bought before bundles existed).
+  void ensureBundles(Iterable<String> ownedAvatarKeys) {
+    var owned = state.owned;
+    var outfits = state.outfits;
+    var changed = false;
+    for (final key in ownedAvatarKeys) {
+      final bundle = avatarBundles[key] ?? const [];
+      if (bundle.isEmpty) continue;
+      if (!bundle.every(owned.contains)) {
+        owned = {...owned, ...bundle};
+        changed = true;
+      }
+      if ((outfits[key] ?? const []).isEmpty) {
+        outfits = {...outfits, key: [...bundle]};
+        changed = true;
+      }
+    }
+    if (changed) {
+      state = Wardrobe(owned: owned, outfits: outfits);
+      _save();
+    }
   }
 
   /// Toggle an owned accessory on one avatar's saved outfit.

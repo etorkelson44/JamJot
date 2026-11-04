@@ -63,7 +63,7 @@ class _MaestroLoaderState extends State<MaestroLoader>
               );
             },
             child: Image.asset(
-              'assets/mascot/maestro.png',
+              'assets/mascot/maestro_tux.png',
               height: widget.size,
               errorBuilder: (_, __, ___) => SizedBox(
                 width: widget.size * 0.4,

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
+import '../../widgets/ask_maestro.dart' show TisdaleImprint;
 import '../../widgets/jamjot_card.dart';
 
 void _showHowAccountsWork(BuildContext context) {
@@ -144,8 +145,10 @@ class TitleScreen extends StatelessWidget {
               ),
               const Spacer(),
               const SizedBox(height: 16),
-              // Maestro Marmalade welcomes everyone with a little dance.
-              const DancingNote(size: 170, asset: 'assets/mascot/maestro.png'),
+              // Maestro Marmalade, in his tuxedo with his pencil baton,
+              // welcomes everyone with a little dance.
+              const DancingNote(
+                  size: 170, asset: 'assets/mascot/maestro_tux.png'),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -209,6 +212,10 @@ class TitleScreen extends StatelessWidget {
                 onPressed: () => _showHowAccountsWork(context),
                 child: const Text('How do accounts work?'),
               ),
+              const SizedBox(height: 10),
+              // The maker's mark, kept quiet.
+              const Center(child: TisdaleImprint(height: 36, opacity: 0.16)),
+              const SizedBox(height: 6),
             ],
           ),
                 ),

@@ -10,6 +10,7 @@ import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/pin_dialog.dart' show askForNewPin;
 import '../../widgets/backup_settings.dart';
+import '../../widgets/ask_maestro.dart' show TisdaleImprint;
 
 /// My guardianship rows (with each kid's name).
 final myGuardianRowsProvider =
@@ -430,6 +431,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                         ),
                     ]),
                   ),
+                  const SizedBox(height: 8),
+                  // The maker's mark, kept quiet.
+                  const Center(
+                      child: TisdaleImprint(height: 40, opacity: 0.18)),
                   const SizedBox(height: 8),
                 ],
               ]);

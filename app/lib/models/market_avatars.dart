@@ -1,25 +1,37 @@
-/// Founder-supplied temporary character art; keys stay stable when art changes.
+/// The band: founder's photo-real bodies with drawn faces (JJ-012), named
+/// with the founder's workshopped music puns (2026-11-04). Keys stay stable
+/// when art changes.
 const musicalAvatars =
     <String, ({String name, String description, String emoji})>{
-  'jalapeno': (
-    name: 'Pepper Presto',
-    description: 'A little spice. A whole lot of tempo.',
-    emoji: '🌶️'
-  ),
   'strawberry': (
-    name: 'Berry Bebop',
-    description: 'Sweet moves and jazzy grooves.',
+    name: 'Strawberry Staccato',
+    description: 'Short and sweet!',
     emoji: '🍓'
   ),
+  'jalapeno': (
+    name: 'Jalapresto',
+    description: 'As fast as it gets. As hot as it gets.',
+    emoji: '🌶️'
+  ),
   'grape': (
-    name: 'Gracie Grace Note',
-    description: 'A whole bunch of harmony.',
+    name: 'Grape Arpeggio',
+    description: 'A bunch of notes, climbing.',
     emoji: '🍇'
   ),
   'lemon': (
-    name: 'Lenny Legato',
-    description: 'A little zest. A smooth melody.',
+    name: 'Lemon Sharp',
+    description: 'Not sour — sharp. L♯.',
     emoji: '🍋'
+  ),
+  'raspberry': (
+    name: 'Reggae Raspberry',
+    description: 'One love, one beat.',
+    emoji: '🫐'
+  ),
+  'blueberry': (
+    name: 'Blueberry Bebop',
+    description: 'Cool berry, hot licks.',
+    emoji: '🫐'
   ),
 };
 

@@ -6,6 +6,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../state/wardrobe.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/ask_maestro.dart' show TisdaleImprint;
 import '../../widgets/dressed_avatar.dart';
 import '../../widgets/fan_stage.dart';
 import '../../widgets/letter_avatar.dart' show artAsset;
@@ -61,6 +62,12 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
     final coins = ref.watch(berryBalanceProvider(sid)).valueOrNull ?? 0;
     final (level, venue) = venueFor(fans);
     final wardrobe = ref.watch(wardrobeProvider(sid));
+    // Owned avatars always carry their bundled accessories.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(wardrobeProvider(sid).notifier).ensureBundles(owned);
+      }
+    });
 
     return DefaultTabController(
       length: 3,
@@ -100,7 +107,6 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
       int coins) {
     final text = Theme.of(context).textTheme;
     final venueIndex = venues.indexOf(venue);
-    final crowdCount = (fans / 4).ceil().clamp(1, 36);
     return Stack(fit: StackFit.expand, children: [
       artAsset('venue_$venueIndex', fit: BoxFit.cover),
       Container(color: Colors.white.withValues(alpha: 0.25)),
@@ -196,17 +202,15 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
               ],
             ),
           ),
-          // Their crowd at the stage edge.
+          // Their crowd at the stage edge, in true scale.
           Padding(
-            padding: const EdgeInsets.only(bottom: 10, top: 4),
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 1,
-              children: [
-                for (var i = 0; i < crowdCount; i++)
-                  artAsset('fan_${i % 4}', width: 18, height: 18),
-              ],
-            ),
+            padding: const EdgeInsets.only(bottom: 6, top: 4),
+            child: CrowdStrip(
+                fans: fans,
+                height: 46,
+                full: level < venues.length
+                    ? venues[level].minFans
+                    : venue.minFans),
           ),
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -364,6 +368,12 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
                       color: JamJotColors.marigold))
             else if (owned)
               Text('tap to wear', style: text.labelSmall)
+            else if (acc.bundleOnly)
+              Text('🎁 ${_bundleSource(acc.id)}',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.labelSmall)
             else if (venueLocked)
               Text('🔒 ${venueNameForAccessory(acc)}',
                   textAlign: TextAlign.center,
@@ -380,6 +390,14 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
     );
   }
 
+  /// Which band member an accessory arrives with.
+  String _bundleSource(String accessoryId) {
+    for (final entry in avatarBundles.entries) {
+      if (entry.value.contains(accessoryId)) return _avatarName(entry.key);
+    }
+    return 'an avatar';
+  }
+
   void _lockedSheet(BuildContext context, String sid, Accessory acc,
       int coins, bool venueLocked) {
     final text = Theme.of(context).textTheme;
@@ -392,7 +410,21 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
           Text(acc.name,
               style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          if (venueLocked) ...[
+          if (acc.bundleOnly) ...[
+            Text(
+                'This one comes only with ${_bundleSource(acc.id)} — '
+                'earn them in the Market and it\'s yours!',
+                textAlign: TextAlign.center,
+                style: text.bodyMedium),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(sheet);
+                context.go('/market');
+              },
+              child: const Text('Visit the Market 🧺'),
+            ),
+          ] else if (venueLocked) ...[
             Text(
                 'A ${venueNameForAccessory(acc)} exclusive — play that stage '
                 'to unlock it!',
@@ -622,7 +654,9 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
                             'Venue exclusives now in the closet: '
                             '${v.exclusives.map((id) => accessoryById(id)?.emoji ?? '').join(' ')}',
                             textAlign: TextAlign.center),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
+                        const TisdaleImprint(height: 22, opacity: 0.2),
+                        const SizedBox(height: 6),
                         FilledButton(
                           onPressed: () => Navigator.pop(dialogContext),
                           child: const Text('Encore! 🎉'),

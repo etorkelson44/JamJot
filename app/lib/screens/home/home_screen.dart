@@ -10,6 +10,7 @@ import '../../widgets/fan_stage.dart';
 import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
 import '../../widgets/jamjot_card.dart';
 import '../../widgets/letter_avatar.dart';
+import '../../widgets/ask_maestro.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -214,8 +215,10 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
     );
-    return isKid
+    final body = isKid
         ? VenueBackdrop(studentId: active['id'] as String, child: page)
         : page;
+    // Maestro Marmalade is always one tap away on the main page.
+    return Stack(children: [body, const AskMaestroTab()]);
   }
 }
