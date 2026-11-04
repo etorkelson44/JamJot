@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme/jamjot_theme.dart';
+import 'conducting_maestro.dart';
 
 /// Maestro Marmalade — JamJot's helper (not a market avatar). A small tab
 /// rides the edge of main pages; tapping it pops Maestro out with a chat of
@@ -110,24 +111,8 @@ class _MaestroSheet extends StatefulWidget {
   State<_MaestroSheet> createState() => _MaestroSheetState();
 }
 
-class _MaestroSheetState extends State<_MaestroSheet>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _sway;
+class _MaestroSheetState extends State<_MaestroSheet> {
   int? _openQuestion;
-
-  @override
-  void initState() {
-    super.initState();
-    _sway = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 2200))
-      ..repeat();
-  }
-
-  @override
-  void dispose() {
-    _sway.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -150,18 +135,8 @@ class _MaestroSheetState extends State<_MaestroSheet>
             ),
           ),
           const SizedBox(height: 10),
-          // Maestro conducts his welcome (pencil baton included).
-          Center(
-            child: AnimatedBuilder(
-              animation: _sway,
-              builder: (context, child) => Transform.rotate(
-                angle: math.sin(_sway.value * 2 * math.pi) * 0.05,
-                alignment: Alignment.bottomCenter,
-                child: child,
-              ),
-              child: Image.asset('assets/mascot/maestro_tux.png', height: 130),
-            ),
-          ),
+          // Maestro conducts his welcome with his pencil baton.
+          const Center(child: ConductingMaestro(height: 130)),
           const SizedBox(height: 8),
           Center(
             child: Text('Ask Maestro Marmalade!',

@@ -3,12 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme/jamjot_theme.dart';
+import 'conducting_maestro.dart';
 
 /// JamJot's loading indicator: Maestro Marmalade conducting a little song
 /// while the app thinks. Replaces the generic spinner on full-screen waits.
 ///
-/// He sways in 3/4 time around his shoes, and three notes float up past his
-/// baton, each on its own beat.
+/// He stands still and conducts with his pencil baton while three notes
+/// float up past it, each on its own beat.
 class MaestroLoader extends StatefulWidget {
   const MaestroLoader({super.key, this.size = 120, this.label});
 
@@ -47,30 +48,17 @@ class _MaestroLoaderState extends State<MaestroLoader>
             animation: _controller,
             builder: (context, child) {
               final t = _controller.value;
-              // A gentle 3/4-time sway, pivoting at his shoes.
-              final sway = math.sin(t * math.pi * 2) * 0.09;
               return Stack(
                 alignment: Alignment.bottomCenter,
                 children: [
                   // Floating notes, staggered on the beat.
                   for (var i = 0; i < 3; i++) _note(t, i, noteColor),
-                  Transform.rotate(
-                    angle: sway,
-                    alignment: Alignment.bottomCenter,
-                    child: child,
-                  ),
+                  child!,
                 ],
               );
             },
-            child: Image.asset(
-              'assets/mascot/maestro_tux.png',
-              height: widget.size,
-              errorBuilder: (_, __, ___) => SizedBox(
-                width: widget.size * 0.4,
-                height: widget.size * 0.4,
-                child: const CircularProgressIndicator(),
-              ),
-            ),
+            // He stands still and conducts with his pencil baton.
+            child: ConductingMaestro(height: widget.size),
           ),
         ),
         if (widget.label != null) ...[
