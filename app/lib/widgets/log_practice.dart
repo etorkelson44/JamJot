@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 import '../services/supabase_service.dart';
 import '../state/app_state.dart';
+import 'fan_stage.dart';
+import '../screens/history/practice_history_screen.dart';
+import '../screens/lesson/lesson_sheet_screen.dart';
 import '../theme/jamjot_theme.dart';
 
 /// A grown-up logs a practice that happened away from the app (piano at
@@ -31,8 +35,7 @@ Future<void> logOfflinePractice(BuildContext context, WidgetRef ref,
             Text(
               'For practicing that happened without the app — it counts toward history, stre'
               'aks, coins and fans just like a recorded session.',
-              style: TextStyle(
-                  fontSize: 12.5, color: JamJotColors.inkSoft),
+              style: TextStyle(fontSize: 12.5, color: JamJotColors.inkSoft),
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
@@ -51,9 +54,9 @@ Future<void> logOfflinePractice(BuildContext context, WidgetRef ref,
             const SizedBox(height: 10),
             TextField(
               controller: minutes,
+              onChanged: (_) => setState(() {}),
               keyboardType: TextInputType.number,
-              decoration:
-                  const InputDecoration(labelText: 'Minutes practiced'),
+              decoration: const InputDecoration(labelText: 'Minutes practiced'),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -69,7 +72,8 @@ Future<void> logOfflinePractice(BuildContext context, WidgetRef ref,
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancel')),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: (int.tryParse(minutes.text.trim()) ?? 0) < 1 || (int.tryParse(minutes.text.trim()) ?? 0) > 240
+                ? null : () => Navigator.of(context).pop(true),
             style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
             child: const Text('Log it'),
           ),
@@ -77,21 +81,29 @@ Future<void> logOfflinePractice(BuildContext context, WidgetRef ref,
       ),
     ),
   );
+  final enteredMinutes = int.tryParse(minutes.text.trim()) ?? 0;
+  final entryNote = note.text.trim();
+  minutes.dispose();
+  note.dispose();
   if (ok != true || !context.mounted) return;
   try {
-    final res = await JamJotBackend.client.functions.invoke('log-practice', body: {
-      'student_id': kid['id'],
-      'date': DateFormat('yyyy-MM-dd').format(date),
-      'minutes': int.tryParse(minutes.text.trim()) ?? 0,
-      'note': note.text.trim(),
-    });
-    final data = res.data as Map<String, dynamic>? ?? {};
+    final data = Map<String, dynamic>.from(
+        await JamJotBackend.client.rpc('log_practice_entry', params: {
+      'p_student_id': kid['id'],
+      'p_date': DateFormat('yyyy-MM-dd').format(date),
+      'p_minutes': enteredMinutes,
+      'p_note': entryNote,
+      'p_request_id': const Uuid().v4(),
+    }));
     if (!context.mounted) return;
     if (data['ok'] == true) {
       final sid = kid['id'] as String;
       ref.invalidate(berryBalanceProvider(sid));
       ref.invalidate(fanTotalProvider(sid));
+      ref.invalidate(weeklyFansProvider(sid));
       ref.invalidate(weeklyProgressProvider(sid));
+      ref.invalidate(practiceHistoryProvider(sid));
+      ref.invalidate(sheetLessonsProvider(sid));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
               'Logged! $name earned 🪙 ${data['coins']}${(data['fans'] as num? ?? 0) > 0 ? ' and 🕶️ ${data['fans']} fans' : ''}.')));
@@ -102,8 +114,8 @@ Future<void> logOfflinePractice(BuildContext context, WidgetRef ref,
     }
   } catch (_) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not log that — try again?')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not confirm this entry. Check practices before trying again.')));
     }
   }
 }

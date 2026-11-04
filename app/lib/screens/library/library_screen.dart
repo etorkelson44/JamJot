@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
@@ -111,11 +112,20 @@ Future<Map<String, dynamic>?> _saveScoreBytes(
 
 /// Picks ONE file (used when attaching to an assignment).
 Future<Map<String, dynamic>?> uploadScoreFile(
-    BuildContext context, WidgetRef ref, {String folder = ''}) async {
-  final picked = await FilePicker.platform
-      .pickFiles(type: FileType.custom, allowedExtensions: [
-    'pdf', 'png', 'jpg', 'jpeg', 'xml', 'musicxml', 'mxl'
-  ], withData: true);
+    BuildContext context, WidgetRef ref,
+    {String folder = ''}) async {
+  final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [
+        'pdf',
+        'png',
+        'jpg',
+        'jpeg',
+        'xml',
+        'musicxml',
+        'mxl'
+      ],
+      withData: true);
   final file = picked?.files.firstOrNull;
   if (file == null || file.bytes == null) return null;
   try {
@@ -135,13 +145,18 @@ Future<Map<String, dynamic>?> uploadScoreFile(
 /// Picks MANY files at once into [folder] (shift/cmd-click to select
 /// several). Returns the finished-message to show.
 Future<String> uploadScoreFiles(BuildContext context, WidgetRef ref,
-    {String folder = '',
-    void Function(String status)? onProgress}) async {
+    {String folder = '', void Function(String status)? onProgress}) async {
   final picked = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: [
-        'pdf', 'png', 'jpg', 'jpeg', 'xml', 'musicxml', 'mxl'
+        'pdf',
+        'png',
+        'jpg',
+        'jpeg',
+        'xml',
+        'musicxml',
+        'mxl'
       ],
       withData: true);
   final files = picked?.files ?? [];
@@ -181,8 +196,7 @@ Future<String> uploadScoreFiles(BuildContext context, WidgetRef ref,
 /// Picks a whole FOLDER; every file keeps its place inside it, so the
 /// library mirrors the computer's organization under [folder].
 Future<String> uploadScoreFolder(BuildContext context, WidgetRef ref,
-    {String folder = '',
-    void Function(String status)? onProgress}) async {
+    {String folder = '', void Function(String status)? onProgress}) async {
   final handles = await pickFolderFiles();
   if (handles.isEmpty) return 'No usable music files found in that folder.';
   setUnloadGuard(true);
@@ -190,32 +204,31 @@ Future<String> uploadScoreFolder(BuildContext context, WidgetRef ref,
   var skipped = 0;
   String? firstError;
   try {
-  for (var i = 0; i < handles.length; i++) {
-    final h = handles[i];
-    onProgress?.call(
-        'Uploading ${i + 1} of ${handles.length} — ${h.name}…');
-    // Reading triggers iCloud to download the file if it isn't local yet.
-    final bytes = await h.read();
-    if (bytes == null || bytes.isEmpty) {
-      skipped++;
-      continue;
+    for (var i = 0; i < handles.length; i++) {
+      final h = handles[i];
+      onProgress?.call('Uploading ${i + 1} of ${handles.length} — ${h.name}…');
+      // Reading triggers iCloud to download the file if it isn't local yet.
+      final bytes = await h.read();
+      if (bytes == null || bytes.isEmpty) {
+        skipped++;
+        continue;
+      }
+      final rel = h.relativePath;
+      final slash = rel.lastIndexOf('/');
+      final sub = slash <= 0 ? '' : rel.substring(0, slash);
+      final target = [
+        if (folder.isNotEmpty) folder,
+        if (sub.isNotEmpty) sub,
+      ].join('/');
+      try {
+        await _saveScoreBytes(ref,
+            fileName: h.name, bytes: bytes, folder: target);
+        added++;
+      } catch (e) {
+        skipped++;
+        firstError ??= e.toString();
+      }
     }
-    final rel = h.relativePath;
-    final slash = rel.lastIndexOf('/');
-    final sub = slash <= 0 ? '' : rel.substring(0, slash);
-    final target = [
-      if (folder.isNotEmpty) folder,
-      if (sub.isNotEmpty) sub,
-    ].join('/');
-    try {
-      await _saveScoreBytes(ref,
-          fileName: h.name, bytes: bytes, folder: target);
-      added++;
-    } catch (e) {
-      skipped++;
-      firstError ??= e.toString();
-    }
-  }
   } finally {
     setUnloadGuard(false);
   }
@@ -558,8 +571,8 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
         await JamJotBackend.client.from('scores').delete().eq('id', f['id']);
       }
       setState(() {
-        _emptyFolders
-            .removeWhere((e) => e == folderPath || e.startsWith('$folderPath/'));
+        _emptyFolders.removeWhere(
+            (e) => e == folderPath || e.startsWith('$folderPath/'));
         if (_path == folderPath || _path.startsWith('$folderPath/')) {
           _path = folderPath.contains('/')
               ? folderPath.substring(0, folderPath.lastIndexOf('/'))
@@ -592,9 +605,7 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
       }
       if (fo == _path) {
         here.add(f);
-      } else if (_path.isEmpty
-          ? fo.isNotEmpty
-          : fo.startsWith('$_path/')) {
+      } else if (_path.isEmpty ? fo.isNotEmpty : fo.startsWith('$_path/')) {
         final rest = _path.isEmpty ? fo : fo.substring(_path.length + 1);
         final next = rest.split('/').first;
         subfolders[next] = (subfolders[next] ?? 0) + 1;
@@ -602,7 +613,10 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
     }
     if (!searching) {
       for (final e in _emptyFolders) {
-        if (_path.isEmpty ? !e.contains('/') : (e.startsWith('$_path/') && !e.substring(_path.length + 1).contains('/'))) {
+        if (_path.isEmpty
+            ? !e.contains('/')
+            : (e.startsWith('$_path/') &&
+                !e.substring(_path.length + 1).contains('/'))) {
           final name = _path.isEmpty ? e : e.substring(_path.length + 1);
           subfolders.putIfAbsent(name, () => 0);
         }
@@ -660,10 +674,9 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
               onPressed: () async {
                 setState(() => _progress = 'Choosing files…');
                 final message = await uploadScoreFiles(context, ref,
-                    folder: _path,
-                    onProgress: (st) {
-                      if (mounted) setState(() => _progress = st);
-                    });
+                    folder: _path, onProgress: (st) {
+                  if (mounted) setState(() => _progress = st);
+                });
                 if (!mounted) return;
                 setState(() => _progress = null);
                 ScaffoldMessenger.of(context)
@@ -677,10 +690,9 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
                 onPressed: () async {
                   setState(() => _progress = 'Choosing folder…');
                   final message = await uploadScoreFolder(context, ref,
-                      folder: _path,
-                      onProgress: (st) {
-                        if (mounted) setState(() => _progress = st);
-                      });
+                      folder: _path, onProgress: (st) {
+                    if (mounted) setState(() => _progress = st);
+                  });
                   if (!mounted) return;
                   setState(() => _progress = null);
                   ScaffoldMessenger.of(context)
@@ -737,17 +749,15 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
                   PopupMenuItem(value: 'rename', child: Text('Rename folder')),
                   PopupMenuItem(value: 'move', child: Text('Move folder to…')),
                   PopupMenuItem(
-                      value: 'unwrap',
-                      child: Text('Move contents up a level')),
+                      value: 'unwrap', child: Text('Move contents up a level')),
                   PopupMenuItem(
                       value: 'delete',
                       child: Text('Delete folder…',
-                          style:
-                              TextStyle(color: JamJotColors.recording))),
+                          style: TextStyle(color: JamJotColors.recording))),
                 ],
               ),
-              onTap: () => setState(() =>
-                  _path = _path.isEmpty ? name : '$_path/$name'),
+              onTap: () =>
+                  setState(() => _path = _path.isEmpty ? name : '$_path/$name'),
             ),
         ],
         if (here.isEmpty && folderNames.isEmpty)
@@ -768,15 +778,14 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
             ListTile(
               leading: const Text('📄', style: TextStyle(fontSize: 22)),
               title: Text(f['title'] as String? ?? 'File'),
-              subtitle: Text(searching &&
-                      ((f['folder'] as String?) ?? '').isNotEmpty
-                  ? '📁 ${f['folder']}'
-                  : DateFormat('MMM d, yyyy').format(
-                      DateTime.parse(f['created_at'] as String).toLocal())),
+              subtitle: Text(
+                  searching && ((f['folder'] as String?) ?? '').isNotEmpty
+                      ? '📁 ${f['folder']}'
+                      : DateFormat('MMM d, yyyy').format(
+                          DateTime.parse(f['created_at'] as String).toLocal())),
               onTap: f['original_path'] == null
                   ? null
-                  : () =>
-                      _openScoreFile(context, f['original_path'] as String),
+                  : () => _openScoreFile(context, f['original_path'] as String),
               trailing: PopupMenuButton<String>(
                 onSelected: (v) {
                   if (v == 'open' && f['original_path'] != null) {
@@ -796,8 +805,7 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
                   PopupMenuItem(
                       value: 'delete',
                       child: Text('Delete…',
-                          style:
-                              TextStyle(color: JamJotColors.recording))),
+                          style: TextStyle(color: JamJotColors.recording))),
                 ],
               ),
             ),
@@ -872,8 +880,8 @@ class _AssignmentsTabState extends ConsumerState<_AssignmentsTab> {
                         context: context,
                         builder: (context) => AlertDialog(
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                JamJotShape.cardRadius),
+                            borderRadius:
+                                BorderRadius.circular(JamJotShape.cardRadius),
                             side: JamJotShape.border,
                           ),
                           title: Text('Delete "${p['title']}"?'),
@@ -885,8 +893,7 @@ class _AssignmentsTabState extends ConsumerState<_AssignmentsTab> {
                                     Navigator.of(context).pop(false),
                                 child: const Text('Keep it')),
                             FilledButton(
-                              onPressed: () =>
-                                  Navigator.of(context).pop(true),
+                              onPressed: () => Navigator.of(context).pop(true),
                               style: FilledButton.styleFrom(
                                   backgroundColor: JamJotColors.recording,
                                   minimumSize: const Size(96, 44)),
@@ -909,8 +916,7 @@ class _AssignmentsTabState extends ConsumerState<_AssignmentsTab> {
                     PopupMenuItem(
                         value: 'delete',
                         child: Text('Delete…',
-                            style:
-                                TextStyle(color: JamJotColors.recording))),
+                            style: TextStyle(color: JamJotColors.recording))),
                   ],
                 ),
               );
@@ -977,10 +983,8 @@ class _LessonsTabState extends ConsumerState<_LessonsTab> {
               return ListTile(
                 leading: const Text('📚', style: TextStyle(fontSize: 22)),
                 title: Text(p['title'] as String? ?? 'Lesson'),
-                subtitle:
-                    Text('$count assignment${count == 1 ? '' : 's'}'),
-                onTap: () =>
-                    showCreateLessonDialog(context, ref, existing: l),
+                subtitle: Text('$count assignment${count == 1 ? '' : 's'}'),
+                onTap: () => showCreateLessonDialog(context, ref, existing: l),
                 trailing: PopupMenuButton<String>(
                   onSelected: (v) async {
                     if (v == 'edit') {
@@ -990,8 +994,8 @@ class _LessonsTabState extends ConsumerState<_LessonsTab> {
                         context: context,
                         builder: (context) => AlertDialog(
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                JamJotShape.cardRadius),
+                            borderRadius:
+                                BorderRadius.circular(JamJotShape.cardRadius),
                             side: JamJotShape.border,
                           ),
                           title: Text('Delete "${p['title']}"?'),
@@ -1003,8 +1007,7 @@ class _LessonsTabState extends ConsumerState<_LessonsTab> {
                                     Navigator.of(context).pop(false),
                                 child: const Text('Keep it')),
                             FilledButton(
-                              onPressed: () =>
-                                  Navigator.of(context).pop(true),
+                              onPressed: () => Navigator.of(context).pop(true),
                               style: FilledButton.styleFrom(
                                   backgroundColor: JamJotColors.recording,
                                   minimumSize: const Size(96, 44)),
@@ -1027,8 +1030,7 @@ class _LessonsTabState extends ConsumerState<_LessonsTab> {
                     PopupMenuItem(
                         value: 'delete',
                         child: Text('Delete…',
-                            style:
-                                TextStyle(color: JamJotColors.recording))),
+                            style: TextStyle(color: JamJotColors.recording))),
                   ],
                 ),
               );
@@ -1144,14 +1146,12 @@ class _CreateAssignmentDialogState
     final lessons = ref.watch(savedLessonsProvider).valueOrNull ?? [];
     if (!_prefilledFile && _p['score_id'] != null && files.isNotEmpty) {
       _prefilledFile = true;
-      _attachedFile =
-          files.where((f) => f['id'] == _p['score_id']).firstOrNull;
+      _attachedFile = files.where((f) => f['id'] == _p['score_id']).firstOrNull;
     }
     final fileMatches = _fileQuery.isEmpty
         ? <Map<String, dynamic>>[]
         : files
-            .where(
-                (f) => looseMatch(_fileQuery, f['title'] as String? ?? ''))
+            .where((f) => looseMatch(_fileQuery, f['title'] as String? ?? ''))
             .take(4)
             .toList();
     final lessonMatches = _lessonQuery.isEmpty
@@ -1168,9 +1168,8 @@ class _CreateAssignmentDialogState
         borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
         side: JamJotShape.border,
       ),
-      title: Text(widget.existing == null
-          ? 'Create an assignment'
-          : 'Edit assignment'),
+      title: Text(
+          widget.existing == null ? 'Create an assignment' : 'Edit assignment'),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
@@ -1266,8 +1265,7 @@ class _CreateAssignmentDialogState
               if (_addedToLessons.isNotEmpty)
                 Text(
                   'Added to the library copy only — lessons already assigned to students stay as they are.',
-                  style:
-                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+                  style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
                 ),
             ],
           ),
@@ -1410,6 +1408,9 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
 
   /// Save a student-free copy into the lesson library too?
   bool _saveTemplate = true;
+  bool _templateSaved = false;
+  final Map<String, String> _assignmentRequests = {};
+  final Set<String> _assignedStudents = {};
 
   @override
   void initState() {
@@ -1430,8 +1431,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
     }
     if (_editing) {
       final payload =
-          (widget.existing!['payload'] as Map?)?.cast<String, dynamic>() ??
-              {};
+          (widget.existing!['payload'] as Map?)?.cast<String, dynamic>() ?? {};
       _title.text = payload['title'] as String? ?? '';
       _picked.addAll(((payload['assignments'] as List?) ?? [])
           .map((a) => Map<String, dynamic>.from(a as Map)));
@@ -1519,13 +1519,13 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
         ref.invalidate(savedLessonsProvider);
         if (mounted) {
           Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Lesson updated.')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('Lesson updated.')));
         }
         return;
       }
       // 1) Optionally, the lesson template (student-free) into the library.
-      if (_saveTemplate) {
+      if (_saveTemplate && !_templateSaved) {
         // An auto title carries student names/date — the library copy gets
         // the sheet's own heading instead, keeping templates student-free.
         var templateTitle = _title.text.trim();
@@ -1541,50 +1541,37 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
             'assignments': _picked,
           },
         });
+        _templateSaved = true;
         ref.invalidate(savedLessonsProvider);
       }
       // 2) A real lesson for each chosen student.
       for (final sid in _checked) {
+        if (_assignedStudents.contains(sid)) continue;
         final plan = _plans[sid]!;
         final eventId = await _lessonEventOn(sid, plan.assignOn);
-        final lesson = await JamJotBackend.client
-            .from('lessons')
-            .insert({
-              if (eventId != null) 'event_id': eventId,
-              'student_id': sid,
-              'created_by': uid,
-              'title': _title.text.trim(),
-              'lesson_note': plan.notes.text.trim(),
-              'goal_days': int.tryParse(plan.days.text.trim()) ?? 4,
-              'goal_minutes': int.tryParse(plan.minutes.text.trim()) ?? 15,
-              'week_start':
-                  DateFormat('yyyy-MM-dd').format(plan.assignOn),
-              // Each student's lesson carries their own teacher connection
-              // (a teacher's roster student gets that teacher's; a family
-              // kid added on gets a family-run lesson).
-              if (_enrollments[sid] != null)
-                'enrollment_id': _enrollments[sid],
-            })
-            .select()
-            .single();
-        for (var i = 0; i < _picked.length; i++) {
-          final a = _picked[i];
-          await JamJotBackend.client.from('assignments').insert({
-            'lesson_id': lesson['id'],
-            'title': a['title'],
-            'song_note': a['note'] ?? '',
-            'score_id': a['score_id'],
-            'order_idx': i,
-          });
-        }
+        await JamJotBackend.client.rpc('assign_library_lesson', params: {
+          'p_request_id':
+              _assignmentRequests.putIfAbsent(sid, () => const Uuid().v4()),
+          'p_lesson': {
+            'student_id': sid,
+            'enrollment_id': _enrollments[sid],
+            'event_id': eventId,
+            'title': _title.text.trim(),
+            'lesson_note': plan.notes.text.trim(),
+            'goal_days': int.tryParse(plan.days.text.trim()) ?? 4,
+            'goal_minutes': int.tryParse(plan.minutes.text.trim()) ?? 15,
+            'week_start': DateFormat('yyyy-MM-dd').format(plan.assignOn),
+          },
+          'p_assignments': _picked,
+        });
+        _assignedStudents.add(sid);
         ref.invalidate(currentLessonProvider(sid));
         // Announce it in the teacher↔family chat, so caregivers (or the
         // family, when a teacher assigned it) hear right away.
         final eid = _enrollments[sid];
         if (eid != null) {
           final name = _nameOf(sid);
-          final when =
-              DateFormat('EEE, MMM d').format(plan.assignOn);
+          final when = DateFormat('EEE, MMM d').format(plan.assignOn);
           try {
             await JamJotBackend.client.from('messages').insert({
               'enrollment_id': eid,
@@ -1684,8 +1671,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
                 ? null
                 : Text((a['payload'] as Map?)?['book'] ?? ''),
             onTap: () => setState(() {
-              _picked.add(
-                  Map<String, dynamic>.from(a['payload'] as Map));
+              _picked.add(Map<String, dynamic>.from(a['payload'] as Map));
               _assignmentQuery = '';
             }),
           ),
@@ -1702,10 +1688,8 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
         ),
         if (_singleStudent) ...[
           const Divider(height: 24),
-          _studentPlanFields(
-              widget.student!['display_name'] as String,
-              _plans[widget.student!['id']]!,
-              text),
+          _studentPlanFields(widget.student!['display_name'] as String,
+              _plans[widget.student!['id']]!, text),
           _alsoAssignOthers(text),
         ],
         if (!_editing)
@@ -1735,12 +1719,11 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
           final matches = fileQuery.isEmpty
               ? <Map<String, dynamic>>[]
               : files
-                  .where((f) =>
-                      looseMatch(fileQuery, '${f['title'] ?? ''} ${f['folder'] ?? ''}'))
+                  .where((f) => looseMatch(
+                      fileQuery, '${f['title'] ?? ''} ${f['folder'] ?? ''}'))
                   .take(4)
                   .toList();
-          final current =
-              files.where((f) => f['id'] == scoreId).firstOrNull;
+          final current = files.where((f) => f['id'] == scoreId).firstOrNull;
           return AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
@@ -1763,8 +1746,8 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
                   if (scoreId != null)
                     Chip(
                       avatar: const Text('📄'),
-                      label: Text(current?['title'] as String? ??
-                          'Attached file'),
+                      label:
+                          Text(current?['title'] as String? ?? 'Attached file'),
                       onDeleted: () => setState(() => scoreId = null),
                     )
                   else ...[
@@ -1817,7 +1800,8 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(name, style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+        Text(name,
+            style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
         TextField(
           controller: plan.notes,

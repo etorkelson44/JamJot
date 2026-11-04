@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../services/sound_effects.dart';
 import '../../services/supabase_service.dart';
@@ -63,9 +65,13 @@ class MarketScreen extends ConsumerStatefulWidget {
 }
 
 class _MarketScreenState extends ConsumerState<MarketScreen> {
+  bool _buying = false;
+  final Map<String, String> _purchaseRequests = {};
   String? _shopperId; // which kid is shopping (grown-up view)
 
   Future<void> _buy(Map<String, dynamic> item, String studentId) async {
+    if (_buying) return;
+    setState(() => _buying = true);
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -88,23 +94,35 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         ],
       ),
     );
-    if (ok != true) return;
+    if (ok != true) {
+      if (mounted) setState(() => _buying = false);
+      return;
+    }
     try {
-      final res = await JamJotBackend.client.functions
-          .invoke('buy-item', body: {
-        'student_id': studentId,
-        'item_id': item['id'],
-      });
-      final data = (res.data as Map?)?.cast<String, dynamic>() ?? {};
+      final key = '$studentId/${item['id']}';
+      final data = Map<String, dynamic>.from(
+          await JamJotBackend.client.rpc('purchase_market_item', params: {
+        'p_student_id': studentId,
+        'p_item_id': item['id'],
+        'p_request_id':
+            _purchaseRequests.putIfAbsent(key, () => const Uuid().v4()),
+      }));
+      _purchaseRequests.remove(key);
       if (!mounted) return;
       if (data['ok'] == true) {
-      playSound('coin');
-      playSound('pop');
-      popSticker(context, 'berry_rich', ms: 1500);
+        playSound('coin');
+        playSound('pop');
+        popSticker(context, 'berry_rich', ms: 1500);
         ref.invalidate(berryBalanceProvider(studentId));
         ref.invalidate(purchasesProvider(studentId));
         ref.invalidate(myStudentsProvider);
-        ref.invalidate(activeStudentProvider);
+        final active = ref.read(activeStudentProvider);
+        if (active?['id'] == studentId && item['kind'] == 'avatar') {
+          ref.read(activeStudentProvider.notifier).state = {
+            ...active!,
+            'avatar_key': item['asset_key']
+          };
+        }
         showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
@@ -119,8 +137,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             actions: [
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(),
-                style:
-                    FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+                style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
                 child: const Text('🎉'),
               ),
             ],
@@ -128,41 +145,56 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                (data['error'] as String?) ?? 'Could not buy just now.')));
+            content:
+                Text((data['error'] as String?) ?? 'Could not buy just now.')));
+      }
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Could not reach the market — try again?')));
+            content: Text('Could not confirm the purchase. Check My Shelf before trying again.')));
       }
+    } finally {
+      if (mounted) setState(() => _buying = false);
     }
   }
 
   Future<void> _wear(String studentId, String assetKey) async {
     try {
-      final res = await JamJotBackend.client.functions.invoke('buy-item',
-          body: {
-            'student_id': studentId,
-            'action': 'wear',
-            'asset_key': assetKey
-          });
-      final data = (res.data as Map?)?.cast<String, dynamic>() ?? {};
+      final data = Map<String, dynamic>.from(
+          await JamJotBackend.client.rpc('wear_owned_avatar', params: {
+        'p_student_id': studentId,
+        'p_asset_key': assetKey,
+      }));
       if (!mounted) return;
       if (data['ok'] == true) {
         ref.invalidate(myStudentsProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Looking good! 😎')));
+        final active = ref.read(activeStudentProvider);
+        if (active?['id'] == studentId) {
+          ref.read(activeStudentProvider.notifier).state = {
+            ...active!,
+            'avatar_key': assetKey
+          };
+        }
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Looking good! 😎')));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content:
                 Text((data['error'] as String?) ?? 'Could not change it.')));
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Your avatar could not be changed. Try again.')));
+      }
+    }
   }
 
-  Future<void> _stockStand(
-      {required String stand, String? teacherId}) async {
+  Future<void> _stockStand({required String stand, String? teacherId}) async {
     final ideas = stand == 'teacher' ? teacherRewardIdeas : familyRewardIdeas;
     final title = TextEditingController();
     final emoji = TextEditingController(text: '🎁');
@@ -193,8 +225,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                     for (final (e, t, p, k) in ideas)
                       ActionChip(
                         avatar: Text(e),
-                        label: Text(t,
-                            style: const TextStyle(fontSize: 12)),
+                        label: Text(t, style: const TextStyle(fontSize: 12)),
                         onPressed: () => setState(() {
                           emoji.text = e;
                           title.text = t;
@@ -210,8 +241,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                       child: TextField(
                         controller: emoji,
                         textAlign: TextAlign.center,
-                        decoration:
-                            const InputDecoration(labelText: 'Emoji'),
+                        decoration: const InputDecoration(labelText: 'Emoji'),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -219,8 +249,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                       child: TextField(
                         controller: title,
                         textCapitalization: TextCapitalization.sentences,
-                        decoration:
-                            const InputDecoration(labelText: 'Reward'),
+                        decoration: const InputDecoration(labelText: 'Reward'),
                       ),
                     ),
                   ]),
@@ -228,8 +257,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                   TextField(
                     controller: price,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                        labelText: 'Price in coins 🪙'),
+                    decoration:
+                        const InputDecoration(labelText: 'Price in coins 🪙'),
                   ),
                 ],
               ),
@@ -304,7 +333,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
               style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                   minimumSize: const Size(0, 30)),
-              onPressed: () => _buy(item, shopperId),
+              onPressed: _buying ? null : () => _buy(item, shopperId),
               child: const Text('Buy'),
             )
           else if (mine)
@@ -335,8 +364,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(title,
-              style:
-                  text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
         ),
         if (action != null) action,
       ]),
@@ -358,12 +386,9 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             (kids.length == 1 ? kids.first : null));
     final shopperId = shopper?['id'] as String?;
 
-    final jamjotItems =
-        items.where((i) => i['stand'] == 'jamjot').toList();
-    final teacherItems =
-        items.where((i) => i['stand'] == 'teacher').toList();
-    final familyItems =
-        items.where((i) => i['stand'] == 'caregiver').toList();
+    final jamjotItems = items.where((i) => i['stand'] == 'jamjot').toList();
+    final teacherItems = items.where((i) => i['stand'] == 'teacher').toList();
+    final familyItems = items.where((i) => i['stand'] == 'caregiver').toList();
 
     final purchases = shopperId == null
         ? <Map<String, dynamic>>[]
@@ -458,25 +483,22 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             _standHeader(text, '🧺', "${shopper!['display_name']}'s Shelf"),
             if (purchases.isEmpty)
               Text('Nothing bought yet — the stands await!',
-                  style:
-                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+                  style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
             for (final p in purchases)
               Builder(builder: (context) {
                 final mi = (p['market_items'] as Map?) ?? {};
                 final isAvatar = mi['kind'] == 'avatar';
                 final pending = p['status'] == 'pending';
-                final wearing =
-                    shopper['avatar_key'] == mi['asset_key'] &&
-                        mi['asset_key'] != null;
+                final wearing = shopper['avatar_key'] == mi['asset_key'] &&
+                    mi['asset_key'] != null;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: JamJotColors.blueberryTint,
                     borderRadius: BorderRadius.circular(14),
-                    border:
-                        Border.all(color: JamJotColors.outline, width: 1.5),
+                    border: Border.all(color: JamJotColors.outline, width: 1.5),
                   ),
                   child: Row(children: [
                     Text(mi['emoji'] as String? ?? '🎁',
@@ -487,8 +509,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(mi['title'] as String? ?? 'Reward',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w700)),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700)),
                           Text(
                             pending
                                 ? 'Waiting for a grown-up to make it happen'
@@ -511,8 +533,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                               style: TextButton.styleFrom(
                                   visualDensity: VisualDensity.compact,
                                   minimumSize: const Size(0, 30)),
-                              onPressed: () => _wear(shopperId,
-                                  mi['asset_key'] as String? ?? ''),
+                              onPressed: () => _wear(
+                                  shopperId, mi['asset_key'] as String? ?? ''),
                               child: const Text('Wear it'),
                             )
                     else if (pending && iAmGrownUp)
@@ -521,10 +543,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                             visualDensity: VisualDensity.compact,
                             minimumSize: const Size(0, 30)),
                         onPressed: () async {
-                          await JamJotBackend.client
-                              .from('purchases')
-                              .update({'status': 'fulfilled'}).eq(
-                                  'id', p['id']);
+                          await JamJotBackend.client.from('purchases').update(
+                              {'status': 'fulfilled'}).eq('id', p['id']);
                           ref.invalidate(purchasesProvider(shopperId));
                         },
                         child: const Text('Mark given ✓'),
