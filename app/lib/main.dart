@@ -27,6 +27,7 @@ import 'screens/profile/profile_picker_screen.dart';
 import 'screens/shell.dart';
 import 'services/session_flags.dart';
 import 'state/app_state.dart';
+import 'widgets/coin_reward_host.dart';
 import 'services/supabase_service.dart';
 import 'theme/jamjot_theme.dart';
 
@@ -275,6 +276,7 @@ class _JamJotAppState extends ConsumerState<JamJotApp>
           ? JamJotSkin.grownup
           : JamJotSkin.kid),
       routerConfig: _router,
+      builder: (context, child) => CoinRewardHost(child: child!),
     );
   }
 }

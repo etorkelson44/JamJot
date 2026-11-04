@@ -55,6 +55,13 @@ class PracticeFixture {
       }
     }
     if (request.method == 'GET' && path.endsWith('/sessions')) {
+      // Match the currently published database: this field is not installed.
+      if (request.url.queryParameters.containsKey('manual_override_seconds')) {
+        return reply(
+            '{"message":"column sessions.manual_override_seconds does not exist","code":"42703"}',
+            400,
+            headers: {'content-type': 'application/json'});
+      }
       final rows = initialSeconds == 0
           ? []
           : [

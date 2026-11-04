@@ -7,38 +7,35 @@ import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../models/calendar_entry.dart';
+import '../../widgets/calendar_views.dart';
 
-/// Everything on the family's calendar that this person may see.
+/// All rows are still restricted by the existing server-side visibility rules.
 final calendarEventsProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final from = DateTime.now().subtract(const Duration(days: 62));
-  final rows = await JamJotBackend.client
-      .from('calendar_events')
-      .select(
-          '*, event_students(student_id, students(display_name)), teachers(display_name)')
-      .gte('starts_at', from.toUtc().toIso8601String())
-      .order('starts_at', ascending: true)
-      .limit(500);
-  return rows.cast<Map<String, dynamic>>();
-});
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>(
+        (ref) => readCalendarPages((from, to) async {
+              final rows = await JamJotBackend.client
+                  .from('calendar_events')
+                  .select(
+                      '*, event_students(student_id, students(display_name)), teachers(display_name)')
+                  .order('starts_at')
+                  .order('id')
+                  .range(from, to);
+              return rows;
+            }));
 
-/// Practice lessons land on the calendar on their assign-on date, so
-/// everyone can find the week's lesson (and its printable sheet) by date.
 final assignedLessonsProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final from = DateTime.now().subtract(const Duration(days: 14));
-  final rows = await JamJotBackend.client
-      .from('lessons')
-      .select('id, title, week_start, student_id, event_id, students(display_name)')
-      .gte('week_start', DateFormat('yyyy-MM-dd').format(from))
-      .order('week_start', ascending: true)
-      .limit(200);
-  // Lessons pinned to a calendar lesson show inside that event instead.
-  return rows
-      .cast<Map<String, dynamic>>()
-      .where((l) => l['event_id'] == null)
-      .toList();
-});
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>(
+        (ref) => readCalendarPages((from, to) async {
+              final rows = await JamJotBackend.client
+                  .from('lessons')
+                  .select(
+                      'id, title, week_start, student_id, event_id, students(display_name)')
+                  .order('week_start')
+                  .order('id')
+                  .range(from, to);
+              return rows;
+            }));
 
 const _kindEmoji = {
   'lesson': '🎒',
@@ -48,30 +45,20 @@ const _kindEmoji = {
   'family': '🏡',
 };
 
-/// Each kid gets a steady color for their calendar chip.
-Color studentColor(String id) {
-  const palette = [
-    JamJotColors.blueberry,
-    JamJotColors.plum,
-    JamJotColors.marigold,
-    JamJotColors.leaf,
-    JamJotColors.blueberryDark,
-    JamJotColors.plumDark,
-  ];
-  return palette[id.hashCode.abs() % palette.length];
-}
+/// Keep student accents inside the current profile palette.
+Color studentColor(BuildContext context, String id) => Color.lerp(
+    Theme.of(context).colorScheme.primary,
+    Theme.of(context).colorScheme.onSurface,
+    (id.hashCode.abs() % 4) * .16)!;
 
 class CalendarScreen extends ConsumerStatefulWidget {
-  const CalendarScreen({super.key});
+  const CalendarScreen({super.key, this.readOnly = false});
+  final bool readOnly;
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
 }
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
-  /// Google-style views: 'day' | 'week' | 'month' | 'agenda'.
-  String _mode = 'agenda';
-  DateTime _anchor = DateTime.now();
-
   /// The private subscribe link for Google/Apple/Skylight/Cozi.
   Future<void> _syncDialog(BuildContext context) async {
     final client = JamJotBackend.client;
@@ -122,8 +109,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     await Clipboard.setData(ClipboardData(text: link));
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Link copied! 📋')));
+                          const SnackBar(content: Text('Link copied! 📋')));
                     }
                   },
                   icon: const Icon(Icons.copy, size: 18),
@@ -143,7 +129,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 Text(
                   'This link is private but anyone who has it can see your JamJot calendar — share it only with calendar apps you trust.',
                   style: TextStyle(
-                      fontSize: 12, color: JamJotColors.inkSoft),
+                      fontSize: 12,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: .75)),
                 ),
               ],
             ),
@@ -161,234 +151,108 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ref = this.ref;
-    final events = ref.watch(calendarEventsProvider).valueOrNull ?? [];
+    final events = ref.watch(calendarEventsProvider);
+    final lessons = ref.watch(assignedLessonsProvider);
     final activeKid = ref.watch(activeStudentProvider);
     final teacher = ref.watch(myTeacherProvider).valueOrNull;
     final students = ref.watch(myStudentsProvider).valueOrNull ?? [];
     final uid = JamJotBackend.client.auth.currentUser?.id;
-    final text = Theme.of(context).textTheme;
-
-    // Kids see only their own events.
-    final shown = activeKid == null
-        ? events
-        : events
-            .where((e) => ((e['event_students'] as List?) ?? [])
-                .any((es) => es['student_id'] == activeKid['id']))
-            .toList();
-
-    // Group by day — assigned practice lessons first, then timed events.
-    final byDay = <String, List<Map<String, dynamic>>>{};
-    final lessons = ref.watch(assignedLessonsProvider).valueOrNull ?? [];
-    for (final l in lessons) {
-      if (activeKid != null && l['student_id'] != activeKid['id']) continue;
-      final ws = l['week_start'] as String?;
-      if (ws == null) continue;
-      (byDay[ws] ??= []).add({'_lesson': l});
-    }
-    for (final e in shown) {
-      final d = DateTime.parse(e['starts_at'] as String).toLocal();
-      final key = DateFormat('yyyy-MM-dd').format(d);
-      (byDay[key] ??= []).add(e);
-    }
-    final dayKeys = byDay.keys.toList()..sort();
-    final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
+    final theme = Theme.of(context);
+    final loading = (events.isLoading && !events.hasValue) ||
+        (lessons.isLoading && !lessons.hasValue);
+    final failed = events.hasError || lessons.hasError;
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          Text('Calendar',
-              style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
-          if (activeKid == null) ...[
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              if (teacher != null)
-                FilledButton.icon(
-                  onPressed: () =>
-                      _scheduleDialog(context, ref, teacher: teacher),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Schedule lesson / event'),
-                ),
-              if (students.isNotEmpty)
-                OutlinedButton.icon(
-                  onPressed: () => _familyEventDialog(context, ref, students),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add family event'),
-                ),
-            ]),
-            const SizedBox(height: 6),
-            Text(
-              'Family events stay private to your family — teachers and studios never see them.',
-              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
-            ),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    minimumSize: const Size(0, 36)),
-                onPressed: () => _syncDialog(context),
-                icon: const Icon(Icons.sync, size: 18),
-                label: const Text(
-                    'Sync to Google / Apple / Skylight / Cozi…'),
-              ),
-            ),
-            const SizedBox(height: 6),
-          ],
-          // ---- Day / Week / Month / All views, like a grown-up calendar.
-          Center(
-            child: SegmentedButton<String>(
-              style: const ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-              segments: const [
-                ButtonSegment(value: 'day', label: Text('Day')),
-                ButtonSegment(value: 'week', label: Text('Week')),
-                ButtonSegment(value: 'month', label: Text('Month')),
-                ButtonSegment(value: 'agenda', label: Text('All')),
-              ],
-              selected: {_mode},
-              onSelectionChanged: (v) => setState(() => _mode = v.first),
-            ),
-          ),
-          if (_mode != 'agenda') ...[
-            Row(children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () => setState(() {
-                  _anchor = switch (_mode) {
-                    'day' => _anchor.subtract(const Duration(days: 1)),
-                    'week' => _anchor.subtract(const Duration(days: 7)),
-                    _ => DateTime(_anchor.year, _anchor.month - 1,
-                        _anchor.day.clamp(1, 28)),
-                  };
-                }),
-              ),
-              Expanded(
+        child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                    constraints.maxWidth < 600 ? 16 : 24,
+                    20,
+                    constraints.maxWidth < 600 ? 16 : 24,
+                    32),
                 child: Center(
-                  child: Text(
-                    switch (_mode) {
-                      'day' =>
-                        DateFormat('EEEE, MMM d').format(_anchor),
-                      'week' => () {
-                          final mon = DateTime(_anchor.year,
-                                  _anchor.month, _anchor.day)
-                              .subtract(
-                                  Duration(days: _anchor.weekday - 1));
-                          return '${DateFormat('MMM d').format(mon)} – ${DateFormat('MMM d').format(mon.add(const Duration(days: 6)))}';
-                        }(),
-                      _ => DateFormat('MMMM yyyy').format(_anchor),
-                    },
-                    style: text.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () => setState(() {
-                  _anchor = switch (_mode) {
-                    'day' => _anchor.add(const Duration(days: 1)),
-                    'week' => _anchor.add(const Duration(days: 7)),
-                    _ => DateTime(_anchor.year, _anchor.month + 1,
-                        _anchor.day.clamp(1, 28)),
-                  };
-                }),
-              ),
-              TextButton(
-                onPressed: () =>
-                    setState(() => _anchor = DateTime.now()),
-                child: const Text('Today'),
-              ),
-            ]),
-          ],
-          if (_mode == 'month') ...[
-            _MonthGrid(
-              anchor: _anchor,
-              byDay: byDay,
-              selectedKey: DateFormat('yyyy-MM-dd').format(_anchor),
-              onPick: (d) => setState(() => _anchor = d),
-            ),
-            const SizedBox(height: 8),
-          ],
-          Builder(builder: (context) {
-            String keyOf(DateTime d) =>
-                DateFormat('yyyy-MM-dd').format(d);
-            final List<String> showKeys;
-            switch (_mode) {
-              case 'day':
-              case 'month':
-                showKeys = [keyOf(_anchor)];
-              case 'week':
-                final mon = DateTime(
-                        _anchor.year, _anchor.month, _anchor.day)
-                    .subtract(Duration(days: _anchor.weekday - 1));
-                showKeys = [
-                  for (var i = 0; i < 7; i++)
-                    keyOf(mon.add(Duration(days: i)))
-                ];
-              default:
-                showKeys = dayKeys;
-            }
-            final children = <Widget>[];
-            for (final key in showKeys) {
-              final items = byDay[key] ?? const [];
-              if (items.isEmpty && (_mode == 'week' || _mode == 'agenda')) {
-                continue;
-              }
-              children.add(Padding(
-                padding: const EdgeInsets.only(top: 10, bottom: 6),
-                child: Text(
-                  key == todayKey
-                      ? 'Today'
-                      : DateFormat('EEEE, MMM d')
-                          .format(DateTime.parse(key)),
-                  style: text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: key == todayKey
-                          ? JamJotColors.blueberry
-                          : JamJotColors.ink),
-                ),
-              ));
-              if (items.isEmpty) {
-                children.add(Text('Nothing scheduled this day.',
-                    style: text.bodySmall
-                        ?.copyWith(color: JamJotColors.inkSoft)));
-              }
-              for (final e in items) {
-                children.add(e.containsKey('_lesson')
-                    ? _AssignedLessonCard(
-                        lesson: e['_lesson'] as Map<String, dynamic>)
-                    : _EventCard(
-                        event: e,
-                        isMine: e['owner_id'] == uid,
-                        isKidView: activeKid != null,
-                      ));
-                children.add(const SizedBox(height: 8));
-              }
-            }
-            if (children.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  activeKid == null
-                      ? 'Nothing scheduled here yet. Lessons from teachers and your family events will all land on this calendar.'
-                      : 'Nothing on your calendar yet — your lessons and performances will show up here! 🎵',
-                  textAlign: TextAlign.center,
-                  style: text.bodyMedium
-                      ?.copyWith(color: JamJotColors.inkSoft),
-                ),
-              );
-            }
-            return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children);
-          }),
-        ],
-      ),
-    );
+                    child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1440),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text('Calendar',
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 16),
+                              if (activeKid == null && !widget.readOnly) ...[
+                                Wrap(spacing: 8, runSpacing: 8, children: [
+                                  if (teacher != null)
+                                    FilledButton.icon(
+                                        onPressed: () => _scheduleDialog(
+                                            context, ref, teacher: teacher),
+                                        icon: const Icon(Icons.add),
+                                        label: const Text(
+                                            'Schedule lesson / event')),
+                                  if (students.isNotEmpty)
+                                    OutlinedButton.icon(
+                                        onPressed: () => _familyEventDialog(
+                                            context, ref, students),
+                                        icon: const Icon(Icons.add),
+                                        label: const Text('Add family event')),
+                                ]),
+                                if (students.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                      'Family events stay private to your family — teachers and studios never see them.',
+                                      style: theme.textTheme.bodySmall),
+                                ],
+                                Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: TextButton.icon(
+                                        onPressed: () => _syncDialog(context),
+                                        icon: const Icon(Icons.sync, size: 18),
+                                        label: const Text(
+                                            'Sync to Google / Apple / Skylight / Cozi…'))),
+                                const SizedBox(height: 16),
+                              ],
+                              if (loading)
+                                const Padding(
+                                    padding: EdgeInsets.all(40),
+                                    child: Center(
+                                        child: CircularProgressIndicator(
+                                            semanticsLabel:
+                                                'Loading calendar')))
+                              else if (failed)
+                                Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 32),
+                                    child: Column(children: [
+                                      const Text(
+                                          'Your calendar could not be loaded. Please try again.'),
+                                      const SizedBox(height: 12),
+                                      OutlinedButton.icon(
+                                          onPressed: () {
+                                            ref.invalidate(
+                                                calendarEventsProvider);
+                                            ref.invalidate(
+                                                assignedLessonsProvider);
+                                          },
+                                          icon: const Icon(Icons.refresh),
+                                          label: const Text('Try again')),
+                                    ]))
+                              else
+                                CalendarViews(
+                                    entries: calendarEntries(
+                                        events: events.valueOrNull ?? [],
+                                        lessons: lessons.valueOrNull ?? [],
+                                        studentId: activeKid?['id'] as String?),
+                                    detailBuilder: (context, entry) => entry
+                                            .isLesson
+                                        ? _AssignedLessonCard(
+                                            lesson: entry.record)
+                                        : _EventCard(
+                                            event: entry.record,
+                                            readOnly: widget.readOnly,
+                                            isMine: uid != null &&
+                                                entry.record['owner_id'] == uid,
+                                            isKidView: widget.readOnly ||
+                                                activeKid != null)),
+                            ]))))));
   }
 
   // ------------------------------------------------ teacher scheduling
@@ -458,8 +322,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                             initialDate: date,
                             firstDate: DateTime.now()
                                 .subtract(const Duration(days: 1)),
-                            lastDate: DateTime.now()
-                                .add(const Duration(days: 365)),
+                            lastDate:
+                                DateTime.now().add(const Duration(days: 365)),
                           );
                           if (d != null) setState(() => date = d);
                         },
@@ -519,7 +383,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       controller: weeks,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                          labelText: 'Repeat weekly for how many weeks? (1 = just once)'),
+                          labelText:
+                              'Repeat weekly for how many weeks? (1 = just once)'),
                     ),
                 ],
               ),
@@ -530,9 +395,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 onPressed: () => Navigator.of(context).pop(false),
                 child: const Text('Cancel')),
             FilledButton(
-              onPressed: picked.isEmpty
-                  ? null
-                  : () => Navigator.of(context).pop(true),
+              onPressed:
+                  picked.isEmpty ? null : () => Navigator.of(context).pop(true),
               style: FilledButton.styleFrom(minimumSize: const Size(110, 44)),
               child: const Text('Schedule'),
             ),
@@ -543,12 +407,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     if (ok != true || !context.mounted) return;
     try {
       final uid = JamJotBackend.client.auth.currentUser!.id;
-      final count =
-          (int.tryParse(weeks.text.trim()) ?? 1).clamp(1, 26);
+      final count = (int.tryParse(weeks.text.trim()) ?? 1).clamp(1, 26);
       for (var i = 0; i < (kind == 'lesson' ? count : 1); i++) {
-        final startsAt = DateTime(date.year, date.month, date.day,
-                time.hour, time.minute)
-            .add(Duration(days: 7 * i));
+        final startsAt =
+            DateTime(date.year, date.month, date.day, time.hour, time.minute)
+                .add(Duration(days: 7 * i));
         final ev = await JamJotBackend.client
             .from('calendar_events')
             .insert({
@@ -623,8 +486,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         final d = await showDatePicker(
                           context: context,
                           initialDate: date,
-                          firstDate: DateTime.now()
-                              .subtract(const Duration(days: 1)),
+                          firstDate:
+                              DateTime.now().subtract(const Duration(days: 1)),
                           lastDate:
                               DateTime.now().add(const Duration(days: 365)),
                         );
@@ -721,117 +584,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 }
 
-/// The month at a glance: dots mark days with lessons or events; tapping a
-/// day shows it below.
-class _MonthGrid extends StatelessWidget {
-  const _MonthGrid(
-      {required this.anchor,
-      required this.byDay,
-      required this.selectedKey,
-      required this.onPick});
-  final DateTime anchor;
-  final Map<String, List<Map<String, dynamic>>> byDay;
-  final String selectedKey;
-  final ValueChanged<DateTime> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final first = DateTime(anchor.year, anchor.month, 1);
-    final daysInMonth = DateTime(anchor.year, anchor.month + 1, 0).day;
-    final lead = first.weekday - 1; // Monday first
-    final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final cells = <Widget>[
-      for (final d in ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
-        Center(
-            child: Text(d,
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: JamJotColors.inkSoft))),
-      for (var i = 0; i < lead; i++) const SizedBox.shrink(),
-      for (var day = 1; day <= daysInMonth; day++)
-        Builder(builder: (context) {
-          final date = DateTime(anchor.year, anchor.month, day);
-          final key = DateFormat('yyyy-MM-dd').format(date);
-          final items = byDay[key] ?? const [];
-          final selected = key == selectedKey;
-          final isToday = key == todayKey;
-          return InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: () => onPick(date),
-            child: Container(
-              margin: const EdgeInsets.all(1.5),
-              decoration: BoxDecoration(
-                color: selected
-                    ? JamJotColors.blueberryTint
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: selected
-                        ? JamJotColors.ink
-                        : isToday
-                            ? JamJotColors.blueberry
-                            : Colors.transparent,
-                    width: selected ? 2 : 1.5),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('$day',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isToday || selected
-                              ? FontWeight.w800
-                              : FontWeight.w500)),
-                  SizedBox(
-                    height: 7,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var i = 0;
-                            i < (items.length > 3 ? 3 : items.length);
-                            i++)
-                          Container(
-                            width: 5,
-                            height: 5,
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 1),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: items[i].containsKey('_lesson')
-                                  ? JamJotColors.blueberry
-                                  : (items[i]['kind'] == 'family'
-                                      ? JamJotColors.leaf
-                                      : JamJotColors.plum),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-    ];
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: JamJotColors.ink, width: 2),
-      ),
-      child: GridView.count(
-        crossAxisCount: 7,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 1.15,
-        children: cells,
-      ),
-    );
-  }
-}
-
 /// A practice lesson pinned to its assign-on date, with the printable sheet
 /// one tap away.
 class _AssignedLessonCard extends StatelessWidget {
@@ -843,14 +595,10 @@ class _AssignedLessonCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final name =
         (lesson['students'] as Map?)?['display_name'] as String? ?? 'Student';
-    final color = studentColor(lesson['student_id'] as String);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: JamJotColors.blueberryTint,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: JamJotColors.ink, width: 2),
-      ),
+    final color = studentColor(context, lesson['student_id'] as String);
+    return Card(
+        child: Padding(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -885,17 +633,21 @@ class _AssignedLessonCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
 class _EventCard extends ConsumerWidget {
   const _EventCard(
-      {required this.event, required this.isMine, required this.isKidView});
+      {required this.event,
+      required this.isMine,
+      required this.isKidView,
+      this.readOnly = false});
 
   final Map<String, dynamic> event;
   final bool isMine;
   final bool isKidView;
+  final bool readOnly;
 
   Future<void> _requestChange(BuildContext context, WidgetRef ref) async {
     final note = TextEditingController();
@@ -1018,8 +770,8 @@ class _EventCard extends ConsumerWidget {
           autofocus: true,
           maxLines: 3,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-              labelText: 'Note for everyone (optional)'),
+          decoration:
+              const InputDecoration(labelText: 'Note for everyone (optional)'),
         ),
         actions: [
           TextButton(
@@ -1059,13 +811,13 @@ class _EventCard extends ConsumerWidget {
   }
 
   Future<void> _moveEvent(BuildContext context, WidgetRef ref) async {
-    final oldStart =
-        DateTime.parse(event['starts_at'] as String).toLocal();
+    final oldStart = DateTime.parse(event['starts_at'] as String).toLocal();
     final oldEnd = event['ends_at'] == null
         ? null
         : DateTime.parse(event['ends_at'] as String).toLocal();
-    final duration =
-        oldEnd == null ? const Duration(minutes: 30) : oldEnd.difference(oldStart);
+    final duration = oldEnd == null
+        ? const Duration(minutes: 30)
+        : oldEnd.difference(oldStart);
     final day = await showDatePicker(
       context: context,
       initialDate: oldStart,
@@ -1099,28 +851,22 @@ class _EventCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final text = Theme.of(context).textTheme;
     final kind = event['kind'] as String? ?? 'event';
-    final cancelled = (event['status'] as String? ?? 'scheduled') == 'cancelled';
+    final cancelled =
+        (event['status'] as String? ?? 'scheduled') == 'cancelled';
     final statusNote = (event['status_note'] as String?)?.trim() ?? '';
     final isFamily = kind == 'family';
     final start = DateTime.parse(event['starts_at'] as String).toLocal();
     final end = event['ends_at'] == null
         ? null
         : DateTime.parse(event['ends_at'] as String).toLocal();
-    final teacherName =
-        (event['teachers'] as Map?)?['display_name'] as String?;
-    final kids = ((event['event_students'] as List?) ?? [])
-        .cast<Map<String, dynamic>>();
+    final teacherName = (event['teachers'] as Map?)?['display_name'] as String?;
+    final kids =
+        ((event['event_students'] as List?) ?? []).cast<Map<String, dynamic>>();
     final notes = (event['notes'] as String?)?.trim() ?? '';
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: isFamily
-            ? Border.all(color: JamJotColors.outline, width: 2)
-            : Border.all(color: JamJotColors.ink, width: 2),
-      ),
+    return Card(
+        child: Padding(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1132,15 +878,19 @@ class _EventCard extends ConsumerWidget {
               child: Text(event['title'] as String? ?? '',
                   style: text.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      decoration:
-                          cancelled ? TextDecoration.lineThrough : null,
-                      color: cancelled ? JamJotColors.inkSoft : null)),
-            ),
-            Text(
-              '${DateFormat('h:mm a').format(start)}${end != null ? '–${DateFormat('h:mm a').format(end)}' : ''}',
-              style: text.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+                      decoration: cancelled ? TextDecoration.lineThrough : null,
+                      color: cancelled
+                          ? Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: .75)
+                          : null)),
             ),
           ]),
+          const SizedBox(height: 6),
+          Text(
+              '${DateFormat('h:mm a').format(start)}${end != null ? ' – ${DateFormat(calendarDay(end) == calendarDay(start) ? 'h:mm a' : 'EEE, MMM d • h:mm a').format(end)}' : ''}',
+              style: text.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
           if (cancelled)
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -1154,22 +904,31 @@ class _EventCard extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text('🔁 $statusNote',
-                  style:
-                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+                  style: text.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: .75))),
             ),
           if (teacherName != null)
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text('with $teacherName',
-                  style:
-                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+                  style: text.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: .75))),
             ),
           if (notes.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(notes,
-                  style:
-                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+                  style: text.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: .75))),
             ),
           if (kids.isNotEmpty)
             Padding(
@@ -1177,12 +936,13 @@ class _EventCard extends ConsumerWidget {
               child: Wrap(spacing: 6, runSpacing: 4, children: [
                 for (final k in kids)
                   Builder(builder: (context) {
-                    final name = (k['students'] as Map?)?['display_name']
-                            as String? ??
-                        '?';
-                    final color = studentColor(k['student_id'] as String);
-                    final isLessonKind =
-                        kind == 'lesson' || kind == 'extra_lesson';
+                    final name =
+                        (k['students'] as Map?)?['display_name'] as String? ??
+                            '?';
+                    final color =
+                        studentColor(context, k['student_id'] as String);
+                    final isLessonKind = !readOnly &&
+                        (kind == 'lesson' || kind == 'extra_lesson');
                     final chip = Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
@@ -1192,10 +952,9 @@ class _EventCard extends ConsumerWidget {
                         border: Border.all(color: color, width: 1.5),
                       ),
                       child: Text(isLessonKind ? '$name 🖨️' : name,
-                          style: const TextStyle(
-                              fontSize: 12,
+                          style: text.bodySmall?.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: JamJotColors.ink)),
+                              color: Theme.of(context).colorScheme.onSurface)),
                     );
                     // On lessons, a kid's chip opens their printable
                     // lesson sheet for the week.
@@ -1210,51 +969,59 @@ class _EventCard extends ConsumerWidget {
                   }),
               ]),
             ),
-          if ((kind == 'lesson' || kind == 'extra_lesson') &&
+          if (!readOnly &&
+              (kind == 'lesson' || kind == 'extra_lesson') &&
               kids.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text('Tap a name to open their printable lesson sheet.',
-                  style:
-                      text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+                  style: text.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: .75))),
             ),
           if (!isKidView)
-            Row(children: [
-              if (!isMine && !isFamily && !cancelled)
-                TextButton(
-                  onPressed: () => _requestChange(context, ref),
-                  child: const Text('Request a change'),
-                ),
-              const Spacer(),
-              if (isMine)
-                PopupMenuButton<String>(
-                  tooltip: 'Change this event',
-                  icon: const Icon(Icons.more_vert, size: 20),
-                  onSelected: (v) {
-                    if (v == 'cancel') _cancelEvent(context, ref);
-                    if (v == 'restore') _restoreEvent(context, ref);
-                    if (v == 'move') _moveEvent(context, ref);
-                    if (v == 'remove') _deleteEvent(context, ref);
-                  },
-                  itemBuilder: (context) => [
-                    if (!cancelled)
-                      const PopupMenuItem(
-                          value: 'cancel', child: Text('Cancel (keep on calendar)…')),
-                    if (cancelled)
-                      const PopupMenuItem(
-                          value: 'restore', child: Text('Restore')),
-                    const PopupMenuItem(
-                        value: 'move', child: Text('Reschedule…')),
-                    const PopupMenuItem(
-                        value: 'remove',
-                        child: Text('Remove entirely…',
-                            style:
-                                TextStyle(color: JamJotColors.recording))),
-                  ],
-                ),
-            ]),
+            Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  if (!isMine && !isFamily && !cancelled)
+                    TextButton(
+                      onPressed: () => _requestChange(context, ref),
+                      child: const Text('Request a change'),
+                    ),
+                  if (isMine)
+                    PopupMenuButton<String>(
+                      tooltip: 'Change this event',
+                      icon: const Icon(Icons.more_vert, size: 20),
+                      onSelected: (v) {
+                        if (v == 'cancel') _cancelEvent(context, ref);
+                        if (v == 'restore') _restoreEvent(context, ref);
+                        if (v == 'move') _moveEvent(context, ref);
+                        if (v == 'remove') _deleteEvent(context, ref);
+                      },
+                      itemBuilder: (context) => [
+                        if (!cancelled)
+                          const PopupMenuItem(
+                              value: 'cancel',
+                              child: Text('Cancel (keep on calendar)…')),
+                        if (cancelled)
+                          const PopupMenuItem(
+                              value: 'restore', child: Text('Restore')),
+                        const PopupMenuItem(
+                            value: 'move', child: Text('Reschedule…')),
+                        const PopupMenuItem(
+                            value: 'remove',
+                            child: Text('Remove entirely…',
+                                style:
+                                    TextStyle(color: JamJotColors.recording))),
+                      ],
+                    ),
+                ]),
         ],
       ),
-    );
+    ));
   }
 }

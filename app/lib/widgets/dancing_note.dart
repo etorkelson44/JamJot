@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 
 import 'jar_logo.dart';
 
-/// Erika's note mascot, doing a little dance once when the screen loads:
+/// Maestro Marmalade, doing a little dance once when the screen loads:
 /// a happy hop with a side-to-side wiggle, then settling into place.
 class DancingNote extends StatefulWidget {
   const DancingNote({super.key, this.size = 230, this.asset});
 
   final double size;
 
-  /// Which mascot image to dance. Defaults to the note; the landing page
-  /// passes Maestro Marmalade (assets/mascot/maestro.png).
+  /// Which mascot image to dance. Maestro is the shared default on sign-in,
+  /// child Home, Practice, and invitations.
   final String? asset;
 
   @override
@@ -57,7 +57,7 @@ class _DancingNoteState extends State<DancingNote>
         );
       },
       child: Image.asset(
-        widget.asset ?? 'assets/mascot/note.png',
+        widget.asset ?? 'assets/mascot/maestro.png',
         height: widget.size,
         errorBuilder: (_, __, ___) => JarLogo(size: widget.size),
       ),

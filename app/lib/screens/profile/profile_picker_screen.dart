@@ -7,6 +7,7 @@ import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/letter_avatar.dart';
 import '../../widgets/pin_dialog.dart';
+import '../../widgets/backup_settings.dart';
 
 class ProfilePickerScreen extends ConsumerWidget {
   const ProfilePickerScreen({super.key});
@@ -15,7 +16,8 @@ class ProfilePickerScreen extends ConsumerWidget {
   /// must be created on the spot. Forgotten PINs unlock with the account
   /// password ("I forgot my PIN" on the prompt), which only grown-ups know.
   Future<void> _pickGrownUp(
-      BuildContext context, WidgetRef ref, Map<String, dynamic>? profile) async {
+      BuildContext context, WidgetRef ref, Map<String, dynamic>? profile,
+      {String destination = '/home'}) async {
     final pinHash = profile?['app_pin_hash'] as String?;
     if (pinHash != null) {
       final ok =
@@ -29,7 +31,7 @@ class ProfilePickerScreen extends ConsumerWidget {
     if (!context.mounted) return;
     ref.read(activeStudentProvider.notifier).state = null;
     await rememberActiveStudent(null);
-    if (context.mounted) context.go('/home');
+    if (context.mounted) context.go(destination);
   }
 
   Future<void> _pickKid(BuildContext context, WidgetRef ref,
@@ -165,6 +167,7 @@ class ProfilePickerScreen extends ConsumerWidget {
                 runSpacing: 16,
                 alignment: WrapAlignment.center,
                 children: [
+                  BackupReminder(onDownload: () => _pickGrownUp(context, ref, profile, destination: '/account')),
                   _ProfileTile(
                     label: (grownUpName == null || grownUpName.isEmpty)
                         ? 'Grown-up'

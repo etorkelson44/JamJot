@@ -11,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import '../../services/sound_effects.dart';
 import '../../services/recording_file.dart';
 import '../../services/practice_navigation.dart';
+import '../../services/practice_sessions.dart';
 import '../../services/unload_guard.dart';
 import '../history/practice_history_screen.dart';
 import '../lesson/lesson_sheet_screen.dart';
@@ -179,21 +180,12 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       _songs =
           (lesson?['assignments'] as List?)?.cast<Map<String, dynamic>>() ?? [];
       // Coming back on the same day? Reopen today's session and keep adding.
-      final now = DateTime.now();
-      final dayStart = DateTime(now.year, now.month, now.day);
-      final existing = await JamJotBackend.client
-          .from('sessions')
-          .select('*, session_segments(*)')
-          .eq('student_id', student['id'])
-          .eq('source', 'app')
-          .isFilter('manual_override_seconds', null)
-          .gte('started_at', dayStart.toUtc().toIso8601String())
-          .order('started_at', ascending: false)
-          .limit(1);
-      if (existing.isNotEmpty) {
+      final session = await latestResumablePracticeSession(
+          JamJotBackend.client, student['id'] as String, DateTime.now());
+      if (!mounted) return;
+      if (session != null) {
         // A session from earlier today: show its progress; recording
         // again reopens it (see _ensureSession).
-        final session = existing.first;
         _sessionId = session['id'] as String;
         _sessionSaved = session['ended_at'] != null;
         var segmentMs = 0;
@@ -225,6 +217,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       // Record button is pressed for the first time (_ensureSession).
       setState(() => _phase = _Phase.practicing);
     } catch (e) {
+      if (!mounted) return;
       _lastError = e.toString();
       setState(() => _phase = _Phase.error);
     }
@@ -633,9 +626,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       fans = (data['fans'] as num?)?.toInt() ?? 0;
       _earnedBerries += berries;
       _earnedFans += fans;
-      _awardsLabel[id] = '🪙+$berries 🕶️+$fans';
-      if (berries > 0) playSound('coin');
-      if (fans > 0) playSound('cheer');
+      _awardsLabel[id] = '+$berries coins · 🕶️+$fans';
+      if (fans > 0 && berries == 0) playSound('cheer');
       final sid = _lesson?['student_id'] as String? ??
           ref.read(activeStudentProvider)?['id'] as String?;
       if (sid != null) {
@@ -670,7 +662,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             Center(child: StickerBadge(randomOf(successStickers), size: 104)),
             const SizedBox(height: 8),
             if (berries > 0)
-              Text('🪙 +$berries coins',
+              CoinLabel('+$berries coins',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w700)),
             if (fans > 0)
@@ -750,6 +742,14 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           params: {'p_session_id': _sessionId}));
       fans = (data['fans'] as num?)?.toInt() ?? 0;
       _earnedFans += fans;
+      _earnedBerries += (data['berries'] as num?)?.toInt() ?? 0;
+      final sid = _lesson?['student_id'] as String? ??
+          ref.read(activeStudentProvider)?['id'] as String?;
+      if (sid != null) {
+        ref.invalidate(berryBalanceProvider(sid));
+        ref.invalidate(fanTotalProvider(sid));
+        ref.invalidate(weeklyFansProvider(sid));
+      }
     } catch (_) {
       _showProblem(
           'Extra practice could not be confirmed. Your progress is still here; try again before leaving.');
@@ -847,7 +847,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         _sessionSaved = true;
       });
       setUnloadGuard(false);
-      playSound('fanfare');
+      if (((data['berries'] as num?)?.toInt() ?? 0) <= 0) playSound('fanfare');
     } catch (_) {
       if (mounted) {
         setState(() => _phase = _Phase.practicing);
@@ -1173,7 +1173,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             ),
           ),
         ),
-        CoinPouch(studentId: student['id'] as String),
+        CoinPot(studentId: student['id'] as String),
       ]),
     ]);
   }
@@ -1613,7 +1613,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: JamJotColors.ink, width: 2),
             ),
-            child: Text('🪙 +$_berries coins in your pouch!',
+            child: CoinLabel('+$_berries coins in your pot!',
                 style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           ),
           if (_goalMet)

@@ -43,7 +43,10 @@ class HomeScreen extends ConsumerWidget {
               IconButton(
                 tooltip: 'Switch profile',
                 onPressed: () => context.go('/profiles'),
-                icon: LetterAvatar(name: greetingName, size: 40),
+                icon: LetterAvatar(
+                    name: greetingName,
+                    size: 40,
+                    avatarKey: active?['avatar_key'] as String?),
               ),
             ],
           ),
@@ -76,13 +79,13 @@ class HomeScreen extends ConsumerWidget {
               return JamJotCard(
                 emoji: '🧺',
                 title: balance == null
-                    ? 'Coin pouch'
-                    : '$balance coin${balance == 1 ? '' : 's'} in your pouch',
+                    ? 'Coin pot'
+                    : '$balance coin${balance == 1 ? '' : 's'} in your pot',
                 subtitle: balance == null || balance == 0
                     ? 'Finish songs in practice to earn your first coins!'
                     : "Spend them at the Farmers' Market!",
                 tint: JamJotColors.plumTint,
-                trailing: CoinPouch(studentId: active['id'] as String),
+                trailing: CoinPot(studentId: active['id'] as String),
                 onTap: () => context.go('/market'),
               );
             }),
@@ -170,8 +173,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Consumer(builder: (context, ref, _) {
-              final students =
-                  ref.watch(myStudentsProvider).valueOrNull ?? [];
+              final students = ref.watch(myStudentsProvider).valueOrNull ?? [];
               return Column(
                 children: [
                   for (final kid in students) ...[

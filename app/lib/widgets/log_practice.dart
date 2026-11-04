@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'coin_pouch.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -105,8 +106,8 @@ Future<void> logOfflinePractice(BuildContext context, WidgetRef ref,
       ref.invalidate(practiceHistoryProvider(sid));
       ref.invalidate(sheetLessonsProvider(sid));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'Logged! $name earned 🪙 ${data['coins']}${(data['fans'] as num? ?? 0) > 0 ? ' and 🕶️ ${data['fans']} fans' : ''}.')));
+          content: CoinLabel(
+              'Logged! $name earned ${data['coins']} coins${(data['fans'] as num? ?? 0) > 0 ? ' and 🕶️ ${data['fans']} fans' : ''}.')));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text((data['error'] as String?) ??

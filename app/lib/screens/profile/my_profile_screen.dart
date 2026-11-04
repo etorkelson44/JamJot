@@ -9,6 +9,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/pin_dialog.dart' show askForNewPin;
+import '../../widgets/backup_settings.dart';
 
 /// My guardianship rows (with each kid's name).
 final myGuardianRowsProvider =
@@ -308,6 +309,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               decoration: const InputDecoration(labelText: 'Phone number'),
             ),
             const SizedBox(height: 18),
+            const BackupSettings(),
             Text('Sign-in & security',
                 style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),

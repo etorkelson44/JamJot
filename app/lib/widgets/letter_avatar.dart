@@ -9,14 +9,22 @@ const finalPngArt = <String>{
   'avatar_blueberry',
 };
 
-/// Loads a piece of art by base name: Erika's final PNG when it exists,
-/// otherwise the placeholder SVG.
+/// Founder-supplied PNG placeholders, kept distinct from finished artwork.
+const placeholderPngArt = <String>{
+  'avatar_strawberry',
+  'avatar_jalapeno',
+  'avatar_grape',
+  'avatar_lemon',
+};
+
+/// Loads the provided PNG when available, otherwise the existing SVG.
+
 Widget artAsset(String base,
     {double? width,
     double? height,
     BoxFit fit = BoxFit.contain,
     Alignment alignment = Alignment.center}) {
-  if (finalPngArt.contains(base)) {
+  if (finalPngArt.contains(base) || placeholderPngArt.contains(base)) {
     return Image.asset('assets/art/$base.png',
         width: width, height: height, fit: fit, alignment: alignment);
   }
@@ -29,6 +37,7 @@ Widget artAsset(String base,
 const berryAvatars = {
   'blueberry': '🫐',
   'strawberry': '🍓',
+  'jalapeno': '🌶️',
   'grape': '🍇',
   'lemon': '🍋',
   'blackberry': '🥷',
@@ -73,8 +82,7 @@ class LetterAvatar extends StatelessWidget {
         child: art,
       );
     }
-    final letter =
-        name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    final letter = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
     return Container(
       width: size,
       height: size,

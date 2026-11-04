@@ -4,6 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jamjot/screens/practice/practice_session_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jamjot/screens/home/home_screen.dart';
+import 'package:jamjot/screens/practice/practice_screen.dart';
+import 'package:jamjot/screens/shell.dart';
+import 'package:jamjot/state/app_state.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'support/practice_fixture.dart';
 
@@ -51,6 +56,61 @@ void main() {
   }
 
   testWidgets(
+      'child Home and Practice tab use Maestro and load the older schema',
+      (tester) async {
+    fixture.initialSeconds = 0;
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final router = GoRouter(initialLocation: '/home', routes: [
+      StatefulShellRoute.indexedStack(
+        builder: (_, __, shell) => AppShell(shell: shell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/home', builder: (_, __) => const HomeScreen())
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+                path: '/practice', builder: (_, __) => const PracticeScreen())
+          ]),
+          for (final route in ['/library', '/market', '/calendar'])
+            StatefulShellBranch(routes: [
+              GoRoute(path: route, builder: (_, __) => const SizedBox())
+            ]),
+        ],
+      )
+    ]);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(ProviderScope(overrides: [
+      ...fixture.overrides(FakeRecorder()),
+      myProfileProvider.overrideWith((ref) async => null),
+      myChatsProvider.overrideWith((ref) async => []),
+    ], child: MaterialApp.router(routerConfig: router)));
+    await tester.pumpAndSettle();
+    final maestro = find.byWidgetPredicate((w) =>
+        w is Image &&
+        w.image is AssetImage &&
+        (w.image as AssetImage).assetName == 'assets/mascot/maestro.png');
+    expect(maestro, findsOneWidget);
+    expect(
+        find.byWidgetPredicate((w) =>
+            w is Image &&
+            w.image is AssetImage &&
+            (w.image as AssetImage).assetName == 'assets/mascot/note.png'),
+        findsNothing);
+    await tester.tap(find.text('Practice'));
+    await tester.pumpAndSettle();
+    expect(find.text('Something hiccuped'), findsNothing);
+    expect(find.text('Piano song'), findsOneWidget);
+    expect(maestro, findsOneWidget);
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hi, Sample child! 👋'), findsOneWidget);
+    expect(fixture.inserts, isEmpty);
+  });
+
+  testWidgets(
       'one-minute completion prompts for song goal and saves only fresh seconds',
       (tester) async {
     fixture.initialSeconds = 60;
@@ -82,7 +142,8 @@ void main() {
     await tester.tap(back);
     await tester.pumpAndSettle();
     expect(find.text('Almost there!'), findsNothing);
-    await tester.scrollUntilVisible(find.text('Piano song'),250,scrollable:find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(find.text('Piano song'), 250,
+        scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
     expect(find.text('Piano song'), findsAtLeastNWidgets(1));
   });
