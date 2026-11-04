@@ -19,7 +19,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/coin_pouch.dart';
-import '../../widgets/dancing_note.dart';
+import '../../widgets/performing_avatar.dart';
 import '../../widgets/fan_stage.dart';
 import '../../widgets/score_frame.dart';
 import '../../widgets/stickers.dart';
@@ -1200,7 +1200,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const DancingNote(size: 56),
+            // The kid's own avatar performs on their instrument while the
+            // timer listens (JJ-012/JJ-014).
+            const PerformingAvatar(size: 76),
             const SizedBox(width: 12),
             Text(_fmt(_activeSeconds),
                 style:

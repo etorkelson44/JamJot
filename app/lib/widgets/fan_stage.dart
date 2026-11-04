@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/supabase_service.dart';
 import '../state/app_state.dart';
+import '../state/wardrobe.dart';
 import '../theme/jamjot_theme.dart';
+import 'dressed_avatar.dart';
 import 'letter_avatar.dart' show artAsset;
 
 /// Every new student opens their first show to a small friendly crowd.
@@ -268,6 +270,9 @@ class VenueBackdrop extends ConsumerWidget {
     final (_, venue) = venueFor(fans);
     final venueIndex = venues.indexOf(venue);
     final crowdCount = fans <= 0 ? 0 : (fans / 4).ceil().clamp(1, 36);
+    final active = ref.watch(activeStudentProvider);
+    final wornKey = (active?['avatar_key'] as String?) ?? 'sonatina';
+    final outfit = ref.watch(wardrobeProvider(studentId)).outfitFor(wornKey);
     return Stack(fit: StackFit.expand, children: [
       // The stage scene, anchored to the bottom of the page.
       Align(
@@ -277,6 +282,18 @@ class VenueBackdrop extends ConsumerWidget {
           width: double.infinity,
           child: artAsset('venue_$venueIndex',
               fit: BoxFit.cover, alignment: Alignment.bottomCenter),
+        ),
+      ),
+      // The kid's own avatar, standing on their stage.
+      Positioned(
+        bottom: 34,
+        left: 0,
+        right: 0,
+        child: IgnorePointer(
+          child: Center(
+            child: DressedAvatar(
+                avatarKey: wornKey, outfit: outfit, size: 64),
+          ),
         ),
       ),
       // Their crowd, gathered at the stage.
