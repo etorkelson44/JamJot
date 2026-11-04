@@ -1,0 +1,651 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../services/supabase_service.dart';
+import '../../state/app_state.dart';
+import '../../state/wardrobe.dart';
+import '../../theme/jamjot_theme.dart';
+import '../../widgets/dressed_avatar.dart';
+import '../../widgets/fan_stage.dart';
+import '../../widgets/letter_avatar.dart' show artAsset;
+import '../market/market_screen.dart' show purchasesProvider;
+import '../../models/market_avatars.dart' show musicalAvatars;
+
+/// Display names for band members (falls back to the musical-avatar cast).
+String _avatarName(String key) {
+  if (key == 'sonatina') return 'Sonatina Sprout';
+  final cast = musicalAvatars[key];
+  if (cast != null) return cast.name;
+  return key[0].toUpperCase() + key.substring(1);
+}
+
+/// My Ensemble — the kid's backstage world (JJ-014):
+/// On Stage · Dressing Room · Tour.
+class MyEnsembleScreen extends ConsumerStatefulWidget {
+  const MyEnsembleScreen({super.key});
+
+  @override
+  ConsumerState<MyEnsembleScreen> createState() => _MyEnsembleScreenState();
+}
+
+class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen> {
+  String? _ghost; // locked item being "imagined" in the mirror
+
+  @override
+  Widget build(BuildContext context) {
+    final active = ref.watch(activeStudentProvider);
+    if (active == null) {
+      return const Scaffold(
+        body: Center(
+            child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+              'My Ensemble is each musician\'s own backstage —\npick a kid profile to visit theirs! 🎸',
+              textAlign: TextAlign.center),
+        )),
+      );
+    }
+    final sid = active['id'] as String;
+    final wornKey = (active['avatar_key'] as String?) ?? 'sonatina';
+    final purchases = ref.watch(purchasesProvider(sid)).valueOrNull ?? [];
+    final owned = <String>['sonatina'];
+    for (final p in purchases) {
+      final item = p['market_items'] as Map<String, dynamic>?;
+      final key = item?['asset_key'] as String?;
+      if (item?['kind'] == 'avatar' && key != null && !owned.contains(key)) {
+        owned.add(key);
+      }
+    }
+    final fans = displayedFans(ref, sid);
+    final coins = ref.watch(berryBalanceProvider(sid)).valueOrNull ?? 0;
+    final (level, venue) = venueFor(fans);
+    final wardrobe = ref.watch(wardrobeProvider(sid));
+
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(venue.motif, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 8),
+            const Text('My Ensemble'),
+          ]),
+          bottom: const TabBar(tabs: [
+            Tab(text: 'On Stage'),
+            Tab(text: 'Dressing Room'),
+            Tab(text: 'Tour'),
+          ]),
+        ),
+        body: TabBarView(children: [
+          _onStage(context, sid, wornKey, owned, wardrobe, venue, level,
+              fans, coins),
+          _dressingRoom(context, sid, wornKey, wardrobe, coins, level),
+          _tour(context, sid, wornKey, owned, wardrobe, level, fans),
+        ]),
+      ),
+    );
+  }
+
+  // ───────────────────────────── ON STAGE ─────────────────────────────
+  Widget _onStage(
+      BuildContext context,
+      String sid,
+      String wornKey,
+      List<String> owned,
+      Wardrobe wardrobe,
+      Venue venue,
+      int level,
+      int fans,
+      int coins) {
+    final text = Theme.of(context).textTheme;
+    final venueIndex = venues.indexOf(venue);
+    final crowdCount = (fans / 4).ceil().clamp(1, 36);
+    return Stack(fit: StackFit.expand, children: [
+      artAsset('venue_$venueIndex', fit: BoxFit.cover),
+      Container(color: Colors.white.withValues(alpha: 0.25)),
+      SafeArea(
+        child: Column(children: [
+          // Marquee: venue + totals.
+          Container(
+            margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: JamJotColors.ink, width: 2),
+            ),
+            child: Row(children: [
+              Expanded(
+                child: Text('Level $level — ${venue.name}',
+                    style:
+                        text.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              Text('🪙 $coins   🕶️ $fans',
+                  style: text.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800, color: JamJotColors.ink)),
+            ]),
+          ),
+          const Spacer(),
+          // The band on stage; the spotlight follows the active member.
+          SizedBox(
+            height: 230,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                for (final key in owned)
+                  GestureDetector(
+                    onTap: () => _choose(sid, key),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 350),
+                      curve: Curves.easeOut,
+                      width: key == wornKey ? 160 : 104,
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (key == wornKey)
+                            const Text('🎤', style: TextStyle(fontSize: 20)),
+                          AnimatedOpacity(
+                            duration: const Duration(milliseconds: 350),
+                            opacity: key == wornKey ? 1 : 0.82,
+                            child: Container(
+                              decoration: key == wornKey
+                                  ? BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                            color: const Color(0xFFFFF0C9)
+                                                .withValues(alpha: 0.95),
+                                            blurRadius: 46,
+                                            spreadRadius: 14),
+                                      ],
+                                    )
+                                  : null,
+                              child: DressedAvatar(
+                                avatarKey: key,
+                                outfit: wardrobe.outfitFor(key),
+                                size: key == wornKey ? 132 : 88,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: key == wornKey
+                                      ? venue.accent
+                                      : JamJotColors.ink,
+                                  width: 2),
+                            ),
+                            child: Text(_avatarName(key),
+                                style: text.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w800),
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Their crowd at the stage edge.
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10, top: 4),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 1,
+              children: [
+                for (var i = 0; i < crowdCount; i++)
+                  artAsset('fan_${i % 4}', width: 18, height: 18),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              owned.length == 1
+                  ? 'Tap your musician to cheer — new band members join from the Market!'
+                  : 'Tap a band member to put them in the spotlight',
+              style: text.labelSmall?.copyWith(
+                  color: JamJotColors.ink, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ]),
+      ),
+    ]);
+  }
+
+  Future<void> _choose(String sid, String key) async {
+    final active = ref.read(activeStudentProvider);
+    if (active?['avatar_key'] == key) return;
+    var ok = false;
+    if (key != 'sonatina') {
+      try {
+        final data = Map<String, dynamic>.from(await JamJotBackend.client
+            .rpc('wear_owned_avatar',
+                params: {'p_student_id': sid, 'p_asset_key': key}));
+        ok = data['ok'] == true;
+      } catch (_) {/* fall through to direct update */}
+    }
+    if (!ok) {
+      try {
+        await JamJotBackend.client
+            .from('students')
+            .update({'avatar_key': key}).eq('id', sid);
+        ok = true;
+      } catch (_) {}
+    }
+    if (!ok || !mounted) return;
+    ref.invalidate(myStudentsProvider);
+    if (active?['id'] == sid) {
+      ref.read(activeStudentProvider.notifier).state = {
+        ...active!,
+        'avatar_key': key,
+      };
+    }
+  }
+
+  // ─────────────────────────── DRESSING ROOM ───────────────────────────
+  Widget _dressingRoom(BuildContext context, String sid, String wornKey,
+      Wardrobe wardrobe, int coins, int level) {
+    final text = Theme.of(context).textTheme;
+    final outfit = wardrobe.outfitFor(wornKey);
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // The backstage mirror, framed in lightbulbs.
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E7),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: JamJotColors.ink, width: 3),
+          ),
+          child: Column(children: [
+            const Text('💡 💡 💡 💡 💡', style: TextStyle(fontSize: 16)),
+            const SizedBox(height: 6),
+            DressedAvatar(
+                avatarKey: wornKey,
+                outfit: outfit,
+                ghost: _ghost,
+                size: 170),
+            const SizedBox(height: 6),
+            Text(_avatarName(wornKey),
+                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+                outfit.isEmpty
+                    ? 'Fresh from the garden — try something on!'
+                    : 'Wearing ${outfit.length} item${outfit.length == 1 ? '' : 's'}',
+                style: text.bodySmall),
+            const Text('💡 💡 💡 💡 💡', style: TextStyle(fontSize: 16)),
+          ]),
+        ),
+        const SizedBox(height: 14),
+        Text('The Closet',
+            style: text.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        Text('Everything you own dresses ANY band member. 🪙 $coins to spend.',
+            style: text.bodySmall),
+        const SizedBox(height: 8),
+        GridView.count(
+          crossAxisCount: 3,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 0.82,
+          children: [
+            for (final acc in accessoryCatalog)
+              _closetTile(context, sid, wornKey, wardrobe, acc, coins, level),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Closet ownership is saved on this device for the preview — it moves '
+          'to the student\'s account with the venue-world backend.',
+          style: text.labelSmall?.copyWith(color: JamJotColors.inkSoft),
+        ),
+      ],
+    );
+  }
+
+  Widget _closetTile(BuildContext context, String sid, String wornKey,
+      Wardrobe wardrobe, Accessory acc, int coins, int level) {
+    final text = Theme.of(context).textTheme;
+    final owned = wardrobe.owned.contains(acc.id);
+    final worn = wardrobe.outfitFor(wornKey).contains(acc.id);
+    final venueLocked = acc.venueLevel != null && level < acc.venueLevel! + 1;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        if (owned) {
+          ref.read(wardrobeProvider(sid).notifier).toggleWear(wornKey, acc.id);
+        } else {
+          setState(() => _ghost = acc.id);
+          _lockedSheet(context, sid, acc, coins, venueLocked);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: owned ? Colors.white : const Color(0xFFEFE8DA),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: worn ? JamJotColors.marigold : JamJotColors.ink,
+              width: worn ? 3 : 2),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Opacity(
+              opacity: owned ? 1 : 0.4,
+              child: Text(acc.emoji, style: const TextStyle(fontSize: 34)),
+            ),
+            const SizedBox(height: 4),
+            Text(acc.name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: text.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: owned ? JamJotColors.ink : JamJotColors.inkSoft)),
+            const SizedBox(height: 2),
+            if (worn)
+              Text('WEARING',
+                  style: text.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: JamJotColors.marigold))
+            else if (owned)
+              Text('tap to wear', style: text.labelSmall)
+            else if (venueLocked)
+              Text('🔒 ${venueNameForAccessory(acc)}',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.labelSmall)
+            else
+              Text('🪙 ${acc.price}',
+                  style:
+                      text.labelSmall?.copyWith(fontWeight: FontWeight.w800)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _lockedSheet(BuildContext context, String sid, Accessory acc,
+      int coins, bool venueLocked) {
+    final text = Theme.of(context).textTheme;
+    showModalBottomSheet(
+      context: context,
+      builder: (sheet) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(acc.emoji, style: const TextStyle(fontSize: 44)),
+          Text(acc.name,
+              style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          if (venueLocked) ...[
+            Text(
+                'A ${venueNameForAccessory(acc)} exclusive — play that stage '
+                'to unlock it!',
+                textAlign: TextAlign.center,
+                style: text.bodyMedium),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(sheet);
+                context.go('/ensemble');
+                DefaultTabController.maybeOf(context)?.animateTo(2);
+              },
+              child: const Text('See the Tour 🗺️'),
+            ),
+          ] else ...[
+            Text('🪙 ${acc.price} — you have $coins',
+                style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: (coins / acc.price).clamp(0.0, 1.0),
+                minHeight: 10,
+                backgroundColor: JamJotColors.blueberryTint,
+                color: JamJotColors.marigold,
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (coins >= acc.price)
+              FilledButton(
+                onPressed: () {
+                  ref.read(wardrobeProvider(sid).notifier).acquire(acc.id);
+                  Navigator.pop(sheet);
+                  setState(() => _ghost = null);
+                },
+                child: Text('Add to closet — ${acc.price} 🪙'),
+              )
+            else
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(sheet);
+                  context.go('/practice');
+                },
+                child: const Text("Let's practice! 🎵"),
+              ),
+          ],
+        ]),
+      ),
+    ).whenComplete(() {
+      if (mounted) setState(() => _ghost = null);
+    });
+  }
+
+  // ─────────────────────────────── TOUR ───────────────────────────────
+  Widget _tour(BuildContext context, String sid, String wornKey,
+      List<String> owned, Wardrobe wardrobe, int level, int fans) {
+    final text = Theme.of(context).textTheme;
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: venues.length,
+      itemBuilder: (context, i) {
+        final v = venues[i];
+        final played = level >= i + 1;
+        final current = level == i + 1;
+        final isNext = level == i;
+        return Opacity(
+          opacity: played || isNext ? 1 : 0.5,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                  color: current ? v.accent : JamJotColors.ink,
+                  width: current ? 3 : 2),
+            ),
+            child: InkWell(
+              onTap: played || isNext
+                  ? () => _levelUpPreview(context, i, wornKey, owned)
+                  : null,
+              child: Column(children: [
+                SizedBox(
+                  height: 80,
+                  width: double.infinity,
+                  child: Stack(fit: StackFit.expand, children: [
+                    artAsset('venue_$i', fit: BoxFit.cover),
+                    if (!played)
+                      Container(
+                          color: Colors.white.withValues(alpha: 0.55)),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Text(v.motif, style: const TextStyle(fontSize: 18)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text('${i + 1} · ${v.name}',
+                              style: text.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800)),
+                        ),
+                        if (current)
+                          Text('🎫 NOW PLAYING',
+                              style: text.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: v.accent))
+                        else if (played)
+                          const Text('🎫')
+                        else
+                          Text('🕶️ ${v.minFans}',
+                              style: text.labelSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800)),
+                      ]),
+                      if (played || isNext) ...[
+                        const SizedBox(height: 4),
+                        Text(v.realStage, style: text.bodySmall),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Exclusives: ${v.exclusives.map((id) => accessoryById(id)?.name ?? id).join(' · ')}',
+                          style: text.labelSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        if (isNext)
+                          Text('${v.minFans - fans} more fans to unlock — tap '
+                              'for a sneak peek!',
+                              style: text.labelSmall
+                                  ?.copyWith(color: JamJotColors.inkSoft)),
+                      ],
+                    ],
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// The level-up moment: tour-bus wipe, venue reveal, then the band photo.
+  void _levelUpPreview(BuildContext context, int venueIndex, String wornKey,
+      List<String> owned) {
+    final v = venues[venueIndex];
+    final wardrobe = ref.read(wardrobeProvider(
+            (ref.read(activeStudentProvider)?['id'] as String?) ?? ''))
+        .outfits;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Level up',
+      transitionDuration: const Duration(milliseconds: 2400),
+      pageBuilder: (_, __, ___) => const SizedBox.shrink(),
+      transitionBuilder: (dialogContext, anim, _, __) {
+        final busSlide = CurvedAnimation(
+            parent: anim,
+            curve: const Interval(0.0, 0.45, curve: Curves.easeInOut));
+        final reveal = CurvedAnimation(
+            parent: anim,
+            curve: const Interval(0.4, 1.0, curve: Curves.easeOutBack));
+        final screenWidth = MediaQuery.of(dialogContext).size.width;
+        return Stack(alignment: Alignment.center, children: [
+          // Poster card.
+          FadeTransition(
+            opacity: reveal,
+            child: ScaleTransition(
+              scale: reveal,
+              child: Dialog(
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  side: const BorderSide(color: JamJotColors.ink, width: 3),
+                ),
+                child: SizedBox(
+                  width: 340,
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    SizedBox(
+                      height: 190,
+                      width: double.infinity,
+                      child: Stack(fit: StackFit.expand, children: [
+                        artAsset('venue_$venueIndex', fit: BoxFit.cover),
+                        // The band poses for the photo.
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                for (final key in owned.take(5))
+                                  DressedAvatar(
+                                      avatarKey: key,
+                                      outfit: wardrobe[key] ?? const [],
+                                      size: key == wornKey ? 84 : 62),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ]),
+                    ),
+                    Container(
+                      width: double.infinity,
+                      color: JamJotColors.ink,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Column(children: [
+                        Text('⭐ LIVE AT ⭐',
+                            style: TextStyle(
+                                color: const Color(0xFFFFD66B),
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2,
+                                fontSize: 12)),
+                        Text(v.name.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18)),
+                      ]),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(children: [
+                        Text(
+                            'Venue exclusives now in the closet: '
+                            '${v.exclusives.map((id) => accessoryById(id)?.emoji ?? '').join(' ')}',
+                            textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: const Text('Encore! 🎉'),
+                        ),
+                      ]),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+          // The tour bus drives across on its way to the new venue.
+          Positioned(
+            bottom: 110,
+            left: -140 + (screenWidth + 280) * busSlide.value,
+            child: Opacity(
+              opacity: anim.value < 0.5 ? 1 : (1 - (anim.value - 0.5) * 4)
+                  .clamp(0.0, 1.0),
+              child: const Text('🚌💨', style: TextStyle(fontSize: 56)),
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+}

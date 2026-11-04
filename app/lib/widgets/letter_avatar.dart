@@ -15,6 +15,7 @@ const placeholderPngArt = <String>{
   'avatar_jalapeno',
   'avatar_grape',
   'avatar_lemon',
+  'avatar_sonatina', // JJ-011/JJ-012 starter: founder's seed photo, rigged
 };
 
 /// Loads the provided PNG when available, otherwise the existing SVG.
@@ -35,6 +36,7 @@ Widget artAsset(String base,
 /// Berry characters bought at the market (JamJot-drawn placeholders — each
 /// key swaps to Erika's final artwork later, same file names).
 const berryAvatars = {
+  'sonatina': '🌱', // Sonatina Sprout — every student's free starter (JJ-011)
   'blueberry': '🫐',
   'strawberry': '🍓',
   'jalapeno': '🌶️',
@@ -58,7 +60,11 @@ Widget? berryArt(String? key, double size) {
 /// touching callers.
 class LetterAvatar extends StatelessWidget {
   const LetterAvatar(
-      {super.key, required this.name, this.size = 42, this.avatarKey});
+      {super.key,
+      required this.name,
+      this.size = 42,
+      this.avatarKey,
+      this.starterDefault = false});
 
   final String name;
   final double size;
@@ -66,9 +72,16 @@ class LetterAvatar extends StatelessWidget {
   /// The worn character (students.avatar_key), when there is one.
   final String? avatarKey;
 
+  /// For students: no worn avatar yet means Sonatina Sprout, the free
+  /// starter every new student begins with (JJ-011). Grown-ups keep the
+  /// letter circle.
+  final bool starterDefault;
+
   @override
   Widget build(BuildContext context) {
-    final art = berryArt(avatarKey, size * 0.84);
+    final effectiveKey =
+        avatarKey ?? (starterDefault ? 'sonatina' : null);
+    final art = berryArt(effectiveKey, size * 0.84);
     if (art != null) {
       return Container(
         width: size,

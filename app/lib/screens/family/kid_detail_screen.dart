@@ -110,6 +110,7 @@ class _OverviewTab extends ConsumerWidget {
             LetterAvatar(
                 name: kid['display_name'] as String? ?? '?',
                 avatarKey: kid['avatar_key'] as String?,
+                starterDefault: true,
                 size: 56),
             const SizedBox(width: 12),
             Expanded(

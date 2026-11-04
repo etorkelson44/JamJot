@@ -18,8 +18,8 @@ class AppShell extends ConsumerWidget {
   final StatefulNavigationShell shell;
 
   // Branch order in the router: 0 home, 1 practice, 2 library, 3 market,
-  // 4 calendar.
-  static const _kidBranches = [0, 1, 3, 4];
+  // 4 calendar, 5 ensemble.
+  static const _kidBranches = [0, 1, 5, 3, 4];
   static const _grownUpBranches = [0, 2, 3, 4];
 
   @override
@@ -34,6 +34,8 @@ class AppShell extends ConsumerWidget {
             NavigationDestination(icon: Icon(JamJotIcons.home), label: 'Home'),
             NavigationDestination(
                 icon: Icon(JamJotIcons.practice), label: 'Practice'),
+            NavigationDestination(
+                icon: Icon(Icons.theater_comedy_outlined), label: 'Ensemble'),
             NavigationDestination(
                 icon: Icon(JamJotIcons.market), label: 'Market'),
             NavigationDestination(

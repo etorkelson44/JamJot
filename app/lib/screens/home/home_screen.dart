@@ -46,7 +46,8 @@ class HomeScreen extends ConsumerWidget {
                 icon: LetterAvatar(
                     name: greetingName,
                     size: 40,
-                    avatarKey: active?['avatar_key'] as String?),
+                    avatarKey: active?['avatar_key'] as String?,
+                    starterDefault: active != null),
               ),
             ],
           ),

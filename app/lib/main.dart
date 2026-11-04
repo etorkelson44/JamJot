@@ -10,6 +10,7 @@ import 'screens/auth/sign_in_screen.dart';
 import 'screens/auth/teacher_setup_screen.dart';
 import 'screens/auth/title_screen.dart';
 import 'screens/calendar/calendar_screen.dart';
+import 'screens/ensemble/my_ensemble_screen.dart';
 import 'screens/family/kid_detail_screen.dart';
 import 'screens/history/practice_history_screen.dart';
 import 'screens/home/home_screen.dart';
@@ -217,6 +218,11 @@ final _router = GoRouter(
         ]),
         StatefulShellBranch(routes: [
           GoRoute(path: '/calendar', builder: (_, __) => const CalendarScreen()),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+              path: '/ensemble',
+              builder: (_, __) => const MyEnsembleScreen()),
         ]),
       ],
     ),

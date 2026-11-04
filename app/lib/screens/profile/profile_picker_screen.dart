@@ -179,6 +179,7 @@ class ProfilePickerScreen extends ConsumerWidget {
                     _ProfileTile(
                       label: kid['display_name'] as String,
                       avatarKey: kid['avatar_key'] as String?,
+                      isStudent: true,
                       locked: kidIsActive &&
                           active['id'] != kid['id'] &&
                           kid['pin_hash'] != null,
@@ -213,12 +214,14 @@ class _ProfileTile extends StatelessWidget {
     required this.onTap,
     this.locked = false,
     this.avatarKey,
+    this.isStudent = false,
   });
 
   final String label;
   final VoidCallback onTap;
   final bool locked;
   final String? avatarKey;
+  final bool isStudent;
 
   @override
   Widget build(BuildContext context) {
@@ -240,6 +243,7 @@ class _ProfileTile extends StatelessWidget {
               children: [
                 LetterAvatar(
                     name: label.startsWith('+') ? '+' : label,
+                    starterDefault: isStudent,
                     avatarKey: avatarKey,
                     size: 72),
                 const SizedBox(height: 10),

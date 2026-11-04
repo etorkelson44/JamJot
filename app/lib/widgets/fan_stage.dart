@@ -6,29 +6,113 @@ import '../state/app_state.dart';
 import '../theme/jamjot_theme.dart';
 import 'letter_avatar.dart' show artAsset;
 
-/// The venue ladder: more fans → bigger stage. (Placeholder scenes — each
-/// venue becomes a real illustrated backdrop later.)
+/// Every new student opens their first show to a small friendly crowd.
+/// (Display-side seed for now; becomes a server-side ledger grant at the
+/// venue-world backend release.)
+const starterFans = 10;
+
+/// The venue ladder: parodies of famous stages, smallest to biggest, ordered
+/// by the real venues' capacities. Fans only ever grow, so a venue is never
+/// lost. (Backdrops are placeholder scenes — Erika's art swaps in later.)
 class Venue {
-  const Venue(this.minFans, this.name, this.scene, this.top, this.bottom);
+  const Venue(this.minFans, this.name, this.scene, this.top, this.bottom,
+      {required this.accent,
+      required this.motif,
+      required this.realStage,
+      required this.exclusives});
   final int minFans;
   final String name;
-  final String scene;
+  final String scene; // emoji marker
   final Color top;
   final Color bottom;
+
+  /// This venue's single accent color (kids-only theme touch, JJ-013).
+  final Color accent;
+
+  /// Small header motif (kids-only theme touch).
+  final String motif;
+
+  /// The real stage behind the parody, for the Tour page.
+  final String realStage;
+
+  /// Market-exclusive accessory ids unlocked by playing this venue.
+  final List<String> exclusives;
 }
 
 const venues = [
-  Venue(0, 'Living Room', '🛋️', Color(0xFFFFF3DC), Color(0xFFFFE3B3)),
-  Venue(25, 'Backyard Porch', '🌳', Color(0xFFE8F5D8), Color(0xFFCDE8B5)),
-  Venue(60, 'Street Corner', '🚏', Color(0xFFE3EDF7), Color(0xFFC7DBEE)),
-  Venue(120, 'Park Bandstand', '⛲', Color(0xFFDFF2EC), Color(0xFFBCE3D6)),
-  Venue(220, 'School Gym', '🏫', Color(0xFFF3E6F7), Color(0xFFE2C8EC)),
-  Venue(
-      350, "Farmers' Market Stage", '🧺', Color(0xFFFCEBDD), Color(0xFFF6D1B3)),
-  Venue(550, 'Town Theater', '🎭', Color(0xFFEDE4F9), Color(0xFFD3BFF0)),
-  Venue(800, 'Concert Hall', '🎻', Color(0xFFE4ECF9), Color(0xFFBDD1F0)),
-  Venue(1200, 'Big Arena', '🎤', Color(0xFFFBE3E8), Color(0xFFF3BCC9)),
-  Venue(1800, 'JamJot Stadium', '🏟️', Color(0xFFFFF0C9), Color(0xFFFFDE8A)),
+  Venue(0, 'The Jam Cellar', '🕯️', Color(0xFF55403A), Color(0xFF3A2E28),
+      accent: Color(0xFFE8A23D),
+      motif: '🕯️',
+      realStage:
+          'After the Village Vanguard in New York — a basement jazz club open '
+          'since 1935 that seats only about 120, where legends like John '
+          'Coltrane recorded live albums.',
+      exclusives: ['beret', 'candle']),
+  Venue(30, 'The Blue Note Berry', '🎷', Color(0xFF3A4A7A), Color(0xFF232B4A),
+      accent: Color(0xFF4A5FAE),
+      motif: '🎷',
+      realStage:
+          'After the Blue Note in Greenwich Village — around 200 seats, a '
+          'nightly stop for the world\'s top jazz players since 1981.',
+      exclusives: ['blue_shades', 'bass_pin']),
+  Venue(80, 'The Raspberry Roxy', '💡', Color(0xFF4B4668), Color(0xFF2A2546),
+      accent: Color(0xFFE57BA0),
+      motif: '💡',
+      realStage:
+          'After The Roxy on the Sunset Strip in Los Angeles — a 500-person '
+          'club where new acts have launched since 1973; Bob Marley recorded '
+          'a famous live set there.',
+      exclusives: ['leather_jacket', 'nameplate']),
+  Venue(180, 'The Jampollo Theater', '🌟', Color(0xFF4B4668), Color(0xFF2E2A4A),
+      accent: Color(0xFFFFD66B),
+      motif: '🌟',
+      realStage:
+          'After the Apollo Theater in Harlem — about 1,500 seats, home of '
+          'Amateur Night since 1934, where Ella Fitzgerald and James Brown '
+          'broke through.',
+      exclusives: ['bow_tie', 'golden_mic']),
+  Venue(350, 'Jarnegie Hall', '🏛️', Color(0xFFE4ECF9), Color(0xFFBDD1F0),
+      accent: Color(0xFFF2B747),
+      motif: '🏛️',
+      realStage:
+          'After Carnegie Hall in New York — roughly 2,800 seats, opened in '
+          '1891 with Tchaikovsky conducting. How do you get there? Practice!',
+      exclusives: ['white_gloves', 'baton']),
+  Venue(600, 'Red Jam Rocks', '⛰️', Color(0xFFFFD9A0), Color(0xFFF6A46B),
+      accent: Color(0xFFC96F4A),
+      motif: '⛰️',
+      realStage:
+          'After Red Rocks Amphitheatre near Denver — about 9,500 seats '
+          'carved between two enormous red sandstone slabs, under open sky.',
+      exclusives: ['bandana', 'hiking_boots']),
+  Venue(1000, 'The Hollyberry Bowl', '🎆', Color(0xFF3A4A7A), Color(0xFF1B244A),
+      accent: Color(0xFF9AA9DC),
+      motif: '🎆',
+      realStage:
+          'After the Hollywood Bowl in Los Angeles — about 17,500 seats '
+          'under its iconic white shell, open since 1922.',
+      exclusives: ['star_shades', 'sparkler']),
+  Venue(1500, 'Madison Jar Garden', '🏟️', Color(0xFF4B4668), Color(0xFF2A2546),
+      accent: Color(0xFF9B7ED9),
+      motif: '📺',
+      realStage:
+          'After Madison Square Garden — the 20,000-seat arena nicknamed '
+          '"the world\'s most famous arena."',
+      exclusives: ['champ_jacket', 'wristband']),
+  Venue(2500, 'Jamberly Stadium', '🌈', Color(0xFFE3EDF7), Color(0xFFBBDCF1),
+      accent: Color(0xFF7CB56B),
+      motif: '🌈',
+      realStage:
+          'After Wembley Stadium in London — 90,000 seats under its giant '
+          'arch, scene of Live Aid in 1985.',
+      exclusives: ['stadium_scarf', 'crown_headset']),
+  Venue(4000, 'JamJot Stadium', '🫙', Color(0xFFFFECC2), Color(0xFFFFDE8A),
+      accent: Color(0xFFFFBE2E),
+      motif: '🫙',
+      realStage:
+          'The invented finale — JamJot\'s very own mega-stadium, bigger '
+          'than any real one. This stage is yours.',
+      exclusives: ['golden_cape', 'jar_crown']),
 ];
 
 (int, Venue) venueFor(int fans) {
@@ -38,6 +122,11 @@ const venues = [
   }
   return (level + 1, venues[level]);
 }
+
+/// Lifetime fans as shown to the kid: ledger total plus the small opening
+/// crowd every student starts with.
+int displayedFans(WidgetRef ref, String studentId) =>
+    starterFans + (ref.watch(fanTotalProvider(studentId)).valueOrNull ?? 0);
 
 /// Fans earned since Monday.
 final weeklyFansProvider =
@@ -61,8 +150,6 @@ final weeklyFansProvider =
   return total;
 });
 
-const _fanFaces = ['🙂', '😄', '🤩', '😊', '😎', '🥳', '😁', '🫨'];
-
 /// The crowd at the student's current venue: lifetime fans, this week's
 /// haul, and how far to the next stage.
 class FanStage extends ConsumerWidget {
@@ -73,7 +160,7 @@ class FanStage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final text = Theme.of(context).textTheme;
-    final fans = ref.watch(fanTotalProvider(studentId)).valueOrNull ?? 0;
+    final fans = displayedFans(ref, studentId);
     final weekly = ref.watch(weeklyFansProvider(studentId)).valueOrNull ?? 0;
     final lesson = ref.watch(currentLessonProvider(studentId)).valueOrNull;
     final songs = (lesson?['assignments'] as List? ?? []).length;
@@ -131,16 +218,16 @@ class FanStage extends ConsumerWidget {
                   .clamp(0.0, 1.0),
               minHeight: 8,
               backgroundColor: Colors.white.withValues(alpha: 0.6),
-              color: JamJotColors.ink,
+              color: venue.accent,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            '${next.minFans - fans} more fans to the ${next.name} ${next.scene}',
+            '${next.minFans - fans} more fans to ${next.name} ${next.scene}',
             style: text.labelSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
         ] else
-          Text('Top of the ladder — the stadium is yours! 🏟️',
+          Text('Top of the tour — JamJot Stadium is yours! 🫙',
               style: text.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
       ],
     );
@@ -177,7 +264,7 @@ class VenueBackdrop extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final fans = ref.watch(fanTotalProvider(studentId)).valueOrNull ?? 0;
+    final fans = displayedFans(ref, studentId);
     final (_, venue) = venueFor(fans);
     final venueIndex = venues.indexOf(venue);
     final crowdCount = fans <= 0 ? 0 : (fans / 4).ceil().clamp(1, 36);
@@ -225,7 +312,7 @@ class FanIndicator extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final text = Theme.of(context).textTheme;
-    final fans = ref.watch(fanTotalProvider(studentId)).valueOrNull ?? 0;
+    final fans = displayedFans(ref, studentId);
     final (level, venue) = venueFor(fans);
     final next = level < venues.length ? venues[level] : null;
     return Container(
@@ -236,7 +323,7 @@ class FanIndicator extends ConsumerWidget {
         border: Border.all(color: JamJotColors.ink, width: 2),
       ),
       child: Row(children: [
-        Text(venue.scene, style: const TextStyle(fontSize: 22)),
+        Text(venue.motif, style: const TextStyle(fontSize: 22)),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -247,8 +334,8 @@ class FanIndicator extends ConsumerWidget {
                       text.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
               Text(
                 next == null
-                    ? '🕶️ $fans fans — top of the ladder!'
-                    : '🕶️ $fans fan${fans == 1 ? '' : 's'} • ${next.minFans - fans} more to the ${next.name} ${next.scene}',
+                    ? '🕶️ $fans fans — top of the tour!'
+                    : '🕶️ $fans fan${fans == 1 ? '' : 's'} • ${next.minFans - fans} more to ${next.name} ${next.scene}',
                 style: text.labelSmall?.copyWith(color: JamJotColors.inkSoft),
               ),
               if (next != null) ...[
@@ -261,7 +348,7 @@ class FanIndicator extends ConsumerWidget {
                         .clamp(0.0, 1.0),
                     minHeight: 5,
                     backgroundColor: JamJotColors.blueberryTint,
-                    color: JamJotColors.ink,
+                    color: venue.accent,
                   ),
                 ),
               ],
