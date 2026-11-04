@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/maestro_loader.dart';
 
 /// Past practice sessions for one student — the same truth for everyone:
 /// kids browse their own, caregivers and teachers see it as the report.
@@ -85,7 +86,7 @@ class PracticeHistoryList extends ConsumerWidget {
     final text = Theme.of(context).textTheme;
 
     return sessionsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: MaestroLoader()),
           error: (_, __) => const Center(
               child: Text('Could not load practices. Pull to retry.')),
           data: (bundle) {

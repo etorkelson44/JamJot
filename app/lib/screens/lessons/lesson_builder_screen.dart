@@ -6,6 +6,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
+import '../../widgets/maestro_loader.dart';
 
 /// Where a grown-up (parent now; teachers use the same rules) builds the
 /// current practice list for one student.
@@ -227,7 +228,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
             ),
             const SizedBox(height: 16),
             if (lessonAsync.isLoading)
-              const Center(child: CircularProgressIndicator())
+              const Center(child: MaestroLoader())
             else if (assignments.isEmpty)
               JamJotCard(
                 emoji: '🎵',

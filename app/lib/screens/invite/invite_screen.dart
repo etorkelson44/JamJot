@@ -6,6 +6,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_note.dart';
+import '../../widgets/maestro_loader.dart';
 
 /// Where a teacher's invite link lands. Signed out: a warm hello and the
 /// account buttons. Signed in: pick (or add) the kid and connect.
@@ -215,7 +216,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         ],
       );
     } else if (_info == null) {
-      body = const Center(child: CircularProgressIndicator());
+      body = const Center(child: MaestroLoader());
     } else if (_info!['kind'] == 'caregiver') {
       body = Column(
         mainAxisAlignment: MainAxisAlignment.center,

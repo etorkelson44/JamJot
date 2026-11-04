@@ -12,6 +12,7 @@ import '../../widgets/jamjot_card.dart';
 import '../../widgets/log_practice.dart' show logOfflinePractice;
 import '../calendar/weekly_lesson.dart' show editWeeklySchedule;
 import '../library/library_screen.dart' show showCreateLessonDialog;
+import '../../widgets/maestro_loader.dart';
 
 /// Pending change requests on events this teacher owns.
 final changeRequestsProvider =
@@ -417,7 +418,7 @@ class TeachingScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: teacher == null
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: MaestroLoader())
             : ListView(
                 padding: const EdgeInsets.all(20),
                 children: [

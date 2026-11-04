@@ -26,6 +26,7 @@ import 'screens/profile/my_profile_screen.dart';
 import 'screens/profile/profile_picker_screen.dart';
 import 'screens/shell.dart';
 import 'services/session_flags.dart';
+import 'state/app_state.dart';
 import 'services/supabase_service.dart';
 import 'theme/jamjot_theme.dart';
 
@@ -221,14 +222,14 @@ final _router = GoRouter(
   ],
 );
 
-class JamJotApp extends StatefulWidget {
+class JamJotApp extends ConsumerStatefulWidget {
   const JamJotApp({super.key});
 
   @override
-  State<JamJotApp> createState() => _JamJotAppState();
+  ConsumerState<JamJotApp> createState() => _JamJotAppState();
 }
 
-class _JamJotAppState extends State<JamJotApp>
+class _JamJotAppState extends ConsumerState<JamJotApp>
     with WidgetsBindingObserver {
   DateTime? _hiddenAt;
 
@@ -268,7 +269,11 @@ class _JamJotAppState extends State<JamJotApp>
     return MaterialApp.router(
       title: 'JamJot',
       debugShowCheckedModeBanner: false,
-      theme: buildJamJotTheme(),
+      // Skin follows who's driving: kid profile active → The Jam Stand;
+      // grown-up (caregiver/teacher) → Calm Studio. Erika's picks, Nov 3 2026.
+      theme: buildJamJotTheme(ref.watch(activeStudentProvider) == null
+          ? JamJotSkin.grownup
+          : JamJotSkin.kid),
       routerConfig: _router,
     );
   }

@@ -7,6 +7,7 @@ import '../../services/print_page.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/maestro_loader.dart';
 
 /// Every lesson the student is currently practicing — the newest arrived
 /// lesson from each connection (every teacher plus family-run), kept
@@ -83,7 +84,7 @@ class LessonSheetScreen extends ConsumerWidget {
         ],
       ),
       body: lessons.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: MaestroLoader()),
         error: (_, __) =>
             const Center(child: Text('Could not load the lesson sheet.')),
         data: (items) => items.isEmpty

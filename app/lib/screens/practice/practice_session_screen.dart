@@ -18,6 +18,7 @@ import '../../widgets/dancing_note.dart';
 import '../../widgets/fan_stage.dart';
 import '../../widgets/score_frame.dart';
 import '../../widgets/stickers.dart';
+import '../../widgets/maestro_loader.dart';
 
 enum _Phase { starting, practicing, saving, celebrate, micDenied, error, closed }
 
@@ -698,7 +699,7 @@ class _PracticeSessionScreenState
     switch (_phase) {
       case _Phase.starting:
       case _Phase.saving:
-        body = const Center(child: CircularProgressIndicator());
+        body = const Center(child: MaestroLoader());
       case _Phase.micDenied:
         body = _Message(
           emoji: '🎤',
@@ -1126,7 +1127,7 @@ class _PracticeSessionScreenState
         Widget scoreBox() {
           Widget body;
           if (loading) {
-            body = const Center(child: CircularProgressIndicator());
+            body = const Center(child: MaestroLoader());
           } else {
             final lower = url!.split('?').first.toLowerCase();
             final isImage = lower.endsWith('.png') ||

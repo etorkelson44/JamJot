@@ -144,12 +144,23 @@ class TitleScreen extends StatelessWidget {
               ),
               const Spacer(),
               const SizedBox(height: 16),
-              // Erika's mascot, with a little welcome dance.
-              const DancingNote(size: 170),
+              // Maestro Marmalade welcomes everyone with a little dance.
+              const DancingNote(size: 170, asset: 'assets/mascot/maestro.png'),
               const SizedBox(height: 20),
-              Text('JamJot',
-                  style: text.displayMedium?.copyWith(
-                      fontWeight: FontWeight.w700, letterSpacing: -2)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // The acrylic JJ monogram — official placeholder logo (Nov 4, 2026).
+                  Image.asset('assets/mascot/jj_logo.png',
+                      height: 52,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                  const SizedBox(width: 10),
+                  Text('JamJot',
+                      style: text.displayMedium?.copyWith(
+                          fontWeight: FontWeight.w700, letterSpacing: -2)),
+                ],
+              ),
               const SizedBox(height: 6),
               Text('Every minute of music goes in the jar',
                   style: text.titleMedium

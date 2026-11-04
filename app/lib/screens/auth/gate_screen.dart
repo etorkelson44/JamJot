@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
+import '../../widgets/maestro_loader.dart';
 
 /// Decides where a freshly signed-in person goes: onboarding if their
 /// account is brand new, otherwise the profile picker.
@@ -52,5 +53,5 @@ class _GateScreenState extends ConsumerState<GateScreen> {
 
   @override
   Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: CircularProgressIndicator()));
+      const Scaffold(body: Center(child: MaestroLoader()));
 }

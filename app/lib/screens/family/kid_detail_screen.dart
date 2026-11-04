@@ -16,6 +16,7 @@ import '../calendar/weekly_lesson.dart' show editWeeklySchedule;
 import '../history/practice_history_screen.dart' show PracticeHistoryList;
 import '../library/library_screen.dart' show showCreateLessonDialog;
 import 'scan_sheet.dart';
+import '../../widgets/maestro_loader.dart';
 
 /// One kid's world in the grown-up view, organized into tabs:
 /// Overview • Teachers • Practices • Caregivers.
@@ -30,7 +31,7 @@ class KidDetailScreen extends ConsumerWidget {
     final kid = students.where((s) => s['id'] == studentId).firstOrNull;
 
     if (kid == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: MaestroLoader()));
     }
     final name = kid['display_name'] as String;
 
