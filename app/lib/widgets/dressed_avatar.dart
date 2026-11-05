@@ -3,14 +3,58 @@ import 'package:flutter/material.dart';
 import '../state/wardrobe.dart';
 import 'letter_avatar.dart' show berryArt;
 
-/// Where an accessory sits on an avatar, in fractions of the avatar's box.
-/// Each avatar body gets its own fit so the SAME closet item sits right on
-/// every character (per-avatar fit table, JJ-014 / demonstrated in the
-/// 2026-11-04 pilot). Unlisted avatars fall back to the default fit.
+/// Every catalog accessory now has real drawn art, tailored per character:
+/// each (accessory, avatar) pair ships as a full-canvas overlay PNG drawn
+/// on that avatar's measured landmarks (eyes, mouth, chin, head, hands,
+/// shoes), so items land exactly right on every body (JJ-012/JJ-014 art
+/// pass, founder-directed 2026-11-04).
+const _tailoredAvatars = <String>{
+  'sonatina',
+  'strawberry',
+  'jalapeno',
+  'grape',
+  'lemon',
+  'raspberry',
+  'blueberry',
+};
+
+/// Draw order, lowest first: capes and jackets wrap the body, boots and
+/// held pieces come next, then neckwear, then the face, then headwear.
+const _wearOrder = <String>[
+  'golden_cape',
+  'leather_jacket',
+  'champ_jacket',
+  'hiking_boots',
+  'candle',
+  'golden_mic',
+  'baton',
+  'sparkler',
+  'white_gloves',
+  'wristband',
+  'bass_pin',
+  'nameplate',
+  'stadium_scarf',
+  'bandana',
+  'bow_tie',
+  'mustache',
+  'blue_shades',
+  'star_shades',
+  'crown_headset',
+  'beret',
+  'jar_crown',
+];
+
+int _zOf(String id) {
+  final i = _wearOrder.indexOf(id);
+  return i < 0 ? _wearOrder.length : i;
+}
+
+/// Fallback fit (fractions of the avatar box) for an avatar without
+/// tailored art — emoji placeholder placement.
 class _Fit {
   const _Fit(this.dx, this.dy, [this.scale = 1]);
-  final double dx; // 0 = left edge, 1 = right edge
-  final double dy; // 0 = top edge, 1 = bottom edge
+  final double dx;
+  final double dy;
   final double scale;
 }
 
@@ -38,103 +82,6 @@ const _defaultFit = <String, _Fit>{
   'mustache': _Fit(0.5, 0.56, 1.1),
 };
 
-/// Accessories with real drawn art (instead of emoji placeholders); value is
-/// the assets/art base name. More pieces move here with each art drop.
-const _accessoryImages = <String, String>{
-  'mustache': 'acc_mustache',
-};
-
-/// Per-avatar overrides: body shapes differ, so hats/collars move.
-const _avatarFits = <String, Map<String, _Fit>>{
-  'sonatina': {
-    'beret': _Fit(0.24, 0.06, 1.0),
-    'bow_tie': _Fit(0.5, 0.72, 0.9),
-    'stadium_scarf': _Fit(0.5, 0.7, 1.1),
-    'mustache': _Fit(0.5, 0.52, 0.9),
-  },
-  'strawberry': {
-    'beret': _Fit(0.39, 0.16, 1.0),
-    'jar_crown': _Fit(0.5, 0.12, 1.0),
-    'crown_headset': _Fit(0.5, 0.13, 1.0),
-    'blue_shades': _Fit(0.5, 0.42, 0.9),
-    'star_shades': _Fit(0.5, 0.42, 0.9),
-    'mustache': _Fit(0.5, 0.56, 1.05),
-    'bow_tie': _Fit(0.5, 0.69, 0.9),
-    'bandana': _Fit(0.5, 0.7, 1.0),
-    'stadium_scarf': _Fit(0.5, 0.71, 1.1),
-    'leather_jacket': _Fit(0.5, 0.81, 1.2),
-    'champ_jacket': _Fit(0.5, 0.81, 1.2),
-  },
-  'jalapeno': {
-    'beret': _Fit(0.39, 0.13, 1.0),
-    'jar_crown': _Fit(0.5, 0.1, 1.0),
-    'crown_headset': _Fit(0.5, 0.11, 1.0),
-    'blue_shades': _Fit(0.5, 0.33, 0.9),
-    'star_shades': _Fit(0.5, 0.33, 0.9),
-    'mustache': _Fit(0.5, 0.45, 1.05),
-    'bow_tie': _Fit(0.5, 0.58, 0.9),
-    'bandana': _Fit(0.5, 0.59, 1.0),
-    'stadium_scarf': _Fit(0.5, 0.61, 1.1),
-    'leather_jacket': _Fit(0.5, 0.71, 1.2),
-    'champ_jacket': _Fit(0.5, 0.71, 1.2),
-  },
-  'grape': {
-    'beret': _Fit(0.38, 0.23, 1.0),
-    'jar_crown': _Fit(0.49, 0.2, 1.0),
-    'crown_headset': _Fit(0.49, 0.21, 1.0),
-    'blue_shades': _Fit(0.49, 0.39, 0.9),
-    'star_shades': _Fit(0.49, 0.39, 0.9),
-    'mustache': _Fit(0.5, 0.51, 1.05),
-    'bow_tie': _Fit(0.5, 0.64, 0.9),
-    'bandana': _Fit(0.5, 0.65, 1.0),
-    'stadium_scarf': _Fit(0.5, 0.67, 1.1),
-    'leather_jacket': _Fit(0.5, 0.77, 1.2),
-    'champ_jacket': _Fit(0.5, 0.77, 1.2),
-  },
-  'lemon': {
-    'beret': _Fit(0.39, 0.28, 1.0),
-    'jar_crown': _Fit(0.5, 0.25, 1.0),
-    'crown_headset': _Fit(0.5, 0.26, 1.0),
-    'blue_shades': _Fit(0.5, 0.42, 0.9),
-    'star_shades': _Fit(0.5, 0.42, 0.9),
-    'mustache': _Fit(0.5, 0.54, 1.05),
-    'bow_tie': _Fit(0.5, 0.67, 0.9),
-    'bandana': _Fit(0.5, 0.68, 1.0),
-    'stadium_scarf': _Fit(0.5, 0.7, 1.1),
-    'leather_jacket': _Fit(0.5, 0.8, 1.2),
-    'champ_jacket': _Fit(0.5, 0.8, 1.2),
-  },
-  'raspberry': {
-    'beret': _Fit(0.39, 0.22, 1.0),
-    'jar_crown': _Fit(0.5, 0.19, 1.0),
-    'crown_headset': _Fit(0.5, 0.2, 1.0),
-    'blue_shades': _Fit(0.5, 0.45, 0.9),
-    'star_shades': _Fit(0.5, 0.45, 0.9),
-    'mustache': _Fit(0.5, 0.62, 1.05),
-    'bow_tie': _Fit(0.5, 0.75, 0.9),
-    'bandana': _Fit(0.5, 0.76, 1.0),
-    'stadium_scarf': _Fit(0.5, 0.78, 1.1),
-    'leather_jacket': _Fit(0.5, 0.88, 1.2),
-    'champ_jacket': _Fit(0.5, 0.88, 1.2),
-  },
-  'blueberry': {
-    'beret': _Fit(0.39, 0.24, 1.0),
-    'jar_crown': _Fit(0.5, 0.21, 1.0),
-    'crown_headset': _Fit(0.5, 0.22, 1.0),
-    'blue_shades': _Fit(0.5, 0.45, 0.9),
-    'star_shades': _Fit(0.5, 0.45, 0.9),
-    'mustache': _Fit(0.5, 0.58, 1.05),
-    'bow_tie': _Fit(0.5, 0.71, 0.9),
-    'bandana': _Fit(0.5, 0.72, 1.0),
-    'stadium_scarf': _Fit(0.5, 0.74, 1.1),
-    'leather_jacket': _Fit(0.5, 0.84, 1.2),
-    'champ_jacket': _Fit(0.5, 0.84, 1.2),
-  },
-};
-
-/// An avatar wearing its saved outfit: the body art with each worn closet
-/// item pinned to its per-avatar anchor. Accessory art is emoji for now —
-/// each key swaps to a drawn/photo piece later without touching callers.
 class DressedAvatar extends StatelessWidget {
   const DressedAvatar(
       {super.key,
@@ -154,6 +101,7 @@ class DressedAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final body = berryArt(avatarKey, size) ??
         Text('🎵', style: TextStyle(fontSize: size * 0.7));
+    final worn = [...outfit]..sort((a, b) => _zOf(a).compareTo(_zOf(b)));
     return SizedBox(
       width: size,
       height: size,
@@ -161,7 +109,7 @@ class DressedAvatar extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Center(child: body),
-          for (final id in outfit) ..._place(id, opacity: 1),
+          for (final id in worn) ..._place(id, opacity: 1),
           if (ghost != null && !outfit.contains(ghost))
             ..._place(ghost!, opacity: 0.45),
         ],
@@ -172,10 +120,24 @@ class DressedAvatar extends StatelessWidget {
   List<Widget> _place(String id, {required double opacity}) {
     final acc = accessoryById(id);
     if (acc == null) return const [];
-    final fit = _avatarFits[avatarKey]?[id] ?? _defaultFit[id];
+    if (_tailoredAvatars.contains(avatarKey)) {
+      // Tailored overlay: same canvas as the body, so it aligns 1:1.
+      return [
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: opacity,
+              child: Image.asset('assets/art/acc_${id}_$avatarKey.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            ),
+          ),
+        ),
+      ];
+    }
+    final fit = _defaultFit[id];
     if (fit == null) return const [];
     final itemSize = size * 0.34 * fit.scale;
-    final image = _accessoryImages[id];
     return [
       Positioned(
         left: fit.dx * size - itemSize / 2,
@@ -183,11 +145,7 @@ class DressedAvatar extends StatelessWidget {
         child: IgnorePointer(
           child: Opacity(
             opacity: opacity,
-            child: image != null
-                ? Image.asset('assets/art/$image.png',
-                    width: itemSize, height: itemSize,
-                    fit: BoxFit.contain)
-                : Text(acc.emoji, style: TextStyle(fontSize: itemSize)),
+            child: Text(acc.emoji, style: TextStyle(fontSize: itemSize)),
           ),
         ),
       ),

@@ -31,7 +31,9 @@ Widget artAsset(String base,
     double? height,
     BoxFit fit = BoxFit.contain,
     Alignment alignment = Alignment.center}) {
-  if (finalPngArt.contains(base) || placeholderPngArt.contains(base)) {
+  if (finalPngArt.contains(base) ||
+      placeholderPngArt.contains(base) ||
+      base.startsWith('acc_')) {
     return Image.asset('assets/art/$base.png',
         width: width, height: height, fit: fit, alignment: alignment);
   }

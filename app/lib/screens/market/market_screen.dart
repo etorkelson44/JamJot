@@ -741,8 +741,8 @@ class _TourExclusivesStand extends ConsumerWidget {
                     if (!unlocked)
                       Container(color: Colors.white.withValues(alpha: 0.35)),
                     Center(
-                        child: Text(acc.emoji,
-                            style: const TextStyle(fontSize: 34))),
+                        child: artAsset('acc_icon_${acc.id}',
+                            width: 52, height: 52)),
                   ]),
                 ),
                 Expanded(

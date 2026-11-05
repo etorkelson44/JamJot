@@ -463,7 +463,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                   : affordable
                       ? 0.95
                       : 0.35,
-              child: Text(acc.emoji, style: const TextStyle(fontSize: 34)),
+              child: artAsset('acc_icon_${acc.id}', width: 44, height: 44),
             ),
             const SizedBox(height: 4),
             Text(acc.name,
@@ -547,7 +547,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       builder: (sheet) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(acc.emoji, style: const TextStyle(fontSize: 44)),
+          artAsset('acc_icon_${acc.id}', width: 58, height: 58),
           Text(acc.name,
               style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           if (acc.lore.isNotEmpty) ...[
