@@ -9,7 +9,7 @@ const musicalAvatars =
     emoji: '🍓'
   ),
   'jalapeno': (
-    name: 'Jalapresto',
+    name: 'Señor Jalapresto',
     description: 'As fast as it gets. As hot as it gets.',
     emoji: '🌶️'
   ),
