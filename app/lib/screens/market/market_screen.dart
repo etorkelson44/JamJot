@@ -517,7 +517,10 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                   style: text.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.w700)),
             ),
-            if (shopperId != null) JamJar(studentId: shopperId, big: true),
+            // Kids already carry the corner Jam Jar chip; the big header
+            // jar stays for grown-ups shopping on a kid's behalf.
+            if (shopperId != null && iAmGrownUp)
+              JamJar(studentId: shopperId, big: true),
           ]),
           const SizedBox(height: 4),
           Text(

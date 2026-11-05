@@ -42,9 +42,9 @@ class HomeScreen extends ConsumerWidget {
                     style: text.headlineMedium?.copyWith(
                         fontWeight: FontWeight.w700, letterSpacing: -0.5)),
               ),
-              // The corner profile chip (from the shell) is the one avatar
-              // icon here — it opens the profile switcher on this page.
-              const SizedBox(width: 48),
+              // The corner chips (Jam Jar + profile, from the shell) float
+              // here — reserve their width so the greeting clears them.
+              SizedBox(width: isKid ? 122 : 48),
             ],
           ),
           Text(

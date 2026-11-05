@@ -98,7 +98,24 @@ class _AppShellState extends ConsumerState<AppShell> {
           top: 0,
           right: 10,
           child: SafeArea(
-            child: _ProfileChip(
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              // The Jam Jar rides beside the profile chip on kid pages.
+              if (isKid) ...[
+                _JarChip(
+                  studentId: ref.watch(activeStudentProvider)?['id'] as String?,
+                  onTap: () async {
+                    if (shell.currentIndex == 1) {
+                      final guard =
+                          ref.read(practiceExitGuardProvider).beforeLeave;
+                      if (guard != null && !await guard()) return;
+                      if (!context.mounted) return;
+                    }
+                    shell.goBranch(3); // the Market
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
+              _ProfileChip(
               onHome: shell.currentIndex == 0,
               onTap: () async {
                 if (shell.currentIndex == 0) {
@@ -114,6 +131,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 shell.goBranch(0);
               },
             ),
+            ]),
           ),
         ),
       ]),
@@ -181,6 +199,54 @@ class _ProfileChip extends ConsumerWidget {
                 avatarKey: kid?['avatar_key'] as String?,
                 starterDefault: kid != null,
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+/// The Jam Jar companion to the profile chip: same scale, same corner,
+/// the kid's coins at a glance. Tapping it opens the Market.
+class _JarChip extends ConsumerWidget {
+  const _JarChip({required this.studentId, required this.onTap});
+  final String? studentId;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (studentId == null) return const SizedBox.shrink();
+    final balance =
+        ref.watch(berryBalanceProvider(studentId!)).valueOrNull;
+    return Semantics(
+      button: true,
+      label: 'Jam Jar, ${balance ?? 0} coins. Open the Market',
+      child: Tooltip(
+        message: 'Your Jam Jar · open the Market',
+        child: Material(
+          color: Colors.white,
+          shape: const StadiumBorder(
+              side: BorderSide(color: JamJotColors.ink, width: 2)),
+          elevation: 2,
+          shadowColor: Colors.black26,
+          child: InkWell(
+            customBorder: const StadiumBorder(),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                ExcludeSemantics(
+                    child: Image.asset('assets/art/jar_closed.png',
+                        height: 28, fit: BoxFit.contain)),
+                const SizedBox(width: 5),
+                Text('${balance ?? '…'}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: JamJotColors.ink)),
+              ]),
             ),
           ),
         ),
