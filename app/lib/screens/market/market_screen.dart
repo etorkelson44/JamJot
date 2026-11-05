@@ -554,6 +554,17 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                 i['kind'] != 'avatar')
               _itemTile(i, shopperId),
 
+          // -------------------------------------------- Tour exclusives
+          if (shopperId != null) ...[
+            _standHeader(text, '🚌', 'Tour exclusives'),
+            Text(
+                'One-of-a-kind pieces earned on the JamJot World Tour — '
+                'each one unlocks when you play its venue.',
+                style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+            const SizedBox(height: 6),
+            _TourExclusivesStand(studentId: shopperId),
+          ],
+
           // ----------------------------------------------- Teacher stands
           if (teacherItems.isNotEmpty || teacher != null)
             _standHeader(text, '🎵', "Teacher's stand",
@@ -679,5 +690,138 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         ],
       ),
     );
+  }
+}
+
+
+/// The venue-exclusive accessories, shown in the market as tour goals:
+/// each card carries its venue, its story, and how to earn it. Unlocked
+/// pieces can be bought here with coins; the rest are the reason to
+/// keep practicing.
+class _TourExclusivesStand extends ConsumerWidget {
+  const _TourExclusivesStand({required this.studentId});
+  final String studentId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+    final wardrobe = ref.watch(wardrobeProvider(studentId));
+    final coins =
+        ref.watch(berryBalanceProvider(studentId)).valueOrNull ?? 0;
+    final fans = displayedFans(ref, studentId);
+    final (level, _) = venueFor(fans);
+    final exclusives = [
+      for (final a in accessoryCatalog)
+        if (a.venueLevel != null && !a.bundleOnly) a
+    ];
+    return Column(children: [
+      for (final acc in exclusives)
+        Builder(builder: (context) {
+          final venue = venues[acc.venueLevel!];
+          final unlocked = level >= acc.venueLevel! + 1;
+          final owned = wardrobe.owned.contains(acc.id);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: unlocked ? venue.accent : JamJotColors.ink,
+                  width: 2),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // The venue the piece belongs to, as its backdrop.
+                SizedBox(
+                  width: 86,
+                  child: Stack(fit: StackFit.expand, children: [
+                    artAsset('venue_${acc.venueLevel}', fit: BoxFit.cover),
+                    if (!unlocked)
+                      Container(color: Colors.white.withValues(alpha: 0.35)),
+                    Center(
+                        child: Text(acc.emoji,
+                            style: const TextStyle(fontSize: 34))),
+                  ]),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Expanded(
+                            child: Text(acc.name,
+                                style: text.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800)),
+                          ),
+                          if (owned)
+                            Text('In your closet ✓',
+                                style: text.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: venue.accent))
+                          else if (unlocked)
+                            Text('🪙 ${acc.price}',
+                                style: text.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w800))
+                          else
+                            Text('🔒 🕶️ ${venue.minFans}',
+                                style: text.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w800)),
+                        ]),
+                        const SizedBox(height: 2),
+                        Text('${venue.motif} A ${venue.name} exclusive',
+                            style: text.labelSmall
+                                ?.copyWith(fontWeight: FontWeight.w700)),
+                        if (acc.lore.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(acc.lore,
+                              style: text.labelSmall?.copyWith(
+                                  fontStyle: FontStyle.italic,
+                                  color: JamJotColors.inkSoft)),
+                        ],
+                        const SizedBox(height: 6),
+                        if (owned)
+                          Text('Dress any band member in the Dressing Room.',
+                              style: text.labelSmall)
+                        else if (unlocked && coins >= acc.price)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: FilledButton(
+                              style: FilledButton.styleFrom(
+                                  visualDensity: VisualDensity.compact),
+                              onPressed: () {
+                                ref
+                                    .read(wardrobeProvider(studentId)
+                                        .notifier)
+                                    .acquire(acc.id);
+                                playSound('pop');
+                              },
+                              child:
+                                  Text('Add to closet — ${acc.price} 🪙'),
+                            ),
+                          )
+                        else if (unlocked)
+                          Text(
+                              'Earn ${acc.price - coins} more coin'
+                              '${acc.price - coins == 1 ? '' : 's'} in '
+                              'practice to bring it home.',
+                              style: text.labelSmall)
+                        else
+                          Text(
+                              'Play ${venue.name} to unlock — '
+                              '${venue.minFans - fans > 0 ? '${venue.minFans - fans} more fans to go!' : 'almost there!'}',
+                              style: text.labelSmall),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+    ]);
   }
 }
