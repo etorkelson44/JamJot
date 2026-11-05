@@ -17,7 +17,6 @@ const placeholderPngArt = <String>{
   'avatar_raspberry',
   'avatar_blueberry',
   'avatar_sonatina', // JJ-011/JJ-012 starter: founder's seed photo, rigged
-  'acc_mustache', // Jalapresto's bundled accessory
   'brand_tisdale', // Tisdale Applications imprint
   'crowd_color', // fan crowd silhouettes (founder reference style)
   'crowd_black',
