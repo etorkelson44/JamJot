@@ -112,11 +112,45 @@
             tone(c, 1046, 0, 0.09, 'square', 0.08);
             tone(c, 1568, 0.07, 0.22, 'square', 0.08);
           } else if (name === 'cheer') {
-            noise(c, 0, 1.1, 0.16, 1000);
-            noise(c, 0.1, 0.9, 0.1, 2600);
-            // a couple of whistles in the crowd
-            tone(c, 1800, 0.15, 0.3, 'sine', 0.035, 2600);
-            tone(c, 2200, 0.5, 0.25, 'sine', 0.03, 1700);
+            // A real crowd: a voice-band roar that swells and wavers,
+            // a shower of hand-claps, a few shouts and one whistle.
+            var roar = function (freq, start, dur, vol) {
+              var len = Math.floor(c.sampleRate * dur);
+              var buf = c.createBuffer(1, len, c.sampleRate);
+              var d = buf.getChannelData(0);
+              for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+              var src = c.createBufferSource();
+              src.buffer = buf;
+              var fl = c.createBiquadFilter();
+              fl.type = 'bandpass';
+              fl.frequency.value = freq;
+              fl.Q.value = 0.6;
+              var g = c.createGain();
+              var t0 = c.currentTime + start;
+              g.gain.setValueAtTime(0.001, t0);
+              g.gain.linearRampToValueAtTime(vol, t0 + dur * 0.22);
+              // the crowd wavers rather than fading evenly
+              g.gain.linearRampToValueAtTime(vol * 0.55, t0 + dur * 0.45);
+              g.gain.linearRampToValueAtTime(vol * 0.85, t0 + dur * 0.62);
+              g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+              src.connect(fl).connect(g).connect(c.destination);
+              src.start(t0);
+            };
+            roar(420, 0, 1.6, 0.20);   // the deep "aaah"
+            roar(750, 0.04, 1.5, 0.13);
+            roar(1300, 0.08, 1.2, 0.055);
+            // applause: a shower of tiny claps, denser at the start
+            for (var k = 0; k < 26; k++) {
+              var when = Math.pow(Math.random(), 1.6) * 1.3;
+              noise(c, 0.05 + when, 0.018 + Math.random() * 0.02,
+                    0.05 + Math.random() * 0.05,
+                    2400 + Math.random() * 2200);
+            }
+            // a few short shouts rising out of the roar
+            tone(c, 330 + Math.random() * 60, 0.22, 0.14, 'sawtooth', 0.035, 500);
+            tone(c, 290 + Math.random() * 50, 0.55, 0.12, 'sawtooth', 0.03, 430);
+            // one whistle
+            tone(c, 1900, 0.4, 0.3, 'sine', 0.03, 2700);
           } else if (name === 'fanfare') {
             tone(c, 523, 0, 0.16, 'triangle', 0.16);
             tone(c, 659, 0.14, 0.16, 'triangle', 0.16);
