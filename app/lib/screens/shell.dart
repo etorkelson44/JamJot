@@ -8,6 +8,7 @@ import '../services/session_flags.dart';
 import '../services/practice_navigation.dart';
 import '../theme/jamjot_theme.dart';
 import '../widgets/jamjot_icons.dart';
+import '../widgets/letter_avatar.dart';
 
 /// The bottom-tab shell. Tabs follow who's signed in:
 /// kids:      Home · Practice · Market · Calendar
@@ -73,8 +74,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                 icon: Icon(JamJotIcons.market), label: 'Market'),
             NavigationDestination(
                 icon: Icon(JamJotIcons.calendar), label: 'Calendar'),
-            NavigationDestination(
-                icon: Icon(Icons.switch_account_outlined), label: 'Switch'),
           ]
         : const [
             NavigationDestination(icon: Icon(JamJotIcons.home), label: 'Home'),
@@ -84,8 +83,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                 icon: Icon(JamJotIcons.market), label: 'Market'),
             NavigationDestination(
                 icon: Icon(JamJotIcons.calendar), label: 'Calendar'),
-            NavigationDestination(
-                icon: Icon(Icons.switch_account_outlined), label: 'Switch'),
           ];
 
     return Listener(
@@ -93,7 +90,33 @@ class _AppShellState extends ConsumerState<AppShell> {
         if (isKid) touchActiveSession();
       },
       child: Scaffold(
-      body: shell,
+      body: Stack(children: [
+        shell,
+        // The profile chip in the top-right corner: anywhere in the app it
+        // brings you home; on Home itself it opens the profile switcher.
+        Positioned(
+          top: 0,
+          right: 10,
+          child: SafeArea(
+            child: _ProfileChip(
+              onHome: shell.currentIndex == 0,
+              onTap: () async {
+                if (shell.currentIndex == 0) {
+                  context.go('/profiles');
+                  return;
+                }
+                if (shell.currentIndex == 1) {
+                  final guard =
+                      ref.read(practiceExitGuardProvider).beforeLeave;
+                  if (guard != null && !await guard()) return;
+                  if (!context.mounted) return;
+                }
+                shell.goBranch(0);
+              },
+            ),
+          ),
+        ),
+      ]),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -102,19 +125,12 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: NavigationBar(
           selectedIndex: selected,
           onDestinationSelected: (i) async {
-            // The last entry is "Switch profile" — available on every page.
-            final leavingPractice = shell.currentIndex == 1 &&
-                (i >= branches.length || branches[i] != 1);
-            if (leavingPractice) {
+            final target = branches[i];
+            if (shell.currentIndex == 1 && target != 1) {
               final guard = ref.read(practiceExitGuardProvider).beforeLeave;
               if (guard != null && !await guard()) return;
               if (!context.mounted) return;
             }
-            if (i >= branches.length) {
-              context.go('/profiles');
-              return;
-            }
-            final target = branches[i];
             shell.goBranch(target,
                 initialLocation: target == shell.currentIndex);
           },
@@ -123,6 +139,52 @@ class _AppShellState extends ConsumerState<AppShell> {
         ),
       ),
     ),
+    );
+  }
+}
+
+
+/// The round profile icon that rides in the top-right corner of every
+/// page: the kid's own avatar (or the grown-up's initial), ringed in ink.
+class _ProfileChip extends ConsumerWidget {
+  const _ProfileChip({required this.onTap, required this.onHome});
+  final VoidCallback onTap;
+  final bool onHome;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final kid = ref.watch(activeStudentProvider);
+    final profile = ref.watch(myProfileProvider).valueOrNull;
+    final name = kid?['display_name'] as String? ??
+        profile?['display_name'] as String? ??
+        '?';
+    final label = onHome ? 'Switch profile' : 'Back to Home';
+    return Semantics(
+      button: true,
+      label: label,
+      child: Tooltip(
+        message: label,
+        child: Material(
+          color: Colors.white,
+          shape: const CircleBorder(
+              side: BorderSide(color: JamJotColors.ink, width: 2)),
+          elevation: 2,
+          shadowColor: Colors.black26,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(3),
+              child: LetterAvatar(
+                name: name,
+                size: 34,
+                avatarKey: kid?['avatar_key'] as String?,
+                starterDefault: kid != null,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
