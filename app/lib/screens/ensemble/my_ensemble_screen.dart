@@ -283,7 +283,16 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       Wardrobe wardrobe, int coins, int level) {
     final text = Theme.of(context).textTheme;
     final outfit = wardrobe.outfitFor(wornKey);
-    return ListView(
+    return Container(
+      // Backstage: deep velvet walls behind everything.
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF55303C), Color(0xFF3A2029)],
+        ),
+      ),
+      child: ListView(
       padding: const EdgeInsets.all(16),
       children: [
         // The backstage mirror: a star on the door, bulbs up top, and a
@@ -302,12 +311,69 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
           ),
           child: Column(children: [
             const _MirrorBulbs(),
-            const SizedBox(height: 6),
-            DressedAvatar(
-                avatarKey: wornKey,
-                outfit: outfit,
-                ghost: _ghost,
-                size: 170),
+            const SizedBox(height: 8),
+            // The looking glass: an arched mirror with bulbs down the sides.
+            Stack(alignment: Alignment.center, children: [
+              Container(
+                width: 230,
+                height: 212,
+                decoration: BoxDecoration(
+                  gradient: const RadialGradient(
+                    center: Alignment(-0.4, -0.5),
+                    radius: 1.2,
+                    colors: [Color(0xFFFEFCF5), Color(0xFFDFE5E2)],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(115), bottom: Radius.circular(18)),
+                  border: Border.all(color: const Color(0xFF8A5A33), width: 5),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x33000000), blurRadius: 8),
+                  ],
+                ),
+              ),
+              for (final side in const [-1, 1])
+                for (var i = 0; i < 3; i++)
+                  Positioned(
+                    left: side < 0 ? 12 : null,
+                    right: side > 0 ? 12 : null,
+                    top: 42 + i * 58.0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                            colors: [Color(0xFFFFF3C2), Color(0xFFF5B82E)]),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Color(0x66F5B82E),
+                              blurRadius: 9,
+                              spreadRadius: 1),
+                        ],
+                      ),
+                    ),
+                  ),
+              DressedAvatar(
+                  avatarKey: wornKey,
+                  outfit: outfit,
+                  ghost: _ghost,
+                  size: 170),
+            ]),
+            const SizedBox(height: 2),
+            // The vanity shelf under the glass, props and all.
+            Container(
+              width: 250,
+              height: 14,
+              decoration: BoxDecoration(
+                color: const Color(0xFF8A5A33),
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: JamJotColors.ink, width: 1.5),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Text('🎀  🪮  🧴', style: TextStyle(fontSize: 13)),
+            ),
             const SizedBox(height: 8),
             // The star's name plate.
             Container(
@@ -336,14 +402,17 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         Row(children: [
           Expanded(
             child: Text('The Costume Rack',
-                style: text.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                style: text.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800, color: Colors.white)),
           ),
           Text(
               '${wardrobe.owned.length} of ${accessoryCatalog.length} collected',
-              style: text.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
+              style: text.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFF5B82E))),
         ]),
         Text('Everything you own dresses ANY band member. 🪙 $coins to spend.',
-            style: text.bodySmall),
+            style: text.bodySmall?.copyWith(color: const Color(0xFFE8D7C3))),
         const SizedBox(height: 8),
         // The rail the costumes hang from.
         Padding(
@@ -375,7 +444,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
-          childAspectRatio: 0.82,
+          childAspectRatio: 0.74,
           children: [
             for (final acc in accessoryCatalog)
               _closetTile(context, sid, wornKey, wardrobe, acc, coins, level),
@@ -411,9 +480,11 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         Text(
           'Closet ownership is saved on this device for the preview — it moves '
           'to the student\'s account with the venue-world backend.',
-          style: text.labelSmall?.copyWith(color: JamJotColors.inkSoft),
+          style: text.labelSmall
+              ?.copyWith(color: const Color(0xFFE8D7C3)),
         ),
       ],
+    ),
     );
   }
 
@@ -427,6 +498,17 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
     final affordable =
         !owned && !venueLocked && !acc.bundleOnly && coins >= acc.price;
     // The story behind the piece: hover on desktop, long-press on touch.
+    final hanger = Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: 9,
+        height: 9,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFD9C9A8), width: 2.5),
+        ),
+      ),
+      Container(width: 2.5, height: 5, color: const Color(0xFFD9C9A8)),
+    ]);
     final tile = InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
@@ -504,7 +586,11 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         ),
       ),
     );
-    if (acc.lore.isEmpty) return tile;
+    final hung = Column(mainAxisSize: MainAxisSize.min, children: [
+      hanger,
+      Expanded(child: tile),
+    ]);
+    if (acc.lore.isEmpty) return hung;
     return Tooltip(
       message: '${acc.emoji} ${acc.name}\n${acc.lore}',
       waitDuration: const Duration(milliseconds: 400),
@@ -515,7 +601,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         color: JamJotColors.ink,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: tile,
+      child: hung,
     );
   }
 

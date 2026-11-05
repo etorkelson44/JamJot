@@ -11,7 +11,6 @@ import '../../widgets/coin_pouch.dart';
 import '../../widgets/fan_stage.dart';
 import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
 import '../../widgets/jamjot_card.dart';
-import '../../widgets/letter_avatar.dart';
 import '../../widgets/ask_maestro.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -43,15 +42,9 @@ class HomeScreen extends ConsumerWidget {
                     style: text.headlineMedium?.copyWith(
                         fontWeight: FontWeight.w700, letterSpacing: -0.5)),
               ),
-              IconButton(
-                tooltip: 'Switch profile',
-                onPressed: () => context.go('/profiles'),
-                icon: LetterAvatar(
-                    name: greetingName,
-                    size: 40,
-                    avatarKey: active?['avatar_key'] as String?,
-                    starterDefault: active != null),
-              ),
+              // The corner profile chip (from the shell) is the one avatar
+              // icon here — it opens the profile switcher on this page.
+              const SizedBox(width: 48),
             ],
           ),
           Text(
