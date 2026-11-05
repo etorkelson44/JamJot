@@ -4,7 +4,7 @@
 const musicalAvatars =
     <String, ({String name, String description, String emoji})>{
   'strawberry': (
-    name: 'Strawberry Staccato',
+    name: 'Ms. Straw-ccato',
     description: 'Short and sweet!',
     emoji: '🍓'
   ),
