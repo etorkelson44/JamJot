@@ -154,9 +154,20 @@ class JarStill extends StatelessWidget {
         Image.asset('assets/art/jar_closed.png',
             width: width, height: height, fit: BoxFit.contain),
         if (balance > 0)
-          Align(
-              alignment: const Alignment(0, 0.72),
-              child: _CoinsInside(jarWidth: width)),
+          // The coins live in the clear glass BELOW the JAM label: this
+          // clip is that band, so a tall pile disappears behind the label
+          // instead of floating in front of it.
+          Positioned(
+            left: width * 0.16,
+            right: width * 0.16,
+            top: height * 0.735,
+            bottom: height * 0.065,
+            child: ClipRect(
+              child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: _CoinsInside(jarWidth: width)),
+            ),
+          ),
       ]),
     );
   }
