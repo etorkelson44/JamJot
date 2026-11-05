@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/app_state.dart';
 import '../state/wardrobe.dart';
 import 'dressed_avatar.dart';
+import 'strawccato_piano.dart';
 
 /// Instrument props the avatar can play (placeholder art — each swaps to a
 /// drawn piece with the art pass, same keys).
@@ -45,9 +46,15 @@ String _propFor(String? instrument) {
 /// a gentle 3/4-time sway, the instrument at their hands, and music notes
 /// floating up while they play.
 class PerformingAvatar extends ConsumerStatefulWidget {
-  const PerformingAvatar({super.key, this.size = 84, this.instrument});
+  const PerformingAvatar(
+      {super.key, this.size = 84, this.instrument, this.playing = true});
 
   final double size;
+
+  /// Whether real sound is being made right now (the practice screen's
+  /// mic gate). Ms. Straw-ccato's piano scene eases between still and
+  /// playing on this; other avatars keep their usual sway.
+  final bool playing;
 
   /// The instrument being practiced; falls back to the student's first
   /// listed instrument, then to a plain music note.
@@ -83,6 +90,11 @@ class _PerformingAvatarState extends ConsumerState<PerformingAvatar>
     final outfit = sid == null
         ? const <String>[]
         : ref.watch(wardrobeProvider(sid)).outfitFor(wornKey);
+    // Ms. Straw-ccato performs at her own piano (founder art, JJ-021 era):
+    // still while the room is quiet, playing while sound is detected.
+    if (wornKey == 'strawberry') {
+      return StrawccatoPiano(playing: widget.playing, height: widget.size * 1.35);
+    }
     final instruments = (active?['instruments'] as List?)?.cast<String>();
     final prop = _propFor(widget.instrument ??
         (instruments != null && instruments.isNotEmpty

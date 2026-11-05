@@ -1202,7 +1202,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           children: [
             // The kid's own avatar performs on their instrument while the
             // timer listens (JJ-012/JJ-014).
-            const PerformingAvatar(size: 76),
+            PerformingAvatar(size: 76, playing: _soundNow),
             const SizedBox(width: 12),
             Text(_fmt(_activeSeconds),
                 style:
