@@ -70,7 +70,7 @@ const accessoryCatalog = <Accessory>[
       lore: 'Open-air shows in the mountain sun call for a bandana — Red '
           'Jam Rocks style.'),
   Accessory('hiking_boots', 'Hiking Boots', '🥾', 30, venueLevel: 5,
-      lore: 'Red Jam Rocks is carved into a real mountainside — artists '
+      lore: 'Red Rocks Jamphitheatre is carved into a real mountainside — artists '
           'literally hike to this stage.'),
   Accessory('star_shades', 'Star Shades', '⭐', 40, venueLevel: 6,
       lore: 'Under the Hollyberry night sky, the stars wear stars.'),
