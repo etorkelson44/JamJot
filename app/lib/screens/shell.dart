@@ -72,6 +72,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                 icon: Icon(JamJotIcons.market), label: 'Market'),
             NavigationDestination(
                 icon: Icon(JamJotIcons.calendar), label: 'Calendar'),
+            NavigationDestination(
+                icon: Icon(Icons.switch_account_outlined), label: 'Switch'),
           ]
         : const [
             NavigationDestination(icon: Icon(JamJotIcons.home), label: 'Home'),
@@ -81,6 +83,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                 icon: Icon(JamJotIcons.market), label: 'Market'),
             NavigationDestination(
                 icon: Icon(JamJotIcons.calendar), label: 'Calendar'),
+            NavigationDestination(
+                icon: Icon(Icons.switch_account_outlined), label: 'Switch'),
           ];
 
     return Listener(
@@ -97,12 +101,19 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: NavigationBar(
           selectedIndex: selected,
           onDestinationSelected: (i) async {
-            final target = branches[i];
-            if (shell.currentIndex == 1 && target != 1) {
+            // The last entry is "Switch profile" — available on every page.
+            final leavingPractice = shell.currentIndex == 1 &&
+                (i >= branches.length || branches[i] != 1);
+            if (leavingPractice) {
               final guard = ref.read(practiceExitGuardProvider).beforeLeave;
               if (guard != null && !await guard()) return;
               if (!context.mounted) return;
             }
+            if (i >= branches.length) {
+              context.go('/profiles');
+              return;
+            }
+            final target = branches[i];
             shell.goBranch(target,
                 initialLocation: target == shell.currentIndex);
           },
