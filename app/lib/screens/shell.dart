@@ -40,7 +40,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     _idleCheck = Timer.periodic(const Duration(minutes: 1), (_) {
       if (!mounted) return;
       if (ref.read(activeStudentProvider) == null) return;
-      if (freshActiveStudent(kidSessionIdle) == null) {
+      final fresh = freshActiveStudent(kidSessionIdle);
+      if (fresh == null || fresh == grownUpSession) {
         ref.read(activeStudentProvider.notifier).state = null;
         storeActiveStudent(null);
         if (mounted) context.go('/profiles');

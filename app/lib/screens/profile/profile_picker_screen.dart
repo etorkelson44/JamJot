@@ -31,7 +31,7 @@ class ProfilePickerScreen extends ConsumerWidget {
     }
     if (!context.mounted) return;
     ref.read(activeStudentProvider.notifier).state = null;
-    storeActiveStudent(null);
+    storeActiveStudent(grownUpSession);
     await rememberActiveStudent(null);
     if (context.mounted) context.go(destination);
   }

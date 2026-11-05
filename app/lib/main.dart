@@ -114,6 +114,14 @@ final _router = GoRouter(
           loc != '/gate' &&
           loc != '/invite' &&
           loc != '/reset-password') {
+        // Remember where they were: if their session is still fresh, the
+        // gate sends them straight back instead of the profile picker.
+        if (loc != '/' &&
+            loc != '/signin' &&
+            !loc.contains('access_token') &&
+            !loc.contains('error_code')) {
+          bootTarget = state.uri.toString();
+        }
         return '/gate';
       }
     }

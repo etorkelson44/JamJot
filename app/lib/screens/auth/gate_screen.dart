@@ -48,9 +48,17 @@ class _GateScreenState extends ConsumerState<GateScreen> {
         context.go('/onboarding');
       }
     } else {
-      // A refresh mid-session shouldn't dump the kid back on the profile
-      // picker: restore the same profile if this tab was active recently.
+      // A refresh mid-session shouldn't dump anyone back on the profile
+      // picker: restore the same profile AND the same page if this tab
+      // was active recently.
       final storedId = freshActiveStudent(kidSessionIdle);
+      final target = bootTarget;
+      bootTarget = null;
+      if (storedId == grownUpSession) {
+        touchActiveSession();
+        context.go(target ?? '/home');
+        return;
+      }
       if (storedId != null) {
         Map<String, dynamic>? kid;
         for (final s in students) {
@@ -59,7 +67,7 @@ class _GateScreenState extends ConsumerState<GateScreen> {
         if (kid != null) {
           ref.read(activeStudentProvider.notifier).state = kid;
           touchActiveSession();
-          context.go('/home');
+          context.go(target ?? '/home');
           return;
         }
       }
