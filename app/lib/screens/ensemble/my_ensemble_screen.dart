@@ -286,13 +286,19 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // The backstage mirror, framed in lightbulbs.
+        // The backstage mirror: a star on the door, bulbs up top, and a
+        // brass name plate under the glass.
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: const Color(0xFFFFF8E7),
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: JamJotColors.ink, width: 3),
+            border: Border.all(color: venueFor(displayedFans(ref, sid)).$2.accent,
+                width: 3),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x33F5B82E), blurRadius: 18, spreadRadius: 2),
+            ],
           ),
           child: Column(children: [
             const _MirrorBulbs(),
@@ -302,9 +308,23 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                 outfit: outfit,
                 ghost: _ghost,
                 size: 170),
-            const SizedBox(height: 6),
-            Text(_avatarName(wornKey),
-                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            // The star's name plate.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5E6BC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: JamJotColors.ink, width: 2),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Text('⭐ ', style: TextStyle(fontSize: 13)),
+                Text(_avatarName(wornKey),
+                    style: text.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800)),
+              ]),
+            ),
+            const SizedBox(height: 4),
             Text(
                 outfit.isEmpty
                     ? 'Fresh from the garden — try something on!'
@@ -313,11 +333,42 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
           ]),
         ),
         const SizedBox(height: 14),
-        Text('The Closet',
-            style: text.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        Row(children: [
+          Expanded(
+            child: Text('The Costume Rack',
+                style: text.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          ),
+          Text(
+              '${wardrobe.owned.length} of ${accessoryCatalog.length} collected',
+              style: text.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
+        ]),
         Text('Everything you own dresses ANY band member. 🪙 $coins to spend.',
             style: text.bodySmall),
         const SizedBox(height: 8),
+        // The rail the costumes hang from.
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Column(children: [
+            Container(
+              height: 7,
+              decoration: BoxDecoration(
+                color: const Color(0xFF8A5A33),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: JamJotColors.ink, width: 1.5),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (var i = 0; i < 3; i++)
+                  Container(
+                      width: 2.5,
+                      height: 8,
+                      color: JamJotColors.ink.withValues(alpha: 0.6)),
+              ],
+            ),
+          ]),
+        ),
         GridView.count(
           crossAxisCount: 3,
           shrinkWrap: true,
@@ -331,6 +382,32 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
           ],
         ),
         const SizedBox(height: 10),
+        // A backstage word from the maestro.
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: JamJotColors.ink, width: 2),
+          ),
+          child: Row(children: [
+            Image.asset('assets/mascot/maestro_tux.png', width: 34),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                wardrobe.owned.length >= accessoryCatalog.length
+                    ? '"A full wardrobe! Magnifique — now THAT is a star." '
+                        '— Maestro Marmalade'
+                    : '"Every great performer starts with one good hat. '
+                        'Keep practicing and the closet fills itself!" '
+                        '— Maestro Marmalade',
+                style:
+                    text.labelSmall?.copyWith(fontStyle: FontStyle.italic),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 8),
         Text(
           'Closet ownership is saved on this device for the preview — it moves '
           'to the student\'s account with the venue-world backend.',
@@ -555,13 +632,49 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
     final text = Theme.of(context).textTheme;
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: venues.length,
-      itemBuilder: (context, i) {
+      itemCount: venues.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          // The tour poster: the bus, and how far the journey has come.
+          final next = level < venues.length ? venues[level] : null;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E7),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: JamJotColors.ink, width: 3),
+            ),
+            child: Row(children: [
+              const _RollingBus(width: 96),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('The JamJot World Tour',
+                        style: text.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 2),
+                    Text(
+                        next == null
+                            ? 'All $level stages played — you did the '
+                                'whole tour! 🎉'
+                            : '$level of ${venues.length} stages played · '
+                                'next stop: ${next.name}',
+                        style: text.bodySmall),
+                  ],
+                ),
+              ),
+            ]),
+          );
+        }
+        final i = index - 1;
         final v = venues[i];
         final played = level >= i + 1;
         final current = level == i + 1;
         final isNext = level == i;
-        return Opacity(
+        final card = Opacity(
           opacity: played || isNext ? 1 : 0.5,
           child: Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -579,13 +692,13 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                   : null,
               child: Column(children: [
                 SizedBox(
-                  height: 80,
+                  height: 96,
                   width: double.infinity,
                   child: Stack(fit: StackFit.expand, children: [
                     artAsset('venue_$i', fit: BoxFit.cover),
                     if (!played)
                       Container(
-                          color: Colors.white.withValues(alpha: 0.55)),
+                          color: Colors.white.withValues(alpha: 0.30)),
                   ]),
                 ),
                 Padding(
@@ -613,6 +726,12 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                               style: text.labelSmall
                                   ?.copyWith(fontWeight: FontWeight.w800)),
                       ]),
+                      if (v.lore.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(v.lore,
+                            style: text.bodySmall?.copyWith(
+                                fontStyle: FontStyle.italic)),
+                      ],
                       if (played || isNext) ...[
                         const SizedBox(height: 4),
                         Text(v.realStage, style: text.bodySmall),
@@ -634,6 +753,24 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
               ]),
             ),
           ),
+        );
+        // The journey path runs down the left: traveled road behind the
+        // bus, dotted road ahead.
+        return IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            SizedBox(
+              width: 52,
+              child: _TourPathNode(
+                stop: i + 1,
+                played: played,
+                current: current,
+                accent: v.accent,
+                first: i == 0,
+                last: i == venues.length - 1,
+              ),
+            ),
+            Expanded(child: card),
+          ]),
         );
       },
     );
@@ -850,4 +987,137 @@ class _CheerBurstState extends State<_CheerBurst>
       child: widget.child,
     );
   }
+}
+
+
+/// One stop on the tour path: road above and below, and either a stamped
+/// stop dot or the tour bus parked at the current stage.
+class _TourPathNode extends StatelessWidget {
+  const _TourPathNode(
+      {required this.stop,
+      required this.played,
+      required this.current,
+      required this.accent,
+      required this.first,
+      required this.last});
+  final int stop;
+  final bool played;
+  final bool current;
+  final Color accent;
+  final bool first;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    final roadDone = JamJotColors.ink;
+    final roadAhead = JamJotColors.ink.withValues(alpha: 0.25);
+    return Column(children: [
+      Expanded(
+          child: first
+              ? const SizedBox.shrink()
+              : _Road(color: played ? roadDone : roadAhead, dashed: !played)),
+      if (current)
+        const _RollingBus(width: 58)
+      else
+        Container(
+          width: 26,
+          height: 26,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: played ? accent : Colors.white,
+            border: Border.all(
+                color: played ? JamJotColors.ink : roadAhead, width: 2.5),
+          ),
+          child: played
+              ? const Icon(Icons.check, size: 15, color: Colors.white)
+              : Text('$stop',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: roadAhead)),
+        ),
+      Expanded(
+          child: last
+              ? const SizedBox.shrink()
+              : _Road(
+                  color: played && !current ? roadDone : roadAhead,
+                  dashed: !(played && !current))),
+    ]);
+  }
+}
+
+/// A short stretch of tour road: solid where the bus has been, dotted ahead.
+class _Road extends StatelessWidget {
+  const _Road({required this.color, required this.dashed});
+  final Color color;
+  final bool dashed;
+  @override
+  Widget build(BuildContext context) =>
+      CustomPaint(size: const Size(4, double.infinity),
+          painter: _RoadPainter(color, dashed));
+}
+
+class _RoadPainter extends CustomPainter {
+  const _RoadPainter(this.color, this.dashed);
+  final Color color;
+  final bool dashed;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 3.5
+      ..strokeCap = StrokeCap.round;
+    final x = size.width / 2;
+    if (!dashed) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      return;
+    }
+    var y = 2.0;
+    while (y < size.height) {
+      canvas.drawLine(Offset(x, y), Offset(x, (y + 6).clamp(0, size.height)),
+          paint);
+      y += 13;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RoadPainter old) =>
+      old.color != color || old.dashed != dashed;
+}
+
+/// The JamJot tour bus, rolling gently in place.
+class _RollingBus extends StatefulWidget {
+  const _RollingBus({required this.width});
+  final double width;
+  @override
+  State<_RollingBus> createState() => _RollingBusState();
+}
+
+class _RollingBusState extends State<_RollingBus>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _roll = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1600))
+    ..repeat();
+  @override
+  void dispose() {
+    _roll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _roll,
+        builder: (context, child) {
+          final t = _roll.value * 2 * math.pi;
+          return Transform.translate(
+            offset: Offset(0, math.sin(t * 2) * 1.5),
+            child: Transform.rotate(angle: math.sin(t) * 0.02, child: child),
+          );
+        },
+        child: Semantics(
+          label: 'The JamJot tour bus — you are here',
+          child: artAsset('tour_bus', width: widget.width),
+        ),
+      );
 }

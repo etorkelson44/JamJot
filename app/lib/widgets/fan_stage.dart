@@ -21,7 +21,11 @@ class Venue {
       {required this.accent,
       required this.motif,
       required this.realStage,
-      required this.exclusives});
+      required this.exclusives,
+      this.lore = ''});
+
+  /// A kid-facing line of personality for the Tour page.
+  final String lore;
   final int minFans;
   final String name;
   final String scene; // emoji marker
@@ -49,6 +53,8 @@ const venues = [
           'After the Village Vanguard in New York — a basement jazz club open '
           'since 1935 that seats only about 120, where legends like John '
           'Coltrane recorded live albums.',
+      lore:
+          'Where every band begins: a candle-lit cellar, ten loyal fans, and butterflies before the first song.',
       exclusives: ['beret', 'candle']),
   Venue(30, 'The Blue Note Berry', '🎷', Color(0xFF3A4A7A), Color(0xFF232B4A),
       accent: Color(0xFF4A5FAE),
@@ -56,6 +62,8 @@ const venues = [
       realStage:
           'After the Blue Note in Greenwich Village — around 200 seats, a '
           'nightly stop for the world\'s top jazz players since 1981.',
+      lore:
+          'A smoky-blue jazz room where the sax never sleeps and the cool kids snap instead of clap.',
       exclusives: ['blue_shades', 'bass_pin']),
   Venue(80, 'The Raspberry Roxy', '💡', Color(0xFF4B4668), Color(0xFF2A2546),
       accent: Color(0xFFE57BA0),
@@ -64,6 +72,8 @@ const venues = [
           'After The Roxy on the Sunset Strip in Los Angeles — a 500-person '
           'club where new acts have launched since 1973; Bob Marley recorded '
           'a famous live set there.',
+      lore:
+          'Velvet walls, a glowing marquee — and tonight, your name is on it.',
       exclusives: ['leather_jacket', 'nameplate']),
   Venue(180, 'The Jampollo Theater', '🌟', Color(0xFF4B4668), Color(0xFF2E2A4A),
       accent: Color(0xFFFFD66B),
@@ -72,6 +82,8 @@ const venues = [
           'After the Apollo Theater in Harlem — about 1,500 seats, home of '
           'Amateur Night since 1934, where Ella Fitzgerald and James Brown '
           'broke through.',
+      lore:
+          'The legendary stage where stars are born. Bring your very best.',
       exclusives: ['bow_tie', 'golden_mic']),
   Venue(350, 'Jarnegie Hall', '🏛️', Color(0xFFE4ECF9), Color(0xFFBDD1F0),
       accent: Color(0xFFF2B747),
@@ -79,6 +91,8 @@ const venues = [
       realStage:
           'After Carnegie Hall in New York — roughly 2,800 seats, opened in '
           '1891 with Tchaikovsky conducting. How do you get there? Practice!',
+      lore:
+          'How do you get here? Practice, practice, practice.',
       exclusives: ['white_gloves', 'baton']),
   Venue(600, 'Red Jam Rocks', '⛰️', Color(0xFFFFD9A0), Color(0xFFF6A46B),
       accent: Color(0xFFC96F4A),
@@ -86,6 +100,8 @@ const venues = [
       realStage:
           'After Red Rocks Amphitheatre near Denver — about 9,500 seats '
           'carved between two enormous red sandstone slabs, under open sky.',
+      lore:
+          'An open-air amphitheater carved into berry-red cliffs, under a sky full of stars.',
       exclusives: ['bandana', 'hiking_boots']),
   Venue(1000, 'The Hollyberry Bowl', '🎆', Color(0xFF3A4A7A), Color(0xFF1B244A),
       accent: Color(0xFF9AA9DC),
@@ -93,6 +109,8 @@ const venues = [
       realStage:
           'After the Hollywood Bowl in Los Angeles — about 17,500 seats '
           'under its iconic white shell, open since 1922.',
+      lore:
+          'Fireworks over the bandshell — the whole city came to listen.',
       exclusives: ['star_shades', 'sparkler']),
   Venue(1500, 'Madison Jar Garden', '🏟️', Color(0xFF4B4668), Color(0xFF2A2546),
       accent: Color(0xFF9B7ED9),
@@ -100,6 +118,8 @@ const venues = [
       realStage:
           'After Madison Square Garden — the 20,000-seat arena nicknamed '
           '"the world\'s most famous arena."',
+      lore:
+          'The world\'s most famous arena, packed to the rafters and chanting your name.',
       exclusives: ['champ_jacket', 'wristband']),
   Venue(2500, 'Jamberly Stadium', '🌈', Color(0xFFE3EDF7), Color(0xFFBBDCF1),
       accent: Color(0xFF7CB56B),
@@ -107,6 +127,8 @@ const venues = [
       realStage:
           'After Wembley Stadium in London — 90,000 seats under its giant '
           'arch, scene of Live Aid in 1985.',
+      lore:
+          'A rainbow over fifty thousand cheering fans. Can you hear them?',
       exclusives: ['stadium_scarf', 'crown_headset']),
   Venue(4000, 'JamJot Stadium', '🫙', Color(0xFFFFECC2), Color(0xFFFFDE8A),
       accent: Color(0xFFFFBE2E),
@@ -114,6 +136,8 @@ const venues = [
       realStage:
           'The invented finale — JamJot\'s very own mega-stadium, bigger '
           'than any real one. This stage is yours.',
+      lore:
+          'The biggest stage there is — and look at the name: it\'s practically yours.',
       exclusives: ['golden_cape', 'jar_crown']),
 ];
 

@@ -21,6 +21,7 @@ const placeholderPngArt = <String>{
   'brand_tisdale', // Tisdale Applications imprint
   'crowd_color', // fan crowd silhouettes (founder reference style)
   'crowd_black',
+  'tour_bus', // the JamJot World Tour bus
 };
 
 /// Loads the provided PNG when available, otherwise the existing SVG.
