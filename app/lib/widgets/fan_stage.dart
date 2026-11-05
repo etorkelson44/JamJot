@@ -94,7 +94,7 @@ const venues = [
       lore:
           'How do you get here? Practice, practice, practice.',
       exclusives: ['white_gloves', 'baton']),
-  Venue(600, 'Red Jam Rocks', '⛰️', Color(0xFFFFD9A0), Color(0xFFF6A46B),
+  Venue(600, 'Red Rocks Jamphitheatre', '⛰️', Color(0xFFFFD9A0), Color(0xFFF6A46B),
       accent: Color(0xFFC96F4A),
       motif: '⛰️',
       realStage:
