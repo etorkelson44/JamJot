@@ -13,6 +13,7 @@ import '../../widgets/ask_maestro.dart' show TisdaleImprint;
 import '../../widgets/dressed_avatar.dart';
 import '../../widgets/fan_stage.dart';
 import '../../widgets/letter_avatar.dart' show artAsset;
+import '../../widgets/maestro_tour_bus.dart';
 import '../market/market_screen.dart' show purchasesProvider;
 import '../../models/market_avatars.dart' show musicalAvatars;
 
@@ -813,7 +814,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
               border: Border.all(color: JamJotColors.ink, width: 3),
             ),
             child: Row(children: [
-              const _RollingBus(width: 96),
+              const MaestroTourBus(width: 96),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1184,7 +1185,7 @@ class _TourPathNode extends StatelessWidget {
               ? const SizedBox.shrink()
               : _Road(color: played ? roadDone : roadAhead, dashed: !played)),
       if (current)
-        const _RollingBus(width: 58)
+        const MaestroTourBus(width: 58)
       else
         Container(
           width: 26,
@@ -1253,38 +1254,6 @@ class _RoadPainter extends CustomPainter {
       old.color != color || old.dashed != dashed;
 }
 
-/// The JamJot tour bus, rolling gently in place.
-class _RollingBus extends StatefulWidget {
-  const _RollingBus({required this.width});
-  final double width;
-  @override
-  State<_RollingBus> createState() => _RollingBusState();
-}
-
-class _RollingBusState extends State<_RollingBus>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _roll = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1600))
-    ..repeat();
-  @override
-  void dispose() {
-    _roll.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _roll,
-        builder: (context, child) {
-          final t = _roll.value * 2 * math.pi;
-          return Transform.translate(
-            offset: Offset(0, math.sin(t * 2) * 1.5),
-            child: Transform.rotate(angle: math.sin(t) * 0.02, child: child),
-          );
-        },
-        child: Semantics(
-          label: 'The JamJot tour bus — you are here',
-          child: artAsset('tour_bus', width: widget.width),
-        ),
-      );
-}
+// (The old side-view _RollingBus was replaced by MaestroTourBus —
+// Maestro Marmalade driving the founder's purple bus, with a hover/tap
+// honk-and-idle animation. See lib/widgets/maestro_tour_bus.dart.)
