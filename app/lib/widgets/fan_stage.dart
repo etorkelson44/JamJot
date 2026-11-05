@@ -46,7 +46,7 @@ class Venue {
 }
 
 const venues = [
-  Venue(0, 'The Jam Cellar', '🕯️', Color(0xFF55403A), Color(0xFF3A2E28),
+  Venue(0, 'The Village Vineguard', '🕯️', Color(0xFF55403A), Color(0xFF3A2E28),
       accent: Color(0xFFE8A23D),
       motif: '🕯️',
       realStage:

@@ -41,7 +41,7 @@ const accessoryCatalog = <Accessory>[
           'cool heads play cool solos.'),
   Accessory('candle', 'Candle-in-a-Bottle', '🕯️', 10, venueLevel: 0,
       lore: 'Real jazz cellars light their tables with candles stuck in old '
-          'bottles — the Jam Cellar glows the very same way.'),
+          'bottles — the Village Vineguard glows the very same way.'),
   Accessory('blue_shades', 'Round Blue Shades', '🕶️', 20, venueLevel: 1,
       lore: 'Round shades were THE look of late-night jazz legends — half '
           'mystery, half style.'),

@@ -19,7 +19,7 @@ const _maestroQA = <(String, String)>[
     'What are fans and venues? 🕶️',
     'Fans come to hear you play — you earn them by finishing songs and '
         'meeting your weekly goals. The more fans, the bigger your stage: '
-        'from The Jam Cellar all the way to JamJot Stadium. Fans never '
+        'from The Village Vineguard all the way to JamJot Stadium. Fans never '
         'leave, so your venue is yours to keep!'
   ),
   (
