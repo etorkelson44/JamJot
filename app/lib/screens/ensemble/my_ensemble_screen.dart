@@ -414,41 +414,48 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         Text('Everything you own dresses ANY band member. 🪙 $coins to spend.',
             style: text.bodySmall?.copyWith(color: const Color(0xFFE8D7C3))),
         const SizedBox(height: 8),
-        // The rail the costumes hang from.
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+        // A real wardrobe: a wooden case with shelves, four smaller
+        // pieces standing on each shelf.
+        Container(
+          padding: const EdgeInsets.fromLTRB(8, 10, 8, 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF6E4426),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: JamJotColors.ink, width: 3),
+          ),
           child: Column(children: [
-            Container(
-              height: 7,
-              decoration: BoxDecoration(
-                color: const Color(0xFF8A5A33),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: JamJotColors.ink, width: 1.5),
+            for (var row = 0; row * 4 < accessoryCatalog.length; row++) ...[
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var col = 0; col < 4; col++) ...[
+                      if (col > 0) const SizedBox(width: 6),
+                      Expanded(
+                        child: row * 4 + col < accessoryCatalog.length
+                            ? _closetTile(context, sid, wornKey, wardrobe,
+                                accessoryCatalog[row * 4 + col], coins, level)
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                for (var i = 0; i < 3; i++)
-                  Container(
-                      width: 2.5,
-                      height: 8,
-                      color: JamJotColors.ink.withValues(alpha: 0.6)),
-              ],
-            ),
+              // The shelf each row of pieces stands on.
+              Container(
+                height: 7,
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF9A6A3C),
+                  borderRadius: BorderRadius.circular(3),
+                  border: Border.all(color: JamJotColors.ink, width: 1.5),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x55000000), offset: Offset(0, 2)),
+                  ],
+                ),
+              ),
+            ],
           ]),
-        ),
-        GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 0.74,
-          children: [
-            for (final acc in accessoryCatalog)
-              _closetTile(context, sid, wornKey, wardrobe, acc, coins, level),
-          ],
         ),
         const SizedBox(height: 10),
         // A backstage word from the maestro.
@@ -498,17 +505,6 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
     final affordable =
         !owned && !venueLocked && !acc.bundleOnly && coins >= acc.price;
     // The story behind the piece: hover on desktop, long-press on touch.
-    final hanger = Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        width: 9,
-        height: 9,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFD9C9A8), width: 2.5),
-        ),
-      ),
-      Container(width: 2.5, height: 5, color: const Color(0xFFD9C9A8)),
-    ]);
     final tile = InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
@@ -520,7 +516,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         }
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.fromLTRB(4, 6, 4, 4),
         decoration: BoxDecoration(
           color: owned
               ? Colors.white
@@ -545,7 +541,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                   : affordable
                       ? 0.95
                       : 0.35,
-              child: artAsset('acc_icon_${acc.id}', width: 44, height: 44),
+              child: artAsset('acc_icon_${acc.id}', width: 34, height: 34),
             ),
             const SizedBox(height: 4),
             Text(acc.name,
@@ -586,11 +582,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         ),
       ),
     );
-    final hung = Column(mainAxisSize: MainAxisSize.min, children: [
-      hanger,
-      Expanded(child: tile),
-    ]);
-    if (acc.lore.isEmpty) return hung;
+    if (acc.lore.isEmpty) return tile;
     return Tooltip(
       message: '${acc.emoji} ${acc.name}\n${acc.lore}',
       waitDuration: const Duration(milliseconds: 400),
@@ -601,7 +593,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         color: JamJotColors.ink,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: hung,
+      child: tile,
     );
   }
 
