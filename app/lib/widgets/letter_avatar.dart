@@ -80,15 +80,15 @@ class LetterAvatar extends StatelessWidget {
   /// The worn character (students.avatar_key), when there is one.
   final String? avatarKey;
 
-  /// For students: no worn avatar yet means Sonatina Sprout, the free
-  /// starter every new student begins with (JJ-011). Grown-ups keep the
-  /// letter circle.
+  /// For students: no worn avatar yet means Jalapresto, one of the two
+  /// free band members every student starts with (Tour 2.0 interim,
+  /// 2026-11-05). Grown-ups keep the letter circle.
   final bool starterDefault;
 
   @override
   Widget build(BuildContext context) {
     final effectiveKey =
-        avatarKey ?? (starterDefault ? 'sonatina' : null);
+        avatarKey ?? (starterDefault ? 'jalapeno' : null);
     final art = berryArt(effectiveKey, size * 0.84);
     if (art != null) {
       return Container(

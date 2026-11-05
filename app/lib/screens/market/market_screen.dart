@@ -337,80 +337,6 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             style: const TextStyle(fontSize: 26)));
   }
 
-  Widget _musicalAvatarCards(
-      List<Map<String, dynamic>> items,
-      String? shopperId,
-      List<Map<String, dynamic>> purchases,
-      String? wearing) {
-    final featured = [
-      for (final key in musicalAvatars.keys)
-        ...items.where((i) => i['kind'] == 'avatar' && i['asset_key'] == key)
-    ];
-    if (featured.isEmpty) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: LayoutBuilder(builder: (context, constraints) {
-        final columns = (constraints.maxWidth / 260).floor().clamp(1, 4);
-        final width = (constraints.maxWidth - 12 * (columns - 1)) / columns;
-        return Wrap(spacing: 12, runSpacing: 12, children: [
-          for (final item in featured)
-            SizedBox(
-                width: width,
-                child: Card(
-                  child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Center(child: _marketArt(item, 168)),
-                          const SizedBox(height: 12),
-                          Text(item['title'] as String,
-                              style: theme.textTheme.titleLarge,
-                              textAlign: TextAlign.center),
-                          const SizedBox(height: 4),
-                          Text(item['description'] as String,
-                              style: theme.textTheme.bodyMedium,
-                              textAlign: TextAlign.center),
-                          const SizedBox(height: 16),
-                          _avatarAction(item, shopperId, purchases, wearing),
-                        ],
-                      )),
-                )),
-        ]);
-      }),
-    );
-  }
-
-  Widget _avatarAction(Map<String, dynamic> item, String? shopperId,
-      List<Map<String, dynamic>> purchases, String? wearing) {
-    final owned = purchases.any((p) =>
-        (p['market_items'] as Map?)?['kind'] == 'avatar' &&
-        (p['market_items'] as Map?)?['asset_key'] == item['asset_key']);
-    final isWearing = owned && wearing == item['asset_key'];
-    final upcoming = item['upcoming'] == true;
-    final price = (item['price'] as num).toInt();
-    final label = upcoming
-        ? 'Coming soon · $price coins'
-        : isWearing
-            ? 'Wearing ✓'
-            : owned
-                ? 'Wear it'
-                : 'Buy · $price coins';
-    return FilledButton(
-      onPressed: upcoming || isWearing || _buying || shopperId == null
-          ? null
-          : () => owned
-              ? _wear(shopperId, item['asset_key'] as String)
-              : _buy(item, shopperId),
-      child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: owned
-              ? Text(label, textAlign: TextAlign.center)
-              : CoinLabel(label)),
-    );
-  }
-
   Widget _itemTile(Map<String, dynamic> item, String? shopperId,
       {bool mine = false}) {
     return Container(
@@ -498,7 +424,6 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             (kids.length == 1 ? kids.first : null));
     final shopperId = shopper?['id'] as String?;
 
-    final jamjotItems = items.where((i) => i['stand'] == 'jamjot').toList();
     final teacherItems = items.where((i) => i['stand'] == 'teacher').toList();
     final familyItems = items.where((i) => i['stand'] == 'caregiver').toList();
 
@@ -546,27 +471,26 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           ],
 
           // ------------------------------------------------ JamJot stand
-          _standHeader(text, '🫐', 'JamJot stand — musical avatars'),
-          Text('Wear a new character everywhere in the app.',
-              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
-          const SizedBox(height: 6),
-          _musicalAvatarCards(jamjotItems, shopperId, purchases,
-              shopper?['avatar_key'] as String?),
-          for (final i in jamjotItems)
-            if (!musicalAvatars.containsKey(i['asset_key']) ||
-                i['kind'] != 'avatar')
-              _itemTile(i, shopperId),
-
-          // -------------------------------------------- Tour exclusives
-          if (shopperId != null) ...[
-            _standHeader(text, '🚌', 'Tour exclusives'),
-            Text(
-                'One-of-a-kind pieces earned on the JamJot World Tour — '
-                'each one unlocks when you play its venue.',
-                style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
-            const SizedBox(height: 6),
-            _TourExclusivesStand(studentId: shopperId),
-          ],
+          _standHeader(text, '🚚', 'JamJot stand'),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: JamJotColors.outline, width: 1.5),
+            ),
+            child: Row(children: [
+              Image.asset('assets/mascot/maestro_tux.png', width: 44),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'The JamJot stand is closed while the band gets ready '
+                  'for the World Tour! New treasures are on the way. 🚌🎸',
+                  style: text.bodyMedium,
+                ),
+              ),
+            ]),
+          ),
 
           // ----------------------------------------------- Teacher stands
           if (teacherItems.isNotEmpty || teacher != null)
@@ -697,134 +621,3 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
 }
 
 
-/// The venue-exclusive accessories, shown in the market as tour goals:
-/// each card carries its venue, its story, and how to earn it. Unlocked
-/// pieces can be bought here with coins; the rest are the reason to
-/// keep practicing.
-class _TourExclusivesStand extends ConsumerWidget {
-  const _TourExclusivesStand({required this.studentId});
-  final String studentId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final text = Theme.of(context).textTheme;
-    final wardrobe = ref.watch(wardrobeProvider(studentId));
-    final coins =
-        ref.watch(berryBalanceProvider(studentId)).valueOrNull ?? 0;
-    final fans = displayedFans(ref, studentId);
-    final (level, _) = venueFor(fans);
-    final exclusives = [
-      for (final a in accessoryCatalog)
-        if (a.venueLevel != null && !a.bundleOnly) a
-    ];
-    return Column(children: [
-      for (final acc in exclusives)
-        Builder(builder: (context) {
-          final venue = venues[acc.venueLevel!];
-          final unlocked = level >= acc.venueLevel! + 1;
-          final owned = wardrobe.owned.contains(acc.id);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color: unlocked ? venue.accent : JamJotColors.ink,
-                  width: 2),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // The venue the piece belongs to, as its backdrop.
-                SizedBox(
-                  width: 86,
-                  child: Stack(fit: StackFit.expand, children: [
-                    artAsset('venue_${acc.venueLevel}', fit: BoxFit.cover),
-                    if (!unlocked)
-                      Container(color: Colors.white.withValues(alpha: 0.35)),
-                    Center(
-                        child: artAsset('acc_icon_${acc.id}',
-                            width: 52, height: 52)),
-                  ]),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          Expanded(
-                            child: Text(acc.name,
-                                style: text.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w800)),
-                          ),
-                          if (owned)
-                            Text('In your closet ✓',
-                                style: text.labelSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: venue.accent))
-                          else if (unlocked)
-                            Text('🪙 ${acc.price}',
-                                style: text.labelSmall?.copyWith(
-                                    fontWeight: FontWeight.w800))
-                          else
-                            Text('🔒 🕶️ ${venue.minFans}',
-                                style: text.labelSmall?.copyWith(
-                                    fontWeight: FontWeight.w800)),
-                        ]),
-                        const SizedBox(height: 2),
-                        Text('${venue.motif} A ${venue.name} exclusive',
-                            style: text.labelSmall
-                                ?.copyWith(fontWeight: FontWeight.w700)),
-                        if (acc.lore.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(acc.lore,
-                              style: text.labelSmall?.copyWith(
-                                  fontStyle: FontStyle.italic,
-                                  color: JamJotColors.inkSoft)),
-                        ],
-                        const SizedBox(height: 6),
-                        if (owned)
-                          Text('Dress any band member in the Dressing Room.',
-                              style: text.labelSmall)
-                        else if (unlocked && coins >= acc.price)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: FilledButton(
-                              style: FilledButton.styleFrom(
-                                  visualDensity: VisualDensity.compact),
-                              onPressed: () {
-                                ref
-                                    .read(wardrobeProvider(studentId)
-                                        .notifier)
-                                    .acquire(acc.id);
-                                playSound('pop');
-                              },
-                              child:
-                                  Text('Add to closet — ${acc.price} 🪙'),
-                            ),
-                          )
-                        else if (unlocked)
-                          Text(
-                              'Earn ${acc.price - coins} more coin'
-                              '${acc.price - coins == 1 ? '' : 's'} in '
-                              'practice to bring it home.',
-                              style: text.labelSmall)
-                        else
-                          Text(
-                              'Play ${venue.name} to unlock — '
-                              '${venue.minFans - fans > 0 ? '${venue.minFans - fans} more fans to go!' : 'almost there!'}',
-                              style: text.labelSmall),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-    ]);
-  }
-}

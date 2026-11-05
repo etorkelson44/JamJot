@@ -34,83 +34,15 @@ class Accessory {
   final String lore;
 }
 
-/// The full accessory catalog: two exclusives per venue on the tour.
-const accessoryCatalog = <Accessory>[
-  Accessory('beret', 'Jazz Beret', '🎩', 15, venueLevel: 0,
-      lore: 'Jazz players in tiny basement clubs made the beret famous — '
-          'cool heads play cool solos.'),
-  Accessory('candle', 'Candle-in-a-Bottle', '🕯️', 10, venueLevel: 0,
-      lore: 'Real jazz cellars light their tables with candles stuck in old '
-          'bottles — the Village Vineguard glows the very same way.'),
-  Accessory('blue_shades', 'Round Blue Shades', '🕶️', 20, venueLevel: 1,
-      lore: 'Round shades were THE look of late-night jazz legends — half '
-          'mystery, half style.'),
-  Accessory('bass_pin', 'Upright-Bass Pin', '🎻', 15, venueLevel: 1,
-      lore: 'The upright bass is the heartbeat of every jazz room. Wear the '
-          'heartbeat.'),
-  Accessory('leather_jacket', 'Leather Jacket', '🧥', 35, venueLevel: 2,
-      lore: 'Every rock legend who played the Sunset Strip owned one. Now '
-          'you do too.'),
-  Accessory('nameplate', 'Neon Nameplate', '💡', 25, venueLevel: 2,
-      lore: 'Clubs like the Roxy put brand-new stars\' names up in lights — '
-          'this one is yours.'),
-  Accessory('bow_tie', 'Sparkly Bow Tie', '🎀', 30, venueLevel: 3,
-      lore: 'At the Jampollo\'s Amateur Night, dressing sharp is half the '
-          'performance.'),
-  Accessory('golden_mic', 'Golden Microphone', '🎤', 40, venueLevel: 3,
-      lore: 'Legends found their voices on this stage — golden pipes earn a '
-          'golden mic.'),
-  Accessory('white_gloves', 'White Gloves', '🧤', 30, venueLevel: 4,
-      lore: 'Conductors in grand halls wear white gloves so even the last '
-          'row can follow every wave.'),
-  Accessory('baton', "Conductor's Baton", '🪄', 35, venueLevel: 4,
-      lore: 'Jarnegie Hall opened with a world-famous composer conducting — '
-          'batons have been magic wands ever since.'),
-  Accessory('bandana', 'Red-Rock Bandana', '🧣', 25, venueLevel: 5,
-      lore: 'Open-air shows in the mountain sun call for a bandana — Red '
-          'Jam Rocks style.'),
-  Accessory('hiking_boots', 'Hiking Boots', '🥾', 30, venueLevel: 5,
-      lore: 'Red Rocks Jamphitheatre is carved into a real mountainside — artists '
-          'literally hike to this stage.'),
-  Accessory('star_shades', 'Star Shades', '⭐', 40, venueLevel: 6,
-      lore: 'Under the Hollyberry night sky, the stars wear stars.'),
-  Accessory('sparkler', 'Fireworks Sparkler', '🎇', 30, venueLevel: 6,
-      lore: 'The Hollyberry Bowl ends its biggest nights with fireworks '
-          'bursting over the shell.'),
-  Accessory('champ_jacket', 'Championship Jacket', '🏆', 50, venueLevel: 7,
-      lore: 'Championship banners hang from the Jar Garden\'s rafters — and '
-          'champions get jackets.'),
-  Accessory('wristband', 'Light-Up Wristband', '💫', 35, venueLevel: 7,
-      lore: 'Arena crowds glow with wristbands that pulse in time with the '
-          'music.'),
-  Accessory('stadium_scarf', 'Stadium Scarf', '🧶', 45, venueLevel: 8,
-      lore: 'At Jamberly Stadium, 90,000 voices sing as one — scarves held '
-          'high.'),
-  Accessory('crown_headset', 'Crown Headset', '👑', 60, venueLevel: 8,
-      lore: 'Headline a stadium under the great arch and you are pop '
-          'royalty. Crown included.'),
-  Accessory('golden_cape', 'Golden Cape', '🦸', 80, venueLevel: 9,
-      lore: 'Only the grandest finale of them all deserves a cape.'),
-  Accessory('jar_crown', 'Jam-Jar Crown', '🫙', 100, venueLevel: 9,
-      lore: 'The crown of JamJot Stadium itself — jam royalty, forever.'),
-  // Bundle-only pieces that arrive with their avatar.
-  Accessory('mustache', 'Marvelous Mustache', '🥸', 0, bundleOnly: true,
-      lore: 'Jalapresto\'s signature look. The fastest players need '
-          'aerodynamic facial hair.'),
-];
+/// The accessory catalog. Emptied 2026-11-05 (founder-directed Tour 2.0
+/// reset): the old venue accessories are retired, and the new catalog —
+/// venue arrival gifts + market pieces — ships with the Tour 2.0 build.
+const accessoryCatalog = <Accessory>[];
 
 /// What each avatar brings to the closet when earned (JJ-014 revision,
 /// founder-directed 2026-11-04). Bundle items are auto-worn the first time
 /// and shown worn in the Market; once in the closet they dress ANY avatar.
-const avatarBundles = <String, List<String>>{
-  'sonatina': [],
-  'strawberry': ['bow_tie'], // Staccato: short, sweet, dressed up
-  'jalapeno': ['mustache'], // Jalapresto's signature look
-  'grape': ['white_gloves'], // Arpeggio climbs in gloves
-  'lemon': ['blue_shades'], // Sharp. Obviously.
-  'raspberry': ['bandana'], // Raspberry Rhapsody
-  'blueberry': ['beret'], // Bravura takes a bow
-};
+const avatarBundles = <String, List<String>>{};
 
 Accessory? accessoryById(String id) {
   for (final a in accessoryCatalog) {
@@ -156,7 +88,19 @@ class WardrobeNotifier extends StateNotifier<Wardrobe> {
           outfits[k] = (v as List).cast<String>();
         });
       }
-      state = Wardrobe(owned: owned, outfits: outfits);
+      // Keep only accessories that still exist in the catalog — retired
+      // pieces disappear from the rack and from saved outfits.
+      final ids = {for (final a in accessoryCatalog) a.id};
+      final prunedOwned = owned.where(ids.contains).toSet();
+      final prunedOutfits = <String, List<String>>{
+        for (final e in outfits.entries)
+          e.key: e.value.where(ids.contains).toList(),
+      }..removeWhere((_, v) => v.isEmpty);
+      state = Wardrobe(owned: prunedOwned, outfits: prunedOutfits);
+      if (prunedOwned.length != owned.length ||
+          prunedOutfits.length != outfits.length) {
+        _save();
+      }
     } catch (_) {/* fresh wardrobe */}
   }
 

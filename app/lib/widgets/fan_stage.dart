@@ -344,7 +344,7 @@ class VenueBackdrop extends ConsumerWidget {
     final venueIndex = venues.indexOf(venue);
     final crowdCount = fans <= 0 ? 0 : (fans / 4).ceil().clamp(1, 36);
     final active = ref.watch(activeStudentProvider);
-    final wornKey = (active?['avatar_key'] as String?) ?? 'sonatina';
+    final wornKey = (active?['avatar_key'] as String?) ?? 'jalapeno';
     final outfit = ref.watch(wardrobeProvider(studentId)).outfitFor(wornKey);
     return Stack(fit: StackFit.expand, children: [
       // The stage scene, anchored to the bottom of the page.

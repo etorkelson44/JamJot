@@ -60,9 +60,11 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       );
     }
     final sid = active['id'] as String;
-    final wornKey = (active['avatar_key'] as String?) ?? 'sonatina';
+    final wornKey = (active['avatar_key'] as String?) ?? 'jalapeno';
     final purchases = ref.watch(purchasesProvider(sid)).valueOrNull ?? [];
-    final owned = <String>['sonatina'];
+    // Every kid's band starts with both freebies (Tour 2.0 interim,
+    // founder-directed 2026-11-05): Jalapresto + Strawberry Staccato.
+    final owned = <String>['jalapeno', 'strawberry'];
     for (final p in purchases) {
       final item = p['market_items'] as Map<String, dynamic>?;
       final key = item?['asset_key'] as String?;
@@ -97,7 +99,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       body: TabBarView(controller: _tabs, children: [
         _onStage(context, sid, wornKey, owned, wardrobe, venue, level,
             fans, coins),
-        _dressingRoom(context, sid, wornKey, wardrobe, coins, level),
+        _dressingRoom(context, sid, wornKey, owned, wardrobe, coins, level),
         _tour(context, sid, wornKey, owned, wardrobe, level, fans),
       ]),
     );
@@ -280,6 +282,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
 
   // ─────────────────────────── DRESSING ROOM ───────────────────────────
   Widget _dressingRoom(BuildContext context, String sid, String wornKey,
+      List<String> owned,
       Wardrobe wardrobe, int coins, int level) {
     final text = Theme.of(context).textTheme;
     final outfit = wardrobe.outfitFor(wornKey);
@@ -399,19 +402,42 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
           ]),
         ),
         const SizedBox(height: 14),
+        const SizedBox(height: 4),
+        Row(children: [
+          Expanded(
+            child: Text('The Band',
+                style: text.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800, color: Colors.white)),
+          ),
+        ]),
+        Text('New members join the band as you tour the world! 🚌',
+            style: text.bodySmall?.copyWith(color: const Color(0xFFE8D7C3))),
+        const SizedBox(height: 8),
+        Row(children: [
+          for (final key in owned) ...[
+            Expanded(child: _bandMemberCard(context, sid, key, wornKey)),
+            if (key != owned.last) const SizedBox(width: 10),
+          ],
+        ]),
+        const SizedBox(height: 14),
         Row(children: [
           Expanded(
             child: Text('The Costume Rack',
                 style: text.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800, color: Colors.white)),
           ),
-          Text(
-              '${wardrobe.owned.length} of ${accessoryCatalog.length} collected',
-              style: text.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFF5B82E))),
+          if (accessoryCatalog.isNotEmpty)
+            Text(
+                '${wardrobe.owned.length} of ${accessoryCatalog.length} collected',
+                style: text.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFF5B82E))),
         ]),
-        Text('Everything you own dresses ANY band member. 🪙 $coins to spend.',
+        Text(
+            accessoryCatalog.isEmpty
+                ? 'The costume department is sewing a whole new wardrobe '
+                    'for the World Tour — arriving soon! 🧵'
+                : 'Everything you own dresses ANY band member. 🪙 $coins to spend.',
             style: text.bodySmall?.copyWith(color: const Color(0xFFE8D7C3))),
         const SizedBox(height: 8),
         // A real wardrobe: a wooden case with shelves, four smaller
@@ -471,9 +497,12 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                wardrobe.owned.length >= accessoryCatalog.length
-                    ? '"A full wardrobe! Magnifique — now THAT is a star." '
-                        '— Maestro Marmalade'
+                accessoryCatalog.isEmpty
+                    ? '"The tailors are hard at work, mon ami — a world tour '
+                        'deserves a world-class wardrobe!" — Maestro Marmalade'
+                    : wardrobe.owned.length >= accessoryCatalog.length
+                        ? '"A full wardrobe! Magnifique — now THAT is a star." '
+                            '— Maestro Marmalade'
                     : '"Every great performer starts with one good hat. '
                         'Keep practicing and the closet fills itself!" '
                         '— Maestro Marmalade',
@@ -493,6 +522,66 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       ],
     ),
     );
+  }
+
+  /// One band member in the dressing room: who's in the spotlight, and a
+  /// button to hand it over (Tour 2.0 vocabulary, JJ-017-C).
+  Widget _bandMemberCard(
+      BuildContext context, String sid, String key, String wornKey) {
+    final text = Theme.of(context).textTheme;
+    final inSpotlight = key == wornKey;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+      decoration: BoxDecoration(
+        color: inSpotlight ? const Color(0xFFFFF8E7) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: inSpotlight ? const Color(0xFFF5B82E) : JamJotColors.ink,
+            width: inSpotlight ? 3 : 2),
+      ),
+      child: Column(children: [
+        DressedAvatar(avatarKey: key, outfit: const [], size: 92),
+        const SizedBox(height: 6),
+        Text(_avatarName(key),
+            textAlign: TextAlign.center,
+            style: text.labelMedium?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        inSpotlight
+            ? Text('⭐ In the spotlight',
+                style: text.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFB8860B)))
+            : TextButton(
+                style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(0, 30)),
+                onPressed: () => _giveSpotlight(sid, key),
+                child: const Text('Give them the spotlight'),
+              ),
+      ]),
+    );
+  }
+
+  Future<void> _giveSpotlight(String sid, String assetKey) async {
+    try {
+      final data = Map<String, dynamic>.from(
+          await JamJotBackend.client.rpc('wear_owned_avatar', params: {
+        'p_student_id': sid,
+        'p_asset_key': assetKey,
+      }));
+      if (!mounted) return;
+      if (data['ok'] == true) {
+        playSound('cheer');
+        ref.invalidate(myStudentsProvider);
+        final active = ref.read(activeStudentProvider);
+        if (active?['id'] == sid) {
+          ref.read(activeStudentProvider.notifier).state = {
+            ...active!,
+            'avatar_key': assetKey
+          };
+        }
+      }
+    } catch (_) {/* stays as-is */}
   }
 
   Widget _closetTile(BuildContext context, String sid, String wornKey,

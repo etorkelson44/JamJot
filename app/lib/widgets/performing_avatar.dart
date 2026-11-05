@@ -78,7 +78,7 @@ class _PerformingAvatarState extends ConsumerState<PerformingAvatar>
   @override
   Widget build(BuildContext context) {
     final active = ref.watch(activeStudentProvider);
-    final wornKey = (active?['avatar_key'] as String?) ?? 'sonatina';
+    final wornKey = (active?['avatar_key'] as String?) ?? 'jalapeno';
     final sid = active?['id'] as String?;
     final outfit = sid == null
         ? const <String>[]

@@ -243,7 +243,7 @@ class _HomeAvatarState extends ConsumerState<_HomeAvatar>
   @override
   Widget build(BuildContext context) {
     final sid = widget.student['id'] as String;
-    final avatarKey = (widget.student['avatar_key'] as String?) ?? 'sonatina';
+    final avatarKey = (widget.student['avatar_key'] as String?) ?? 'jalapeno';
     final outfit = ref.watch(wardrobeProvider(sid)).outfitFor(avatarKey);
     return AnimatedBuilder(
       animation: _bob,
