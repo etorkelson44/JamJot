@@ -103,17 +103,17 @@
         src.connect(f).connect(g).connect(c.destination);
         src.start(c.currentTime + start);
       }
-      window.jjSound = function (name) {
-        try {
-          if (name === 'coinDrop') { window.jjCoinDrop?.(); return; }
-          var c = ac();
-          if (!c) return;
-          if (name === 'coin') {
-            tone(c, 1046, 0, 0.09, 'square', 0.08);
-            tone(c, 1568, 0.07, 0.22, 'square', 0.08);
-          } else if (name === 'cheer') {
-            // A real crowd: a voice-band roar that swells and wavers,
-            // a shower of hand-claps, a few shouts and one whistle.
+      // The cheer is a rendered crowd recording (vocal 'yay' chorus,
+      // applause and room reverb) — far more real than oscillator noise.
+      var cheerClip = null;
+      function cheerAudio() {
+        if (!cheerClip) {
+          cheerClip = new Audio('assets/assets/audio/cheer.wav');
+          cheerClip.preload = 'auto';
+        }
+        return cheerClip;
+      }
+      function synthCheer(c) {
             var roar = function (freq, start, dur, vol) {
               var len = Math.floor(c.sampleRate * dur);
               var buf = c.createBuffer(1, len, c.sampleRate);
@@ -151,6 +151,26 @@
             tone(c, 290 + Math.random() * 50, 0.55, 0.12, 'sawtooth', 0.03, 430);
             // one whistle
             tone(c, 1900, 0.4, 0.3, 'sine', 0.03, 2700);
+      }
+      window.jjSound = function (name) {
+        try {
+          if (name === 'coinDrop') { window.jjCoinDrop?.(); return; }
+          var c = ac();
+          if (!c) return;
+          if (name === 'coin') {
+            tone(c, 1046, 0, 0.09, 'square', 0.08);
+            tone(c, 1568, 0.07, 0.22, 'square', 0.08);
+          } else if (name === 'cheer') {
+            try {
+              var clip = cheerAudio();
+              clip.currentTime = 0;
+              clip.volume = 0.75;
+              var p = clip.play();
+              if (p && p.catch) p.catch(function () { synthCheer(c); });
+              return;
+            } catch (e) { /* fall through to the synth */ }
+            synthCheer(c);
+            return;
           } else if (name === 'fanfare') {
             tone(c, 523, 0, 0.16, 'triangle', 0.16);
             tone(c, 659, 0.14, 0.16, 'triangle', 0.16);
