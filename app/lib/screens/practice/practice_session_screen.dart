@@ -1841,6 +1841,7 @@ class _SongTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final spentMin = spentSeconds ~/ 60;
+    final goalMet = minutes != null && minutes! > 0 && spentSeconds >= minutes! * 60;
     return Material(
       color: done ? JamJotColors.blueberryTint : Colors.white,
       shape: RoundedRectangleBorder(
@@ -1872,12 +1873,41 @@ class _SongTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                minutes == null
-                    ? (spentMin > 0 ? '$spentMin min' : '')
-                    : '$spentMin/$minutes min',
-                style: text.labelMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
+              if (goalMet)
+                // A springy gold badge celebrates a met goal
+                // (founder-directed 2026-11-05).
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.5, end: 1),
+                    duration: const Duration(milliseconds: 700),
+                    curve: Curves.elasticOut,
+                    builder: (context, v, child) =>
+                        Transform.scale(scale: v, child: child),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3C2),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                            color: const Color(0xFFC9A227), width: 1.5),
+                      ),
+                      child: Text('🌟 Goal met!',
+                          style: text.labelSmall
+                              ?.copyWith(fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text('$spentMin/$minutes min', style: text.labelSmall),
+                ])
+              else
+                Text(
+                  minutes == null
+                      ? (spentMin > 0 ? '$spentMin min' : '')
+                      : '$spentMin/$minutes min',
+                  style:
+                      text.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
               if (!done) const Icon(Icons.chevron_right),
             ],
           ),
