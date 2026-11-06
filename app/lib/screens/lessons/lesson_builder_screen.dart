@@ -80,26 +80,6 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
                   const InputDecoration(labelText: 'Practice days per week'),
             ),
             const SizedBox(height: 10),
-            Row(children: [
-              Expanded(
-                flex: 3,
-                child: TextField(
-                  controller: book,
-                  textCapitalization: TextCapitalization.words,
-                  decoration:
-                      const InputDecoration(labelText: 'Book (optional)'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: pages,
-                  decoration:
-                      const InputDecoration(labelText: 'Page(s) (optional)'),
-                ),
-              ),
-            ]),
             const SizedBox(height: 10),
             TextField(
               controller: minutes,
@@ -163,6 +143,26 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
                   labelText: 'Note (optional) — e.g. "slowly, count out loud"'),
             ),
             const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: book,
+                  textCapitalization: TextCapitalization.words,
+                  decoration:
+                      const InputDecoration(labelText: 'Book (optional)'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: pages,
+                  decoration:
+                      const InputDecoration(labelText: 'Page(s) (optional)'),
+                ),
+              ),
+            ]),
             TextField(
               controller: minutes,
               keyboardType: TextInputType.number,
