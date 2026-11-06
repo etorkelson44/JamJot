@@ -118,9 +118,8 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
     final minutes = TextEditingController();
     final book = TextEditingController();
     final pages = TextEditingController();
-    // Founder-directed 2026-11-05: neither box checked = instrument play only.
-    var isPlay = false;
-    var isWritten = false;
+    // Founder-directed 2026-11-05: three options, play-only by default.
+    var kind = 'play';
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -174,24 +173,31 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
                   labelText: 'Minutes goal for this song (optional)'),
             ),
             const SizedBox(height: 6),
-            // Neither checked = instrument play only (the default).
-            CheckboxListTile(
+            RadioListTile<String>(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              title: const Text('🎹 Instrument play'),
-              value: isPlay,
-              onChanged: (v) => setLocal(() => isPlay = v ?? false),
+              title: const Text('🎹 Instrument play only'),
+              value: 'play',
+              groupValue: kind,
+              onChanged: (v) => setLocal(() => kind = v ?? 'play'),
             ),
-            CheckboxListTile(
+            RadioListTile<String>(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              title: const Text('✍️ Written assignment'),
+              title: const Text('✍️ Written only'),
+              value: 'written',
+              groupValue: kind,
+              onChanged: (v) => setLocal(() => kind = v ?? 'play'),
+            ),
+            RadioListTile<String>(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: const Text('✍️🎹 Instrument play & written'),
               subtitle: const Text(
-                  'Finishes only after page photos are uploaded and a caregiver confirms with their PIN'),
-              value: isWritten,
-              onChanged: (v) => setLocal(() => isWritten = v ?? false),
+                  'Written parts finish after page photos are uploaded and a caregiver confirms with their PIN'),
+              value: 'both',
+              groupValue: kind,
+              onChanged: (v) => setLocal(() => kind = v ?? 'play'),
             ),
           ],
         )),
@@ -221,7 +227,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
         'order_idx': count,
         if (book.text.trim().isNotEmpty) 'book': book.text.trim(),
         if (pages.text.trim().isNotEmpty) 'pages': pages.text.trim(),
-        'kind': isWritten ? (isPlay ? 'both' : 'written') : 'play',
+        'kind': kind,
       });
       ref.invalidate(currentLessonProvider(widget.studentId));
     ref.invalidate(

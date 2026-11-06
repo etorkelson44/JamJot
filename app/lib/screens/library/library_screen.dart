@@ -1211,35 +1211,33 @@ class _CreateAssignmentDialogState
                     labelText: 'Note for the student (optional)'),
               ),
               const SizedBox(height: 10),
-              // Neither checked = instrument play only (founder-directed
+              // Three options, play-only by default (founder-directed
               // 2026-11-05).
-              CheckboxListTile(
+              RadioListTile<String>(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: const Text('🎹 Instrument play'),
-                value: _kind == 'play' || _kind == 'both',
-                onChanged: (v) => setState(() {
-                  final written = _kind == 'written' || _kind == 'both';
-                  _kind = (v ?? false)
-                      ? (written ? 'both' : 'play')
-                      : (written ? 'written' : 'play');
-                }),
+                title: const Text('🎹 Instrument play only'),
+                value: 'play',
+                groupValue: _kind,
+                onChanged: (v) => setState(() => _kind = v ?? 'play'),
               ),
-              CheckboxListTile(
+              RadioListTile<String>(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: const Text('✍️ Written assignment'),
+                title: const Text('✍️ Written only'),
+                value: 'written',
+                groupValue: _kind,
+                onChanged: (v) => setState(() => _kind = v ?? 'play'),
+              ),
+              RadioListTile<String>(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('✍️🎹 Instrument play & written'),
                 subtitle: const Text(
-                    'Finishes after page photos are uploaded and a caregiver confirms with their PIN'),
-                value: _kind == 'written' || _kind == 'both',
-                onChanged: (v) => setState(() {
-                  final play = _kind == 'play' || _kind == 'both';
-                  _kind = (v ?? false)
-                      ? (play ? 'both' : 'written')
-                      : 'play';
-                }),
+                    'Written parts finish after page photos are uploaded and a caregiver confirms with their PIN'),
+                value: 'both',
+                groupValue: _kind,
+                onChanged: (v) => setState(() => _kind = v ?? 'play'),
               ),
               const SizedBox(height: 4),
               if (_attachedFile != null)
@@ -1671,9 +1669,9 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               final hinted =
                   _picked[i]['written_hint'] == true && kind == null;
               const kindLabels = {
-                'play': '🎹 Play',
-                'written': '✍️ Written',
-                'both': '✍️🎹 Both',
+                'play': '🎹 Instrument play only',
+                'written': '✍️ Written only',
+                'both': '✍️🎹 Instrument play & written',
               };
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
