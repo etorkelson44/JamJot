@@ -137,12 +137,17 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   final Map<String, int> _bankedMs = {};
   bool _soundNow = false;
 
-  /// The indicator's 5-second buffer (founder-directed 2026-11-05): once
-  /// playing is heard, the UI and the avatar keep saying so until the room
-  /// has been quiet for this long. Sound COUNTING stays exact (_soundNow).
-  static const _holdAfterSound = Duration(seconds: 5);
+  /// The sound buffer (founder-directed 2026-11-05, trimmed to 3 s the
+  /// same day): once playing is heard, the indicator, the avatar and the
+  /// practice clock all ride through quiet gaps up to this long.
+  static const _holdAfterSound = Duration(seconds: 3);
   DateTime? _lastLoudAt;
   bool _soundHeld = false;
+
+  /// The minute mark flashes for ~5 s as each full practice minute lands,
+  /// then hides between increments (founder-directed 2026-11-05).
+  int _lastMinuteVal = -1;
+  DateTime? _minuteMarkAt;
   Timer? _sampler;
 
   // Celebration numbers.
@@ -326,6 +331,13 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               if (id != null && id != '_freeplay') {
                 _soundMsBySong[id] = (_soundMsBySong[id] ?? 0) + delta;
               }
+            }
+            final minuteNow = _soundMsTotal ~/ 60000;
+            if (_lastMinuteVal < 0) {
+              _lastMinuteVal = minuteNow; // resumed session: no instant flash
+            } else if (minuteNow > _lastMinuteVal) {
+              _lastMinuteVal = minuteNow;
+              _minuteMarkAt = DateTime.now();
             }
             setState(() {
               _soundNow = loud;
@@ -1270,13 +1282,24 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             // timer listens (JJ-012/JJ-014).
             PerformingAvatar(size: 76, playing: _soundHeld),
             const SizedBox(width: 12),
-            // Minute marks only (founder-directed 2026-11-05): the big
-            // number ticks over as each full minute of practice lands.
-            Text(_fmt((_activeSeconds ~/ 60) * 60),
-                style:
-                    text.displaySmall?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(width: 8),
-            Text('of real\npractice', style: text.labelSmall),
+            // Minute marks flash for ~5 s as each minute lands, then hide
+            // (founder-directed 2026-11-05).
+            Builder(builder: (context) {
+              final show = _minuteMarkAt != null &&
+                  DateTime.now().difference(_minuteMarkAt!) <
+                      const Duration(seconds: 5);
+              return AnimatedOpacity(
+                opacity: show ? 1 : 0,
+                duration: const Duration(milliseconds: 300),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(_fmt((_lastMinuteVal.clamp(0, 9999)) * 60),
+                      style: text.displaySmall
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 8),
+                  Text('of real\npractice', style: text.labelSmall),
+                ]),
+              );
+            }),
           ],
         ),
         const SizedBox(height: 10),
