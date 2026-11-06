@@ -25,6 +25,7 @@ class SmartHearing {
     required this.music,
     required this.instrument,
     required this.clap,
+    this.impulses = 0,
   });
 
   final bool ready;
@@ -34,10 +35,21 @@ class SmartHearing {
   final double instrument;
   final double clap;
 
+  /// Sharp clap-like hits counted in the raw audio of the last ~1.5 s,
+  /// independent of the sound model (which often under-rates a clap when a
+  /// voice is loud over it).
+  final int impulses;
+
+  /// Hand-claps are audible in the raw sound: two or more sharp hits, or
+  /// one hit with at least a faint clap score from the model.
+  bool get clappy =>
+      ready && (clap >= 0.08 || impulses >= 2 || (impulses >= 1 && clap >= 0.03));
+
   /// Clapping together with a voice — a kid clapping while counting out
-  /// loud — is real practice (founder-directed 2026-11-05), so even a
-  /// fainter clap signal overrides the talking exclusion.
-  bool get clapAndVoice => ready && clap >= 0.08 && speech >= 0.2;
+  /// loud or naming the notes — is real practice (founder-directed
+  /// 2026-11-05, extended 2026-11-06 for naming notes while clapping), so
+  /// it overrides the talking exclusion.
+  bool get clapAndVoice => ready && speech >= 0.2 && clappy;
 
   /// True when the window sounds like talking and not at all like playing.
   /// Deliberately conservative: when in doubt, the kid keeps their minutes.
@@ -47,7 +59,8 @@ class SmartHearing {
       speech > 0.3 &&
       music < 0.12 &&
       instrument < 0.1 &&
-      clap < 0.1;
+      clap < 0.1 &&
+      impulses < 2;
 
   /// A tiny kid-facing word for the banner.
   String get label {
@@ -55,7 +68,7 @@ class SmartHearing {
     if (!ready) return '';
     if (instrument >= 0.1 || music >= 0.2) return 'music!';
     if (clapAndVoice) return 'clap & count!';
-    if (clap >= 0.1) return 'clapping';
+    if (clap >= 0.1 || impulses >= 2) return 'clapping';
     if (speech > 0.3) return 'talking';
     return 'quiet';
   }
@@ -85,6 +98,7 @@ class SmartListen {
         music: n('music'),
         instrument: n('instrument'),
         clap: n('clap'),
+        impulses: n('impulses').round(),
       );
     } catch (_) {
       return null;

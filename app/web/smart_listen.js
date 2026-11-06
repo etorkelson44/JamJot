@@ -18,7 +18,7 @@ window.SmartListen = (() => {
   let ring = null, ringLen = 0, ringPos = 0, ringFilled = 0;
   let state = 'off'; // off | loading | on | error
   let errMsg = '';
-  let latest = { speech: 0, music: 0, instrument: 0, clap: 0, at: 0 };
+  let latest = { speech: 0, music: 0, instrument: 0, clap: 0, impulses: 0, at: 0 };
   let busy = false;
 
   // Which YAMNet classes count as "their instrument", per instrument name.
@@ -56,7 +56,8 @@ window.SmartListen = (() => {
   const SPEECH = ['Speech', 'Child speech, kid speaking', 'Conversation',
     'Narration, monologue'];
   const MUSIC = ['Music'];
-  const CLAP = ['Clapping', 'Applause', 'Finger snapping'];
+  const CLAP = ['Clapping', 'Applause', 'Finger snapping', 'Hands',
+    'Slap, smack'];
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -117,13 +118,19 @@ window.SmartListen = (() => {
     ringFilled = Math.min(ringLen, ringFilled + input.length);
   }
 
-  // Last `seconds` of audio, linearly resampled from the mic rate to 16 kHz.
-  function lastWindow16k(seconds) {
+  // Last `seconds` of raw audio at the mic's own sample rate.
+  function lastRaw(seconds) {
     const n = Math.min(ringFilled, Math.round(seconds * ctx.sampleRate));
     const startAt = (ringPos - n + ringLen) % ringLen;
     const raw = new Float32Array(n);
     for (let i = 0; i < n; i++) raw[i] = ring[(startAt + i) % ringLen];
-    const outLen = Math.round(n * 16000 / ctx.sampleRate);
+    return raw;
+  }
+
+  // Linear resample from the mic rate down to YAMNet's 16 kHz.
+  function resample16k(raw, rate) {
+    const n = raw.length;
+    const outLen = Math.round(n * 16000 / rate);
     const out = new Float32Array(outLen);
     for (let i = 0; i < outLen; i++) {
       const t = i * (n - 1) / Math.max(1, outLen - 1);
@@ -133,12 +140,66 @@ window.SmartListen = (() => {
     return out;
   }
 
+  // Counts sharp, bright, quickly-fading hits (hand claps, desk slaps) in
+  // raw audio, independent of the YAMNet model. Needed because YAMNet
+  // often rates a clap far lower when a voice is loud over it, so a kid
+  // clapping while naming notes looked like "talking only". A hit is a
+  // jump of >= ~10 dB in high-frequency energy over the last ~70 ms that
+  // dies away again within ~30 ms (sustained consonants like "s" and
+  // vowels don't) and that is among the loudest things in the window
+  // (a clap is; a spoken consonant sits well under the vowels around it).
+  // Hits closer than 100 ms count once.
+  function countImpulses(raw, rate) {
+    const hop = Math.max(1, Math.round(rate * 0.005)); // 5 ms frames
+    const frames = Math.floor((raw.length - 1) / hop);
+    if (frames < 20) return 0;
+    const env = new Float32Array(frames);
+    for (let k = 0; k < frames; k++) {
+      let e = 0;
+      for (let i = k * hop + 1; i <= (k + 1) * hop; i++) {
+        const d = raw[i] - raw[i - 1]; // first difference = high-pass
+        e += d * d;
+      }
+      env[k] = e / hop;
+    }
+    let windowPeak = 0;
+    for (let i = 0; i < raw.length; i++) {
+      windowPeak = Math.max(windowPeak, Math.abs(raw[i]));
+    }
+    const FLOOR = 4e-4; // ~0.02 rms of difference signal: ignore room hiss
+    let count = 0;
+    let quietUntil = 0;
+    for (let k = 4; k < frames - 6; k++) {
+      if (k < quietUntil) continue;
+      const from = Math.max(0, k - 14);
+      const base = Array.from(env.subarray(from, k - 2)).sort((a, b) => a - b);
+      const median = base[base.length >> 1];
+      const peak = env[k];
+      if (peak < FLOOR || peak < median * 10) continue;
+      if (env[k - 1] > peak) continue; // wait for the frame that tops out
+      if (env[k + 6] > peak * 0.3) continue; // must fade, like a clap
+      // The hit's own (high-frequency) size, so a voice rising underneath
+      // it doesn't inflate it: |difference| of neighbours is up to 2x amplitude.
+      let hitAmp = 0;
+      for (let i = k * hop + 1; i < (k + 4) * hop; i++) {
+        hitAmp = Math.max(hitAmp, Math.abs(raw[i] - raw[i - 1]) / 2);
+      }
+      if (hitAmp < windowPeak * 0.4) continue; // not loud enough to be a clap
+      count++;
+      quietUntil = k + 20; // 100 ms
+    }
+    return count;
+  }
+
   async function classifyOnce() {
     if (busy || !model || !ctx) return;
     if (ringFilled < ctx.sampleRate * 0.975) return; // not a full second yet
     busy = true;
     try {
-      const wave = lastWindow16k(0.975);
+      const raw = lastRaw(1.5); // whole ring: also catches claps that
+      // straddle a window boundary (a pass reports its own count only)
+      const wave = resample16k(raw.subarray(raw.length - Math.min(raw.length, Math.round(0.975 * ctx.sampleRate))), ctx.sampleRate);
+      const impulses = countImpulses(raw, ctx.sampleRate);
       const tf = window.tf;
       const scores = tf.tidy(() => {
         const outs = model.predict(tf.tensor1d(wave));
@@ -153,6 +214,7 @@ window.SmartListen = (() => {
         music: top(groups.music),
         instrument: top(groups.instrument),
         clap: top(groups.clap),
+        impulses,
         at: Date.now(),
       };
       state = 'on';
@@ -206,6 +268,7 @@ window.SmartListen = (() => {
     stop() {
       stopCapture();
     },
+    _countImpulses: countImpulses, // exposed for tests
     status() {
       return JSON.stringify({
         ready: state === 'on',
@@ -215,6 +278,7 @@ window.SmartListen = (() => {
         music: latest.music,
         instrument: latest.instrument,
         clap: latest.clap,
+        impulses: latest.impulses,
         ageMs: latest.at ? Date.now() - latest.at : -1,
       });
     },
@@ -228,7 +292,7 @@ window.SmartListen = (() => {
     try { if (stream) stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
     try { if (ctx) ctx.close(); } catch (_) {}
     procNode = srcNode = muteNode = stream = ctx = null;
-    latest = { speech: 0, music: 0, instrument: 0, clap: 0, at: 0 };
+    latest = { speech: 0, music: 0, instrument: 0, clap: 0, impulses: 0, at: 0 };
     if (!keepState) { state = 'off'; errMsg = ''; }
   }
 })();
