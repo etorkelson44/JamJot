@@ -7,7 +7,9 @@ import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../services/smart_listen.dart';
 import '../../services/sound_effects.dart';
 import '../../services/recording_file.dart';
 import '../../services/practice_navigation.dart';
@@ -148,6 +150,12 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   /// then hides between increments (founder-directed 2026-11-05).
   int _lastMinuteVal = -1;
   DateTime? _minuteMarkAt;
+
+  /// Smart ears (beta, founder-approved 2026-11-05): on-device sound
+  /// classification parses talking out of practice time. Fail-safe — when
+  /// the classifier isn't ready, counting falls back to plain loudness.
+  bool _smartEars = true;
+  String _smartHear = '';
   Timer? _sampler;
 
   // Celebration numbers.
@@ -172,6 +180,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     _exitGuard = ref.read(practiceExitGuardProvider);
     _exitHandler = _confirmLeavePractice;
     _exitGuard.beforeLeave = _exitHandler;
+    SharedPreferences.getInstance().then((p) {
+      if (mounted) {
+        setState(() => _smartEars = p.getBool('smart_ears') ?? true);
+      }
+    });
     _begin();
   }
 
@@ -298,6 +311,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             ),
             path: await recordingPath(_clipId!));
         if (await _recorder.isPaused()) await _recorder.resume();
+        if (_smartEars) SmartListen.start('piano');
         _clipStartedAt = DateTime.now();
         _clipStartSoundMs = _soundMsTotal;
         _sampleAt = 0;
@@ -319,8 +333,21 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             if (id != null && id != '_freeplay') {
               _wallMsBySong[id] = (_wallMsBySong[id] ?? 0) + delta;
             }
-            if (loud) _lastLoudAt = DateTime.now();
-            final held = loud ||
+            // Smart ears: a window that sounds like talking-only does not
+            // feed the hold, so chatter can't keep the clock running. Real
+            // playing with words over it still counts (the hold rides it).
+            var speechOnly = false;
+            var hear = '';
+            if (_smartEars) {
+              final sh = SmartListen.status();
+              if (sh != null) {
+                speechOnly = sh.speechOnly;
+                hear = sh.label;
+              }
+            }
+            final counts = loud && !speechOnly;
+            if (counts) _lastLoudAt = DateTime.now();
+            final held = counts ||
                 (_lastLoudAt != null &&
                     DateTime.now().difference(_lastLoudAt!) < _holdAfterSound);
             // Founder-directed 2026-11-05: the short gaps BETWEEN notes are
@@ -340,8 +367,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               _minuteMarkAt = DateTime.now();
             }
             setState(() {
-              _soundNow = loud;
+              _soundNow = counts;
               _soundHeld = held;
+              _smartHear = hear;
             });
           } catch (_) {
             _showProblem(
@@ -367,6 +395,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   }
 
   Future<void> _stopClip({bool discard = false}) async {
+    SmartListen.stop();
     _sampler?.cancel();
     _clipClock.stop();
     final key = _clipSongKey ?? '_freeplay';
@@ -975,6 +1004,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     }
     setUnloadGuard(false);
     _sampler?.cancel();
+    SmartListen.stop();
     _recorder.dispose();
     super.dispose();
   }
@@ -1155,6 +1185,19 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     );
   }
 
+  Future<void> _toggleSmartEars() async {
+    final next = !_smartEars;
+    setState(() {
+      _smartEars = next;
+      _smartHear = '';
+    });
+    if (_live) {
+      next ? SmartListen.start('piano') : SmartListen.stop();
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('smart_ears', next);
+  }
+
   Widget _liveBanner(TextTheme text) {
     if (!_live) return const SizedBox.shrink();
     return Container(
@@ -1181,11 +1224,35 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              _soundHeld
-                  ? 'Listening & recording — I hear you!'
-                  : 'Listening & recording — waiting for sound…',
-              style: text.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _soundHeld
+                      ? 'Listening & recording — I hear you!'
+                      : 'Listening & recording — waiting for sound…',
+                  style: text.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                // Smart ears (beta): tap to flip. Shows what the on-device
+                // classifier hears so grown-ups can sanity-check it live.
+                GestureDetector(
+                  onTap: _toggleSmartEars,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      _smartEars
+                          ? (_smartHear.isEmpty
+                              ? 'Smart ears on'
+                              : 'Smart ears: $_smartHear')
+                          : 'Smart ears off — tap to turn on',
+                      style: text.labelSmall?.copyWith(
+                        color: JamJotColors.ink.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           if (_clipSongKey != null && _clipSongKey != '_freeplay')
