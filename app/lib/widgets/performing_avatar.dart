@@ -155,7 +155,12 @@ class _PerformingAvatarState extends ConsumerState<PerformingAvatar>
                 right: s * 0.02,
                 child: Transform.rotate(
                   angle: -sway * 0.6,
-                  child: Text(prop, style: TextStyle(fontSize: s * 0.42)),
+                  child: prop == '🎹'
+                      // The founder's own piano drawing replaces the
+                      // keyboard emoji (2026-11-06).
+                      ? Image.asset('assets/art/icon_piano.png',
+                          width: s * 0.5, height: s * 0.5)
+                      : Text(prop, style: TextStyle(fontSize: s * 0.42)),
                 ),
               ),
             ],
