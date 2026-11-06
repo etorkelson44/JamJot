@@ -314,16 +314,19 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             if (id != null && id != '_freeplay') {
               _wallMsBySong[id] = (_wallMsBySong[id] ?? 0) + delta;
             }
-            if (loud) {
+            if (loud) _lastLoudAt = DateTime.now();
+            final held = loud ||
+                (_lastLoudAt != null &&
+                    DateTime.now().difference(_lastLoudAt!) < _holdAfterSound);
+            // Founder-directed 2026-11-05: the short gaps BETWEEN notes are
+            // still practice — a kid mid-piece is focusing. Time counts
+            // while within the 5-second hold, not only during loud samples.
+            if (held) {
               _soundMsTotal += delta;
               if (id != null && id != '_freeplay') {
                 _soundMsBySong[id] = (_soundMsBySong[id] ?? 0) + delta;
               }
             }
-            if (loud) _lastLoudAt = DateTime.now();
-            final held = loud ||
-                (_lastLoudAt != null &&
-                    DateTime.now().difference(_lastLoudAt!) < _holdAfterSound);
             setState(() {
               _soundNow = loud;
               _soundHeld = held;
@@ -1103,6 +1106,43 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     );
   }
 
+  /// Red until a minute of real practice on this song, yellow once the
+  /// 1-minute minimum is met, green when the song's practice goal lands.
+  Widget _stopLight(String? songId) {
+    int sec = 0, goalSec = 0;
+    if (songId != null && songId != '_freeplay') {
+      sec = _songSeconds(songId);
+      final song = _songs.where((s) => s['id'] == songId).toList();
+      if (song.isNotEmpty) goalSec = _suggestedMinutes(song.first) * 60;
+    }
+    final green = goalSec > 0 && sec >= goalSec;
+    final yellow = !green && sec >= _minSongSeconds;
+    final red = !green && !yellow;
+    Widget dot(Color c, bool on) => Container(
+          width: 14,
+          height: 14,
+          margin: const EdgeInsets.symmetric(horizontal: 1.5),
+          decoration: BoxDecoration(
+            color: on ? c : c.withValues(alpha: 0.18),
+            shape: BoxShape.circle,
+            border: Border.all(color: JamJotColors.ink, width: 1),
+          ),
+        );
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: JamJotColors.ink, width: 1.5),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        dot(const Color(0xFFE5484D), red),
+        dot(const Color(0xFFF5C542), yellow),
+        dot(const Color(0xFF46A758), green),
+      ]),
+    );
+  }
+
   Widget _liveBanner(TextTheme text) {
     if (!_live) return const SizedBox.shrink();
     return Container(
@@ -1136,6 +1176,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               style: text.bodySmall?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
+          if (_clipSongKey != null && _clipSongKey != '_freeplay')
+            _stopLight(_clipSongKey),
         ],
       ),
     );
@@ -1228,11 +1270,13 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             // timer listens (JJ-012/JJ-014).
             PerformingAvatar(size: 76, playing: _soundHeld),
             const SizedBox(width: 12),
-            Text(_fmt(_activeSeconds),
+            // Minute marks only (founder-directed 2026-11-05): the big
+            // number ticks over as each full minute of practice lands.
+            Text(_fmt((_activeSeconds ~/ 60) * 60),
                 style:
                     text.displaySmall?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(width: 8),
-            Text('of real\nsound', style: text.labelSmall),
+            Text('of real\npractice', style: text.labelSmall),
           ],
         ),
         const SizedBox(height: 10),
@@ -1373,7 +1417,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           ]),
           Padding(
               padding: const EdgeInsets.only(left: 48, bottom: 12),
-              child: Wrap(spacing: 16, runSpacing: 4, children: [
+              child: Wrap(spacing: 16, runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center, children: [
+                _stopLight(id),
                 Text('${_fmt(_songSeconds(id))} sound / $target min goal',
                     style:
                         text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
