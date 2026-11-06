@@ -1732,20 +1732,17 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         card('📅', 'Next lesson', sched?['next']),
       ]),
       const SizedBox(height: 8),
-      Row(children: [
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: () => context.go(
-                  '/lesson-sheet?student=${student['id']}&name=${Uri.encodeComponent(student['display_name'] as String? ?? 'Student')}'),
-              icon: const Icon(Icons.print, size: 16),
-              label: const Text("Print this week's lesson sheet"),
-            ),
-          ),
+      // The Jam Jar lives beside the profile icon (top corner); it isn't
+      // repeated down here.
+      Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          onPressed: () => context.go(
+              '/lesson-sheet?student=${student['id']}&name=${Uri.encodeComponent(student['display_name'] as String? ?? 'Student')}'),
+          icon: const Icon(Icons.print, size: 16),
+          label: const Text("Print this week's lesson sheet"),
         ),
-        JamJar(studentId: student['id'] as String),
-      ]),
+      ),
     ]);
   }
 

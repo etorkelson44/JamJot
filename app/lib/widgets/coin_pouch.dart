@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/app_state.dart';
-import '../state/coin_rewards.dart';
 import 'jam_jar_art.dart';
 
 /// The official JJ coin, trimmed tight — used anywhere a coin is shown.
@@ -63,9 +62,10 @@ class _CoinsInside extends StatelessWidget {
   }
 }
 
-/// The resting Jam Jar for Home, Practice, the market and adult child
-/// details: the closed jar, with the coins visible inside when it isn't
-/// empty, and the balance on a badge underneath.
+/// The resting Jam Jar for the market and adult child details (kids see the
+/// corner jar beside their profile icon instead): the closed jar, with the
+/// coins visible inside when it isn't empty, and the balance on a badge
+/// underneath. Display only; sound choices belong to the caregiver.
 class JamJar extends ConsumerWidget {
   const JamJar({super.key, required this.studentId, this.big = false});
   final String studentId;
@@ -75,50 +75,16 @@ class JamJar extends ConsumerWidget {
     final value = ref.watch(berryBalanceProvider(studentId));
     final balance = value.valueOrNull;
     final size = big ? 84.0 : 64.0;
-    void openSettings() => showDialog<void>(
-        context: context,
-        builder: (_) => Consumer(
-            builder: (context, ref, child) => AlertDialog(
-                  title: const Text('Your Jam Jar'),
-                  content: Column(mainAxisSize: MainAxisSize.min, children: [
-                    JarStill(balance: balance, width: 110),
-                    const SizedBox(height: 8),
-                    Text(balance == null
-                        ? 'Loading your coins…'
-                        : '$balance coins'),
-                    SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Coin sounds'),
-                        subtitle:
-                            const Text('A little jingle when you earn coins.'),
-                        value: ref.watch(coinSoundsProvider),
-                        onChanged:
-                            ref.read(coinSoundsProvider.notifier).setEnabled),
-                  ]),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Done'))
-                  ],
-                )));
     return Semantics(
-        onTap: openSettings,
-        button: true,
         label:
-            'Jam Jar, ${balance == null ? 'balance loading' : '$balance coins'}. Coin sound settings',
+            'Jam Jar, ${balance == null ? 'balance loading' : '$balance coins'}',
         child: ExcludeSemantics(
-            child: Tooltip(
-                message: 'Jam Jar · sound settings',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: openSettings,
-                  child: SizedBox(
-                      width: size,
-                      height: size * kJarImageH / kJarImageW + 4,
-                      child: Align(
-                          alignment: Alignment.topCenter,
-                          child: JarStill(balance: balance, width: size))),
-                ))));
+            child: SizedBox(
+                width: size,
+                height: size * kJarImageH / kJarImageW + 4,
+                child: Align(
+                    alignment: Alignment.topCenter,
+                    child: JarStill(balance: balance, width: size)))));
   }
 }
 

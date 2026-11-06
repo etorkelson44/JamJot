@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/app_state.dart';
+import '../services/sound_gate.dart';
 import '../state/coin_rewards.dart';
 import 'coin_pouch.dart';
 import 'jam_jar_art.dart';
@@ -65,7 +66,7 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
       _startCount = math.max(0, (balance ?? _earned) - _earned);
     });
     final timeline = JarTimeline(start: _startCount, earn: _earned);
-    if (ref.read(coinSoundsProvider)) {
+    if (soundGate.allows('coins')) {
       ref.read(coinSoundPlayerProvider)(animate ? timeline.tickDelays : [0]);
     }
     jarFlightActive.value = animate && jarCornerRect != null;
@@ -96,7 +97,8 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
   @override
   Widget build(BuildContext context) {
     final sid = ref.watch(activeStudentProvider)?['id'] as String?;
-    ref.watch(coinSoundsProvider); // Load saved preference before any reward.
+    // The caregiver's sound choices for whoever is on screen right now.
+    soundGate.apply(ref.watch(activeStudentProvider)?['sound_prefs']);
     if (sid != _studentId) {
       _studentId = sid;
       _earned = 0;

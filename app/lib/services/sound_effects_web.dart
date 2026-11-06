@@ -1,4 +1,5 @@
 import 'dart:js_interop';
+import 'sound_gate.dart';
 
 @JS('jjSound')
 external void _jjSound(JSString name);
@@ -9,6 +10,7 @@ external void _jjCoinPings(JSString delaysCsv);
 /// Plays one of the little synthesized effects defined in index.html:
 /// 'coin', 'cheer', 'fanfare', 'pop'.
 void playSound(String name) {
+  if (!soundGate.allows(name)) return;
   try {
     _jjSound(name.toJS);
   } catch (_) {/* sounds are a treat, never a crash */}
@@ -16,6 +18,7 @@ void playSound(String name) {
 
 /// One "Retro coin 4" blip per coin, [delaysMs] after now (see coin_drop.js).
 void playCoinPings(List<int> delaysMs) {
+  if (!soundGate.allows('coins')) return;
   try {
     _jjCoinPings(delaysMs.join(',').toJS);
   } catch (_) {/* sounds are a treat, never a crash */}
