@@ -26,11 +26,11 @@ class _StrawccatoPianoState extends State<StrawccatoPiano>
     with TickerProviderStateMixin {
   // Scene canvas the layers were exported on, and the measured pivots
   // (fractions of that canvas — the arms' drawn attachment points).
-  static const _w = 1200.0, _h = 1230.0;
-  static const _pivotUpper = Offset(0.2768 * _w, 0.5519 * _h);
-  static const _pivotLower = Offset(0.3003 * _w, 0.5791 * _h);
+  static const _w = 1127.0, _h = 1386.0;
+  static const _pivotUpper = Offset(0.31863 * _w, 0.57323 * _h);
+  static const _pivotLower = Offset(0.34161 * _w, 0.59545 * _h);
   static const _musicRect =
-      Rect.fromLTWH(0.6149 * _w, 0.0109 * _h, 0.374 * _w, 0.3587 * _h);
+      Rect.fromLTWH(0.55590 * _w, 0.00556 * _h, 0.43478 * _w, 0.34798 * _h);
 
   late final AnimationController _beat = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 1000))
