@@ -1159,29 +1159,21 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     }
     final green = goalSec > 0 && sec >= goalSec;
     final yellow = !green && sec >= _minSongSeconds;
-    final red = !green && !yellow;
-    Widget dot(Color c, bool on) => Container(
-          width: 14,
-          height: 14,
-          margin: const EdgeInsets.symmetric(horizontal: 1.5),
-          decoration: BoxDecoration(
-            color: on ? c : c.withValues(alpha: 0.18),
-            shape: BoxShape.circle,
-            border: Border.all(color: JamJotColors.ink, width: 1),
-          ),
-        );
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: JamJotColors.ink, width: 1.5),
+    // Founder art (2026-11-05): the real photo stoplight replaces the three
+    // painted dots. One image per state; a short crossfade on switches.
+    final state = green
+        ? 'green'
+        : yellow
+            ? 'yellow'
+            : 'red';
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 450),
+      child: Image.asset(
+        'assets/art/stoplight/light_$state.png',
+        key: ValueKey(state),
+        height: 44,
+        filterQuality: FilterQuality.medium,
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        dot(const Color(0xFFE5484D), red),
-        dot(const Color(0xFFF5C542), yellow),
-        dot(const Color(0xFF46A758), green),
-      ]),
     );
   }
 
