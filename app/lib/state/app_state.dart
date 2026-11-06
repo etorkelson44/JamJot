@@ -370,6 +370,64 @@ final savedLessonsProvider =
 });
 
 /// Loose search: every typed word must appear somewhere in the text.
+/// Every assignment the creator could re-use, from all three places they
+/// live — standalone saved assignments, assignments inside saved lesson
+/// templates, and assignments already given on live lessons — deduped by
+/// title+book. The create-lesson search looks through this pool
+/// (founder bug report 2026-11-05: searching found nothing because only
+/// the standalone table, usually empty, was searched).
+final assignmentSearchPoolProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final uid = JamJotBackend.client.auth.currentUser?.id;
+  if (uid == null) return [];
+  final seen = <String>{};
+  final pool = <Map<String, dynamic>>[];
+  void add(Map<String, dynamic> payload) {
+    final title = (payload['title'] as String? ?? '').trim();
+    if (title.isEmpty) return;
+    final key =
+        '${title.toLowerCase()}|${(payload['book'] as String? ?? '').trim().toLowerCase()}';
+    if (!seen.add(key)) return;
+    pool.add(payload);
+  }
+
+  final saved = await ref.watch(savedAssignmentsProvider.future);
+  for (final a in saved) {
+    add(Map<String, dynamic>.from(a['payload'] as Map? ?? {}));
+  }
+  final lessons = await ref.watch(savedLessonsProvider.future);
+  for (final l in lessons) {
+    for (final a
+        in ((l['payload'] as Map?)?['assignments'] as List? ?? const [])) {
+      add(Map<String, dynamic>.from(a as Map));
+    }
+  }
+  try {
+    final live = await JamJotBackend.client
+        .from('assignments')
+        .select(
+            'title, song_note, book, pages, kind, score_id, suggested_minutes, lessons!inner(created_by)')
+        .eq('lessons.created_by', uid)
+        .order('created_at', ascending: false)
+        .limit(300);
+    for (final a in live.cast<Map<String, dynamic>>()) {
+      add({
+        'title': a['title'],
+        'book': a['book'] ?? '',
+        'pages': a['pages'] ?? '',
+        'note': a['song_note'] ?? '',
+        'score_id': a['score_id'],
+        if (a['kind'] != null) 'kind': a['kind'],
+        if (a['suggested_minutes'] != null)
+          'suggested_minutes': a['suggested_minutes'],
+      });
+    }
+  } catch (_) {
+    // Live assignments are a bonus source; the pool works without them.
+  }
+  return pool;
+});
+
 bool looseMatch(String query, String text) {
   final q = query.trim().toLowerCase();
   if (q.isEmpty) return true;

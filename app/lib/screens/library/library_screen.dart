@@ -1638,13 +1638,16 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
   }
 
   Widget _buildPageOne(TextTheme text) {
-    final saved = ref.watch(savedAssignmentsProvider).valueOrNull ?? [];
+    // Searches every assignment the creator has anywhere — standalone saves,
+    // lesson templates, and already-assigned lessons (founder bug report
+    // 2026-11-05: the old search only covered the standalone table).
+    final pool = ref.watch(assignmentSearchPoolProvider).valueOrNull ?? [];
     final matches = _assignmentQuery.isEmpty
         ? <Map<String, dynamic>>[]
-        : saved
-            .where((a) => looseMatch(_assignmentQuery,
-                '${(a['payload'] as Map?)?['title'] ?? ''} ${(a['payload'] as Map?)?['book'] ?? ''}'))
-            .take(4)
+        : pool
+            .where((a) => looseMatch(
+                _assignmentQuery, '${a['title'] ?? ''} ${a['book'] ?? ''}'))
+            .take(6)
             .toList();
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1758,12 +1761,18 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
           ListTile(
             dense: true,
             leading: const Text('🎼'),
-            title: Text((a['payload'] as Map?)?['title'] ?? ''),
-            subtitle: ((a['payload'] as Map?)?['book'] ?? '') == ''
+            title: Text(a['title'] as String? ?? ''),
+            subtitle: [
+              if ((a['book'] ?? '') != '') a['book'],
+              if ((a['pages'] ?? '') != '') 'p. ${a['pages']}',
+            ].isEmpty
                 ? null
-                : Text((a['payload'] as Map?)?['book'] ?? ''),
+                : Text([
+                    if ((a['book'] ?? '') != '') a['book'],
+                    if ((a['pages'] ?? '') != '') 'p. ${a['pages']}',
+                  ].join(' ')),
             onTap: () => setState(() {
-              _picked.add(Map<String, dynamic>.from(a['payload'] as Map));
+              _picked.add(Map<String, dynamic>.from(a));
               _assignmentQuery = '';
             }),
           ),
