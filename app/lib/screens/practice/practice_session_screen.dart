@@ -146,11 +146,6 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   DateTime? _lastLoudAt;
   bool _soundHeld = false;
 
-  /// The minute mark flashes for ~5 s as each full practice minute lands,
-  /// then hides between increments (founder-directed 2026-11-05).
-  int _lastMinuteVal = -1;
-  DateTime? _minuteMarkAt;
-
   /// Smart ears (beta, founder-approved 2026-11-05): on-device sound
   /// classification parses talking out of practice time. Fail-safe — when
   /// the classifier isn't ready, counting falls back to plain loudness.
@@ -358,13 +353,6 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               if (id != null && id != '_freeplay') {
                 _soundMsBySong[id] = (_soundMsBySong[id] ?? 0) + delta;
               }
-            }
-            final minuteNow = _soundMsTotal ~/ 60000;
-            if (_lastMinuteVal < 0) {
-              _lastMinuteVal = minuteNow; // resumed session: no instant flash
-            } else if (minuteNow > _lastMinuteVal) {
-              _lastMinuteVal = minuteNow;
-              _minuteMarkAt = DateTime.now();
             }
             setState(() {
               _soundNow = counts;
@@ -1341,22 +1329,35 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             // timer listens (JJ-012/JJ-014).
             PerformingAvatar(size: 76, playing: _soundHeld),
             const SizedBox(width: 12),
-            // Minute marks flash for ~5 s as each minute lands, then hide
-            // (founder-directed 2026-11-05).
+            // Light-keyed encouragement instead of a timer (founder-directed
+            // 2026-11-05): red keeps them going, yellow marks the minute,
+            // green celebrates the song's goal.
             Builder(builder: (context) {
-              final show = _minuteMarkAt != null &&
-                  DateTime.now().difference(_minuteMarkAt!) <
-                      const Duration(seconds: 5);
-              return AnimatedOpacity(
-                opacity: show ? 1 : 0,
-                duration: const Duration(milliseconds: 300),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text(_fmt((_lastMinuteVal.clamp(0, 9999)) * 60),
-                      style: text.displaySmall
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(width: 8),
-                  Text('of real\npractice', style: text.labelSmall),
-                ]),
+              final id = _clipSongKey;
+              if (!_live || id == null || id == '_freeplay') {
+                return const SizedBox.shrink();
+              }
+              final sec = _songSeconds(id);
+              final match = _songs.where((s) => s['id'] == id).toList();
+              final goalMin =
+                  match.isEmpty ? 0 : _suggestedMinutes(match.first);
+              final green = goalMin > 0 && sec >= goalMin * 60;
+              final yellow = !green && sec >= _minSongSeconds;
+              final msg = green
+                  ? "You've reached your practice goal of "
+                      "$goalMin ${goalMin == 1 ? 'minute' : 'minutes'}!\n"
+                      "You're doing jam-azing!"
+                  : yellow
+                      ? "You've reached a minute!"
+                      : 'Keep going!';
+              return ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: Text(
+                  msg,
+                  textAlign: TextAlign.center,
+                  style:
+                      text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
               );
             }),
           ],
