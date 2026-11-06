@@ -173,9 +173,11 @@ class _ProfileChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final kid = ref.watch(activeStudentProvider);
     final profile = ref.watch(myProfileProvider).valueOrNull;
+    // The profiles table calls this column full_name — reading the wrong
+    // key here is what made the grown-up's chip show "?" (fixed 2026-11-05).
+    final profileName = (profile?['full_name'] as String? ?? '').trim();
     final name = kid?['display_name'] as String? ??
-        profile?['display_name'] as String? ??
-        '?';
+        (profileName.isEmpty ? '?' : profileName);
     final label = onHome ? 'Switch profile' : 'Back to Home';
     return Semantics(
       button: true,
