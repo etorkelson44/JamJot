@@ -126,9 +126,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   /// Loudness gate: room must be louder than this to count.
   static const _thresholdDb = -40.0;
 
-  /// Minimum real-sound time to finish/save a song. Founder-directed
-  /// 2026-11-05: removed for now (was 60) — any amount of sound finishes.
-  static const _minSongSeconds = 0;
+  /// Minimum real-sound time to finish/save a song.
+  static const _minSongSeconds = 60;
 
   /// Banking EXTRA practice for bonus fans still takes a full minute,
   /// so the +5-fan bonus can't be farmed with silence.
