@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../services/supabase_service.dart';
+import '../library/library_screen.dart' show showCreateLessonDialog;
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
@@ -229,6 +230,18 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
         if (pages.text.trim().isNotEmpty) 'pages': pages.text.trim(),
         'kind': kind,
       });
+      // Quick-added songs are filed into the assignment library too
+      // (founder-directed 2026-11-05).
+      await rememberAssignmentsInLibrary([
+        {
+          'title': title.text.trim(),
+          'book': book.text.trim(),
+          'pages': pages.text.trim(),
+          'note': note.text.trim(),
+          'kind': kind,
+          'suggested_minutes': int.tryParse(minutes.text.trim()),
+        }
+      ]);
       ref.invalidate(currentLessonProvider(widget.studentId));
     ref.invalidate(
         lessonForEnrollmentProvider((widget.studentId, widget.enrollmentId)));
@@ -314,6 +327,26 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
               onPressed: _busy ? null : _addSong,
               child: Text(_busy ? 'Saving…' : '+ Add a song'),
             ),
+            if (assignments.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              // Carry this lesson into next week — fully editable (remove,
+              // add, create) before it saves/assigns (founder-directed
+              // 2026-11-05).
+              OutlinedButton.icon(
+                onPressed: () => showCreateLessonDialog(
+                  context,
+                  ref,
+                  student: {
+                    'id': widget.studentId,
+                    'display_name': widget.studentName,
+                  },
+                  enrollmentId: widget.enrollmentId,
+                  draft: draftFromLesson(lesson!),
+                ),
+                icon: const Icon(Icons.event_repeat, size: 18),
+                label: const Text("Assign again next week — tweak first"),
+              ),
+            ],
           ],
         ),
       ),

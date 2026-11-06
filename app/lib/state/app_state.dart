@@ -376,6 +376,81 @@ final savedLessonsProvider =
 /// title+book. The create-lesson search looks through this pool
 /// (founder bug report 2026-11-05: searching found nothing because only
 /// the standalone table, usually empty, was searched).
+/// Files assignment payloads into the creator's standalone library — minus
+/// anything student-specific — skipping ones already there (title+book).
+/// Called whenever a lesson is created (founder-directed 2026-11-05).
+Future<void> rememberAssignmentsInLibrary(
+    List<Map<String, dynamic>> payloads) async {
+  final uid = JamJotBackend.client.auth.currentUser?.id;
+  if (uid == null || payloads.isEmpty) return;
+  try {
+    final existing = await JamJotBackend.client
+        .from('saved_assignments')
+        .select('payload')
+        .eq('owner_id', uid);
+    String keyOf(Map p) =>
+        '${(p['title'] ?? '').toString().trim().toLowerCase()}|${(p['book'] ?? '').toString().trim().toLowerCase()}';
+    final seen = {
+      for (final r in existing) keyOf((r['payload'] as Map?) ?? const {}),
+    };
+    final rows = <Map<String, dynamic>>[];
+    for (final p in payloads) {
+      final title = (p['title'] as String? ?? '').trim();
+      if (title.isEmpty || !seen.add(keyOf(p))) continue;
+      rows.add({
+        'owner_id': uid,
+        'payload': {
+          'title': title,
+          'book': (p['book'] as String? ?? '').trim(),
+          'pages': (p['pages'] as String? ?? '').trim(),
+          'note':
+              (p['note'] as String? ?? p['song_note'] as String? ?? '').trim(),
+          'score_id': p['score_id'],
+          if (p['kind'] != null) 'kind': p['kind'],
+          if (p['suggested_minutes'] != null)
+            'suggested_minutes': p['suggested_minutes'],
+        },
+      });
+    }
+    if (rows.isNotEmpty) {
+      await JamJotBackend.client.from('saved_assignments').insert(rows);
+    }
+  } catch (_) {
+    // Library filing is best-effort; the lesson itself already saved.
+  }
+}
+
+/// A create-lesson draft built from a student's existing lesson, student
+/// details stripped — for "assign this again next week" (founder-directed
+/// 2026-11-05). The dialog lets the creator remove, add and create
+/// assignments before saving.
+Map<String, dynamic> draftFromLesson(Map<String, dynamic> lesson) {
+  final base = DateTime.tryParse(lesson['week_start'] as String? ?? '') ??
+      DateTime.now();
+  final nextWeek = base.add(const Duration(days: 7));
+  return {
+    'lesson_title': lesson['title'],
+    'lesson_note': lesson['lesson_note'] ?? '',
+    'goal_days': lesson['goal_days'],
+    'goal_minutes': lesson['goal_minutes'],
+    'lesson_date':
+        '${nextWeek.year.toString().padLeft(4, '0')}-${nextWeek.month.toString().padLeft(2, '0')}-${nextWeek.day.toString().padLeft(2, '0')}',
+    'assignments': [
+      for (final a in (lesson['assignments'] as List? ?? const []))
+        {
+          'title': (a as Map)['title'],
+          'book': a['book'] ?? '',
+          'pages': a['pages'] ?? '',
+          'note': a['song_note'] ?? a['note'] ?? '',
+          'score_id': a['score_id'],
+          if (a['kind'] != null) 'kind': a['kind'],
+          if (a['suggested_minutes'] != null)
+            'suggested_minutes': a['suggested_minutes'],
+        },
+    ],
+  };
+}
+
 final assignmentSearchPoolProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final uid = JamJotBackend.client.auth.currentUser?.id;

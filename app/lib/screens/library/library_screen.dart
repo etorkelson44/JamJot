@@ -1625,6 +1625,10 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
           } catch (_) {}
         }
       }
+      // Every created lesson's assignments are filed into the standalone
+      // library too, student-free and deduped (founder-directed 2026-11-05).
+      await rememberAssignmentsInLibrary(_picked);
+      ref.invalidate(savedAssignmentsProvider);
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
