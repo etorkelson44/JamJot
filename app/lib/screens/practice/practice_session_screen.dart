@@ -126,12 +126,24 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   /// Loudness gate: room must be louder than this to count.
   static const _thresholdDb = -40.0;
 
-  /// Minimum real-sound time to finish a song (or bank extra practice).
-  static const _minSongSeconds = 60;
+  /// Minimum real-sound time to finish/save a song. Founder-directed
+  /// 2026-11-05: removed for now (was 60) — any amount of sound finishes.
+  static const _minSongSeconds = 0;
+
+  /// Banking EXTRA practice for bonus fans still takes a full minute,
+  /// so the +5-fan bonus can't be farmed with silence.
+  static const _minBankSeconds = 60;
 
   /// Sound-ms already paid out per song (so repeats earn on NEW time only).
   final Map<String, int> _bankedMs = {};
   bool _soundNow = false;
+
+  /// The indicator's 5-second buffer (founder-directed 2026-11-05): once
+  /// playing is heard, the UI and the avatar keep saying so until the room
+  /// has been quiet for this long. Sound COUNTING stays exact (_soundNow).
+  static const _holdAfterSound = Duration(seconds: 5);
+  DateTime? _lastLoudAt;
+  bool _soundHeld = false;
   Timer? _sampler;
 
   // Celebration numbers.
@@ -309,7 +321,14 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                 _soundMsBySong[id] = (_soundMsBySong[id] ?? 0) + delta;
               }
             }
-            setState(() => _soundNow = loud);
+            if (loud) _lastLoudAt = DateTime.now();
+            final held = loud ||
+                (_lastLoudAt != null &&
+                    DateTime.now().difference(_lastLoudAt!) < _holdAfterSound);
+            setState(() {
+              _soundNow = loud;
+              _soundHeld = held;
+            });
           } catch (_) {
             _showProblem(
                 'The microphone level could not be read. Stop and try recording again.');
@@ -363,6 +382,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       setState(() {
         _live = false;
         _soundNow = false;
+        _soundHeld = false;
+        _lastLoudAt = null;
       });
     }
     if (!discard) await _retryUploads();
@@ -701,7 +722,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     final id = song['id'] as String;
     final extraMs = (_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0);
     final extraSeconds = extraMs ~/ 1000;
-    if (extraSeconds < _minSongSeconds) return;
+    if (extraSeconds < _minBankSeconds) return;
     if (_busy) return;
     if (_live) await _toggleLive();
     if (_live) return;
@@ -1095,18 +1116,22 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       ),
       child: Row(
         children: [
+          // The kid's musician plays right on the recording banner while
+          // sound is heard (founder-directed 2026-11-05).
+          PerformingAvatar(size: 40, playing: _soundHeld),
+          const SizedBox(width: 10),
           Container(
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: _soundNow ? JamJotColors.recording : JamJotColors.outline,
+              color: _soundHeld ? JamJotColors.recording : JamJotColors.outline,
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              _soundNow
+              _soundHeld
                   ? 'Listening & recording — I hear you!'
                   : 'Listening & recording — waiting for sound…',
               style: text.bodySmall?.copyWith(fontWeight: FontWeight.w700),
@@ -1202,7 +1227,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           children: [
             // The kid's own avatar performs on their instrument while the
             // timer listens (JJ-012/JJ-014).
-            PerformingAvatar(size: 76, playing: _soundNow),
+            PerformingAvatar(size: 76, playing: _soundHeld),
             const SizedBox(width: 12),
             Text(_fmt(_activeSeconds),
                 style:
@@ -1424,7 +1449,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             Builder(builder: (context) {
               final extraSec =
                   ((_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0)) ~/ 1000;
-              if (extraSec >= _minSongSeconds) {
+              if (extraSec >= _minBankSeconds) {
                 return OutlinedButton(
                   onPressed: () => _bankExtra(song),
                   child: const Text('Bank extra practice (+5 fans!)'),
