@@ -1385,7 +1385,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               : FanIndicator(studentId: s2['id'] as String);
         }),
         const SizedBox(height: 10),
-        _liveStatusRow(text),
+        // Just the kid's musician resting at their instrument — stoplight,
+        // timer and the playing animation live only in the expanded song
+        // view now (founder-directed 2026-11-05).
+        const Center(child: PerformingAvatar(size: 96, playing: false)),
         const SizedBox(height: 10),
         _songs.isEmpty
             ? Center(
