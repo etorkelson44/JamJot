@@ -28,6 +28,7 @@ import '../../widgets/fan_stage.dart';
 import '../../widgets/score_frame.dart';
 import '../../widgets/stickers.dart';
 import '../../widgets/maestro_loader.dart';
+import '../../widgets/instrument_icon.dart';
 
 final practiceRecorderProvider =
     Provider<AudioRecorder>((ref) => AudioRecorder());
@@ -1819,7 +1820,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                             : null,
                         note: [
                           ..._writtenTag(song),
-                          if (song['source'] != null) '🎻 ${song['source']}',
+                          if (song['source'] != null) '🎼 ${song['source']}',
                           if (_bookPage(song).isNotEmpty)
                             '📖 ${_bookPage(song)}',
                           if ((song['song_note'] as String? ?? '').isNotEmpty)
@@ -1966,7 +1967,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (note.isNotEmpty)
-                  Text('🎵 $note',
+                  PianoText('🎵 $note',
                       style: text.bodyMedium
                           ?.copyWith(fontWeight: FontWeight.w600)),
                 if (lessonNote.isNotEmpty)
@@ -2306,7 +2307,7 @@ class _SongTile extends StatelessWidget {
                       if (weeklyDone) const Text(' ⭐'),
                     ]),
                     if (note.isNotEmpty)
-                      Text(note,
+                      PianoText(note,
                           style: text.bodySmall
                               ?.copyWith(color: JamJotColors.inkSoft)),
                   ],

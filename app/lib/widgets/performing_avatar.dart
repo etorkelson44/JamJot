@@ -6,43 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/app_state.dart';
 import '../state/wardrobe.dart';
 import 'dressed_avatar.dart';
+import 'instrument_icon.dart';
 import 'jalapresto_piano.dart';
 import 'kiwi_piano.dart';
 import 'strawccato_piano.dart';
 
-/// Instrument props the avatar can play (placeholder art — each swaps to a
-/// drawn piece with the art pass, same keys).
-const _instrumentEmoji = <String, String>{
-  'piano': '🎹',
-  'keyboard': '🎹',
-  'violin': '🎻',
-  'viola': '🎻',
-  'cello': '🎻',
-  'bass': '🎻',
-  'guitar': '🎸',
-  'ukulele': '🎸',
-  'drums': '🥁',
-  'percussion': '🥁',
-  'voice': '🎤',
-  'singing': '🎤',
-  'flute': '🪈',
-  'recorder': '🪈',
-  'clarinet': '🪈',
-  'saxophone': '🎷',
-  'trumpet': '🎺',
-  'trombone': '🎺',
-  'harp': '🪕',
-  'banjo': '🪕',
-};
-
-String _propFor(String? instrument) {
-  if (instrument == null) return '🎵';
-  final key = instrument.trim().toLowerCase();
-  for (final entry in _instrumentEmoji.entries) {
-    if (key.contains(entry.key)) return entry.value;
-  }
-  return '🎵';
-}
+String _propFor(String? instrument) => instrumentEmoji(instrument);
 
 /// The active student's dressed avatar performing on their own instrument:
 /// a gentle 3/4-time sway, the instrument at their hands, and music notes
@@ -158,8 +127,7 @@ class _PerformingAvatarState extends ConsumerState<PerformingAvatar>
                   child: prop == '🎹'
                       // The founder's own piano drawing replaces the
                       // keyboard emoji (2026-11-06).
-                      ? Image.asset('assets/art/icon_piano.png',
-                          width: s * 0.5, height: s * 0.5)
+                      ? PianoIcon(size: s * 0.5)
                       : Text(prop, style: TextStyle(fontSize: s * 0.42)),
                 ),
               ),

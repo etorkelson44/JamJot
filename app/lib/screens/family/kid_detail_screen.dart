@@ -17,6 +17,7 @@ import '../history/practice_history_screen.dart' show PracticeHistoryList;
 import '../library/library_screen.dart' show showCreateLessonDialog;
 import 'scan_sheet.dart';
 import '../../widgets/maestro_loader.dart';
+import '../../widgets/instrument_icon.dart';
 
 /// One kid's world in the grown-up view, organized into tabs:
 /// Overview • Teachers • Practices • Caregivers.
@@ -194,11 +195,16 @@ class _TeachersTab extends ConsumerWidget {
     final chats = ref.watch(myChatsProvider).valueOrNull ?? [];
     final text = Theme.of(context).textTheme;
 
-    Widget header(String label) => Padding(
+    Widget header(String label, {Widget? icon}) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: Text(label,
-              style:
-                  text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          child: Row(children: [
+            if (icon != null) ...[icon, const SizedBox(width: 8)],
+            Expanded(
+              child: Text(label,
+                  style: text.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+            ),
+          ]),
         );
 
     return ListView(
@@ -206,7 +212,9 @@ class _TeachersTab extends ConsumerWidget {
       children: [
         for (final e in enrollments) ...[
           header(
-              '🎻 ${(e['teachers'] as Map?)?['display_name'] ?? 'Teacher'} • ${e['instrument']}'),
+              '${(e['teachers'] as Map?)?['display_name'] ?? 'Teacher'} • ${e['instrument']}',
+              icon: instrumentIcon(e['instrument'] as String?,
+                  size: 26, fallback: '🎻')),
           _SectionCards(
             kid: kid,
             name: name,

@@ -12,6 +12,7 @@ import '../../widgets/fan_stage.dart';
 import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
 import '../../widgets/jamjot_card.dart';
 import '../../widgets/ask_maestro.dart';
+import '../../widgets/instrument_icon.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -62,7 +63,10 @@ class HomeScreen extends ConsumerWidget {
             FanIndicator(studentId: active['id'] as String),
             const SizedBox(height: 16),
             JamJotCard(
-              emoji: '🎻',
+              leading: instrumentIcon(
+                  (active['instruments'] as List?)?.firstOrNull as String?,
+                  size: 26,
+                  fallback: '🎻'),
               title: (active['instruments'] as List?)?.join(' · ') ?? 'Music',
               subtitle: 'Tap to start a practice session!',
               tint: JamJotColors.blueberryTint,
@@ -133,7 +137,11 @@ class HomeScreen extends ConsumerWidget {
               if (teacher == null) return const SizedBox.shrink();
               return Column(children: [
                 JamJotCard(
-                  emoji: '🎻',
+                  leading: instrumentIcon(
+                      (teacher['instruments'] as List?)?.firstOrNull
+                          as String?,
+                      size: 26,
+                      fallback: '🎻'),
                   tint: JamJotColors.blueberryTint,
                   title: 'My teaching',
                   subtitle:

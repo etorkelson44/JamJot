@@ -8,6 +8,7 @@ import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
 import '../../widgets/maestro_loader.dart';
+import '../../widgets/instrument_icon.dart';
 
 /// Where a grown-up (parent now; teachers use the same rules) builds the
 /// current practice list for one student.
@@ -177,7 +178,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
             RadioListTile<String>(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              title: const Text('🎹 Instrument play only'),
+              title: const PianoText('🎹 Instrument play only'),
               value: 'play',
               groupValue: kind,
               onChanged: (v) => setLocal(() => kind = v ?? 'play'),
@@ -193,7 +194,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
             RadioListTile<String>(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              title: const Text('✍️🎹 Instrument play & written'),
+              title: const PianoText('✍️🎹 Instrument play & written'),
               subtitle: const Text(
                   'Written parts finish after page photos are uploaded and a caregiver confirms with their PIN'),
               value: 'both',

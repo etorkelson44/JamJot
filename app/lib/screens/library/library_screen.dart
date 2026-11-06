@@ -14,6 +14,7 @@ import '../../services/unload_guard.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/instrument_icon.dart';
 
 /// My Library: Files (music/books), Assignments, and Lessons — with loose
 /// search everywhere. Later, score stores & converters plug in here too.
@@ -1216,7 +1217,7 @@ class _CreateAssignmentDialogState
               RadioListTile<String>(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: const Text('🎹 Instrument play only'),
+                title: const PianoText('🎹 Instrument play only'),
                 value: 'play',
                 groupValue: _kind,
                 onChanged: (v) => setState(() => _kind = v ?? 'play'),
@@ -1232,7 +1233,7 @@ class _CreateAssignmentDialogState
               RadioListTile<String>(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: const Text('✍️🎹 Instrument play & written'),
+                title: const PianoText('✍️🎹 Instrument play & written'),
                 subtitle: const Text(
                     'Written parts finish after page photos are uploaded and a caregiver confirms with their PIN'),
                 value: 'both',
@@ -1721,11 +1722,11 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
                           setState(() => _picked[i]['kind'] = v),
                       itemBuilder: (context) => [
                         for (final e in kindLabels.entries)
-                          PopupMenuItem(value: e.key, child: Text(e.value)),
+                          PopupMenuItem(value: e.key, child: PianoText(e.value)),
                       ],
                       child: Padding(
                         padding: const EdgeInsets.all(4),
-                        child: Text(kindLabels[kind] ?? '🎹 Play',
+                        child: PianoText(kindLabels[kind] ?? '🎹 Play',
                             style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: hinted
