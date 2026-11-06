@@ -1348,8 +1348,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                       "$goalMin ${goalMin == 1 ? 'minute' : 'minutes'}!\n"
                       "You're doing jam-azing!"
                   : yellow
-                      ? "You've reached a minute!"
-                      : 'Keep going!';
+                      ? "You've reached a minute — keep going to reach "
+                          "your practice goal!"
+                      : 'Almost there!';
               return ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 220),
                 child: Text(
