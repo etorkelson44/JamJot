@@ -170,6 +170,17 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   int _earnedFans = 0;
 
   int get _activeSeconds => _soundMsTotal ~/ 1000;
+
+  /// "Lesson Book p. 14" from an assignment's book/pages columns
+  /// (founder-directed 2026-11-05).
+  String _bookPage(Map<String, dynamic> song) {
+    final book = (song['book'] as String? ?? '').trim();
+    final pages = (song['pages'] as String? ?? '').trim();
+    return [
+      if (book.isNotEmpty) book,
+      if (pages.isNotEmpty) 'p. $pages',
+    ].join(' ');
+  }
   int _songSeconds(String id) => (_soundMsBySong[id] ?? 0) ~/ 1000;
 
   @override
@@ -1419,6 +1430,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                         title: song['title'] as String,
                         note: [
                           if (song['source'] != null) '🎻 ${song['source']}',
+                          if (_bookPage(song).isNotEmpty)
+                            '📖 ${_bookPage(song)}',
                           if ((song['song_note'] as String? ?? '').isNotEmpty)
                             song['song_note'] as String,
                         ].join(' • '),
@@ -1442,6 +1455,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                           if (_ratings[id] != null)
                             ratingLabels[_ratings[id]] ?? '',
                           if (_awardsLabel[id] != null) _awardsLabel[id]!,
+                          if (_bookPage(song).isNotEmpty)
+                            '📖 ${_bookPage(song)}',
                         ];
                         return _SongTile(
                           title: song['title'] as String,
@@ -1531,7 +1546,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                   crossAxisAlignment: WrapCrossAlignment.center, children: [
                 // Static goal only — no progress timers or stoplight here
                 // (founder-directed 2026-11-05).
-                Text("Goal: $target ${target == 1 ? 'minute' : 'minutes'}",
+                Text(
+                    "Goal: $target ${target == 1 ? 'minute' : 'minutes'}"
+                    "${_bookPage(song).isEmpty ? '' : ' • 📖 ${_bookPage(song)}'}",
                     style:
                         text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
               ])),

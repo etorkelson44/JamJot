@@ -80,6 +80,27 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
                   const InputDecoration(labelText: 'Practice days per week'),
             ),
             const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: book,
+                  textCapitalization: TextCapitalization.words,
+                  decoration:
+                      const InputDecoration(labelText: 'Book (optional)'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: pages,
+                  decoration:
+                      const InputDecoration(labelText: 'Page(s) (optional)'),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 10),
             TextField(
               controller: minutes,
               keyboardType: TextInputType.number,
@@ -115,6 +136,8 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
     final title = TextEditingController();
     final note = TextEditingController();
     final minutes = TextEditingController();
+    final book = TextEditingController();
+    final pages = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -172,6 +195,8 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
         'song_note': note.text.trim(),
         'suggested_minutes': int.tryParse(minutes.text.trim()),
         'order_idx': count,
+        if (book.text.trim().isNotEmpty) 'book': book.text.trim(),
+        if (pages.text.trim().isNotEmpty) 'pages': pages.text.trim(),
       });
       ref.invalidate(currentLessonProvider(widget.studentId));
     ref.invalidate(
