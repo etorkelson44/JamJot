@@ -1198,41 +1198,88 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     await prefs.setBool('smart_ears', next);
   }
 
-  Widget _liveBanner(TextTheme text) {
-    if (!_live) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: JamJotColors.recording, width: 2),
-      ),
-      child: Row(
-        children: [
-          // The kid's musician plays right on the recording banner while
-          // sound is heard (founder-directed 2026-11-05).
-          PerformingAvatar(size: 40, playing: _soundHeld),
-          const SizedBox(width: 10),
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: _soundHeld ? JamJotColors.recording : JamJotColors.outline,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _soundHeld
-                      ? 'Listening & recording — I hear you!'
-                      : 'Listening & recording — waiting for sound…',
-                  style: text.bodySmall?.copyWith(fontWeight: FontWeight.w700),
-                ),
+  /// The recording status lives beside the performing avatar — no card
+  /// (founder-directed 2026-11-05): stoplight, light-keyed cheer, the
+  /// 3-second minute flash, and the listening & smart-ears note.
+  Widget _liveStatusRow(TextTheme text, {double avatarSize = 96}) {
+    final id = _clipSongKey;
+    String? cheer;
+    if (_live && id != null && id != '_freeplay') {
+      final sec = _songSeconds(id);
+      final match = _songs.where((s) => s['id'] == id).toList();
+      final goalMin = match.isEmpty ? 0 : _suggestedMinutes(match.first);
+      final green = goalMin > 0 && sec >= goalMin * 60;
+      final yellow = !green && sec >= _minSongSeconds;
+      cheer = green
+          ? "You've reached your practice goal of "
+              "$goalMin ${goalMin == 1 ? 'minute' : 'minutes'}!\n"
+              "You're doing jam-azing!"
+          : yellow
+              ? 'You reached the minimum practice time, keep '
+                  'going to meet your practice goal!'
+              : 'Almost there!';
+    }
+    final showMark = _minuteMarkAt != null &&
+        DateTime.now().difference(_minuteMarkAt!) <
+            const Duration(seconds: 3);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // The kid's own avatar performs on their instrument while the
+        // timer listens (JJ-012/JJ-014).
+        PerformingAvatar(size: avatarSize, playing: _soundHeld),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_live)
+                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                  _stopLight(id),
+                  const SizedBox(width: 10),
+                  if (cheer != null)
+                    Expanded(
+                      child: Text(cheer,
+                          style: text.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w800)),
+                    ),
+                ]),
+              // The total-practice timer peeks in for ~3 s at each full
+              // minute, then rests.
+              AnimatedOpacity(
+                opacity: showMark ? 1 : 0,
+                duration: const Duration(milliseconds: 300),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(_fmt((_lastMinuteVal.clamp(0, 9999)) * 60),
+                      style: text.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 8),
+                  Text('of real\npractice', style: text.labelSmall),
+                ]),
+              ),
+              if (_live) ...[
+                Row(children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: _soundHeld
+                          ? JamJotColors.recording
+                          : JamJotColors.outline,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _soundHeld
+                          ? 'Listening & recording — I hear you!'
+                          : 'Listening & recording — waiting for sound…',
+                      style: text.labelSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ]),
                 // Smart ears (beta): tap to flip. Shows what the on-device
                 // classifier hears so grown-ups can sanity-check it live.
                 GestureDetector(
@@ -1253,11 +1300,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                   ),
                 ),
               ],
-            ),
+            ],
           ),
-          _stopLight(_clipSongKey),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1339,68 +1385,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               : FanIndicator(studentId: s2['id'] as String);
         }),
         const SizedBox(height: 10),
-        _liveBanner(text),
-        Wrap(
-          alignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            // The kid's own avatar performs on their instrument while the
-            // timer listens (JJ-012/JJ-014).
-            PerformingAvatar(size: 76, playing: _soundHeld),
-            const SizedBox(width: 12),
-            // Light-keyed encouragement instead of a timer (founder-directed
-            // 2026-11-05): red keeps them going, yellow marks the minute,
-            // green celebrates the song's goal.
-            Builder(builder: (context) {
-              final id = _clipSongKey;
-              if (!_live || id == null || id == '_freeplay') {
-                return const SizedBox.shrink();
-              }
-              final sec = _songSeconds(id);
-              final match = _songs.where((s) => s['id'] == id).toList();
-              final goalMin =
-                  match.isEmpty ? 0 : _suggestedMinutes(match.first);
-              final green = goalMin > 0 && sec >= goalMin * 60;
-              final yellow = !green && sec >= _minSongSeconds;
-              final msg = green
-                  ? "You've reached your practice goal of "
-                      "$goalMin ${goalMin == 1 ? 'minute' : 'minutes'}!\n"
-                      "You're doing jam-azing!"
-                  : yellow
-                      ? "You reached the minimum practice time, keep "
-                          "going to meet your practice goal!"
-                      : 'Almost there!';
-              return ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 220),
-                child: Text(
-                  msg,
-                  textAlign: TextAlign.center,
-                  style:
-                      text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                ),
-              );
-            }),
-            // The total-practice timer peeks in for ~3 s at each full
-            // minute, then rests (founder-directed 2026-11-05).
-            Builder(builder: (context) {
-              final show = _minuteMarkAt != null &&
-                  DateTime.now().difference(_minuteMarkAt!) <
-                      const Duration(seconds: 3);
-              return AnimatedOpacity(
-                opacity: show ? 1 : 0,
-                duration: const Duration(milliseconds: 300),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const SizedBox(width: 12),
-                  Text(_fmt((_lastMinuteVal.clamp(0, 9999)) * 60),
-                      style: text.displaySmall
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(width: 8),
-                  Text('of real\npractice', style: text.labelSmall),
-                ]),
-              );
-            }),
-          ],
-        ),
+        _liveStatusRow(text),
         const SizedBox(height: 10),
         _songs.isEmpty
             ? Center(
@@ -1541,17 +1526,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               padding: const EdgeInsets.only(left: 48, bottom: 12),
               child: Wrap(spacing: 16, runSpacing: 4,
                   crossAxisAlignment: WrapCrossAlignment.center, children: [
-                _stopLight(id),
-                Text('${_fmt(_songSeconds(id))} sound / $target min goal',
+                // Static goal only — no progress timers or stoplight here
+                // (founder-directed 2026-11-05).
+                Text("Goal: $target ${target == 1 ? 'minute' : 'minutes'}",
                     style:
                         text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                Text(
-                    '${_fmt((_wallMsBySong[id] ?? 0) ~/ 1000)} recorded in all',
-                    style:
-                        text.labelSmall?.copyWith(color: JamJotColors.inkSoft)),
-                if (_live && _clipStartedAt != null)
-                  Text('This take: ${_fmt(_clipClock.elapsed.inSeconds)}',
-                      style: text.labelSmall),
               ])),
         ]);
 
@@ -1661,7 +1640,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               header,
-              _liveBanner(text),
+              _liveStatusRow(text, avatarSize: 56),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1717,7 +1696,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             header,
-            _liveBanner(text),
+            _liveStatusRow(text, avatarSize: 56),
             Expanded(
               child: !hasScore
                   ? (hasNotes ? notesPanel : const SizedBox.expand())
