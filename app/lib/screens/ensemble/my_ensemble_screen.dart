@@ -146,81 +146,122 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
             ]),
           ),
           const Spacer(),
-          // The band on stage, centered so the active member stands right
-          // under the venue's spotlight beam; others flank them.
-          SizedBox(
-            height: 230,
-            child: Center(
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  for (final key in _stageOrder(owned, wornKey))
-                  GestureDetector(
-                    onTap: () => _choose(sid, key),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 350),
-                      curve: Curves.easeOut,
-                      width: key == wornKey ? 160 : 104,
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          AnimatedOpacity(
-                            duration: const Duration(milliseconds: 350),
-                            opacity: key == wornKey ? 1 : 0.82,
-                            child: Container(
-                              decoration: key == wornKey
-                                  ? BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                            color: const Color(0xFFFFF0C9)
-                                                .withValues(alpha: 0.85),
-                                            offset: const Offset(0, 12),
-                                            blurRadius: 34,
-                                            spreadRadius: 6),
-                                      ],
-                                    )
-                                  : null,
-                              child: _CheerBurst(
-                                active: key == wornKey,
-                                seq: _cheerSeq,
-                                child: DressedAvatar(
-                                  avatarKey: key,
-                                  outfit: wardrobe.outfitFor(key),
-                                  size: key == wornKey ? 132 : 88,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                  color: key == wornKey
-                                      ? venue.accent
-                                      : JamJotColors.ink,
-                                  width: 2),
-                            ),
-                            child: Text(_avatarName(key),
-                                style: text.labelSmall?.copyWith(
-                                    fontWeight: FontWeight.w800),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                        ],
+          // The band on stage: the spotlight member stands tall and
+          // centered under the venue's painted beam with a marquee
+          // nameplate; the rest wait in the wings, out of the light,
+          // unlabeled until their turn comes.
+          LayoutBuilder(builder: (context, box) {
+            final w = box.maxWidth;
+            final starSize = (w * 0.26).clamp(150.0, 260.0);
+            final sideSize = (starSize * 0.56).clamp(84.0, 150.0);
+            const plateRoom = 54.0; // nameplate + gap under the stage line
+            final stageH = starSize + plateRoom + 10;
+            final others =
+                owned.where((k) => k != wornKey).toList(growable: false);
+            // Alternate wings: first understudy stage-right, next
+            // stage-left, working outward from the beam, feet on the
+            // star's stage line. Clamped so nobody walks off screen.
+            double centerXFor(int i) {
+              final dir = i.isEven ? 1.0 : -1.0;
+              final rank = i ~/ 2;
+              final x = w / 2 +
+                  dir * (starSize * 0.62 + sideSize * (0.55 + 0.82 * rank));
+              return x
+                  .clamp(sideSize * 0.55 + 8, w - sideSize * 0.55 - 8)
+                  .toDouble();
+            }
+
+            return SizedBox(
+              height: stageH,
+              width: double.infinity,
+              child: Stack(clipBehavior: Clip.none, children: [
+                for (var i = 0; i < others.length; i++)
+                  AnimatedPositioned(
+                    key: ValueKey('wing_${others[i]}'),
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeOut,
+                    bottom: plateRoom,
+                    left: centerXFor(i) - sideSize / 2,
+                    child: GestureDetector(
+                      onTap: () => _choose(sid, others[i]),
+                      child: Opacity(
+                        opacity: 0.8,
+                        child: DressedAvatar(
+                            avatarKey: others[i],
+                            outfit: wardrobe.outfitFor(others[i]),
+                            size: sideSize),
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                // The star: biggest, dead-center under the beam.
+                Positioned(
+                  key: ValueKey('star_$wornKey'),
+                  bottom: plateRoom,
+                  left: w / 2 - starSize / 2,
+                  child: GestureDetector(
+                    onTap: () => _choose(sid, wornKey),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                              color: const Color(0xFFFFF0C9)
+                                  .withValues(alpha: 0.85),
+                              offset: const Offset(0, 12),
+                              blurRadius: 34,
+                              spreadRadius: 6),
+                        ],
+                      ),
+                      child: _CheerBurst(
+                        active: true,
+                        seq: _cheerSeq,
+                        child: DressedAvatar(
+                            avatarKey: wornKey,
+                            outfit: wardrobe.outfitFor(wornKey),
+                            size: starSize),
+                      ),
+                    ),
+                  ),
+                ),
+                // Marquee nameplate: the spotlight name in lights,
+                // scaled down rather than ever cut off.
+                Positioned(
+                  bottom: 4,
+                  left: 12,
+                  right: 12,
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 6),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.white, Color(0xFFFFF4DA)]),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: venue.accent, width: 3),
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Color(0x33000000),
+                                offset: Offset(0, 3),
+                                blurRadius: 8),
+                          ],
+                        ),
+                        child: Text('✨ ${_avatarName(wornKey)} ✨',
+                            maxLines: 1,
+                            style: text.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.6,
+                                color: JamJotColors.ink)),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+            );
+          }),
           // Their crowd at the stage edge, in true scale.
           Padding(
             padding: const EdgeInsets.only(bottom: 6, top: 4),
@@ -993,7 +1034,8 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                for (final key in owned.take(5))
+                                for (final key in _stageOrder(
+                                    owned.take(5).toList(), wornKey))
                                   DressedAvatar(
                                       avatarKey: key,
                                       outfit: wardrobe[key] ?? const [],
