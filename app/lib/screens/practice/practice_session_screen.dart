@@ -151,6 +151,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   /// the classifier isn't ready, counting falls back to plain loudness.
   bool _smartEars = true;
   String _smartHear = '';
+
+  /// The total-practice timer flashes for ~3 s as each full minute lands
+  /// (founder-directed 2026-11-05, brought back the same evening).
+  int _lastMinuteVal = -1;
+  DateTime? _minuteMarkAt;
   Timer? _sampler;
 
   // Celebration numbers.
@@ -353,6 +358,13 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               if (id != null && id != '_freeplay') {
                 _soundMsBySong[id] = (_soundMsBySong[id] ?? 0) + delta;
               }
+            }
+            final minuteNow = _soundMsTotal ~/ 60000;
+            if (_lastMinuteVal < 0) {
+              _lastMinuteVal = minuteNow; // resumed session: no instant flash
+            } else if (minuteNow > _lastMinuteVal) {
+              _lastMinuteVal = minuteNow;
+              _minuteMarkAt = DateTime.now();
             }
             setState(() {
               _soundNow = counts;
@@ -1144,6 +1156,14 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       sec = _songSeconds(songId);
       final song = _songs.where((s) => s['id'] == songId).toList();
       if (song.isNotEmpty) goalSec = _suggestedMinutes(song.first) * 60;
+    } else {
+      // General recording / free play: the light reads the whole practice —
+      // yellow at the one-minute minimum, green when the total real sound
+      // reaches the day's summed song goals (founder-directed 2026-11-05).
+      sec = _activeSeconds;
+      for (final song in _songs) {
+        goalSec += _suggestedMinutes(song) * 60;
+      }
     }
     final green = goalSec > 0 && sec >= goalSec;
     final yellow = !green && sec >= _minSongSeconds;
@@ -1235,8 +1255,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               ],
             ),
           ),
-          if (_clipSongKey != null && _clipSongKey != '_freeplay')
-            _stopLight(_clipSongKey),
+          _stopLight(_clipSongKey),
         ],
       ),
     );
@@ -1348,8 +1367,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                       "$goalMin ${goalMin == 1 ? 'minute' : 'minutes'}!\n"
                       "You're doing jam-azing!"
                   : yellow
-                      ? "You've reached a minute — keep going to reach "
-                          "your practice goal!"
+                      ? "You reached the minimum practice time, keep "
+                          "going to meet your practice goal!"
                       : 'Almost there!';
               return ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 220),
@@ -1359,6 +1378,25 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                   style:
                       text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
+              );
+            }),
+            // The total-practice timer peeks in for ~3 s at each full
+            // minute, then rests (founder-directed 2026-11-05).
+            Builder(builder: (context) {
+              final show = _minuteMarkAt != null &&
+                  DateTime.now().difference(_minuteMarkAt!) <
+                      const Duration(seconds: 3);
+              return AnimatedOpacity(
+                opacity: show ? 1 : 0,
+                duration: const Duration(milliseconds: 300),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const SizedBox(width: 12),
+                  Text(_fmt((_lastMinuteVal.clamp(0, 9999)) * 60),
+                      style: text.displaySmall
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 8),
+                  Text('of real\npractice', style: text.labelSmall),
+                ]),
               );
             }),
           ],
