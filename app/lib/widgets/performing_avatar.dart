@@ -7,6 +7,7 @@ import '../state/app_state.dart';
 import '../state/wardrobe.dart';
 import 'dressed_avatar.dart';
 import 'jalapresto_piano.dart';
+import 'kiwi_piano.dart';
 import 'strawccato_piano.dart';
 
 /// Instrument props the avatar can play (placeholder art — each swaps to a
@@ -99,6 +100,11 @@ class _PerformingAvatarState extends ConsumerState<PerformingAvatar>
     // Señor Jalapresto gets his own piano scene too (founder art, 2026-11-06).
     if (wornKey == 'jalapeno') {
       return JalaprestoPiano(playing: widget.playing, height: widget.size * 1.35);
+    }
+    // Keywi, the gender-neutral third freebie, plays a black piano
+    // (founder art, 2026-11-06).
+    if (wornKey == 'kiwi') {
+      return KiwiPiano(playing: widget.playing, height: widget.size * 1.35);
     }
     final instruments = (active?['instruments'] as List?)?.cast<String>();
     final prop = _propFor(widget.instrument ??

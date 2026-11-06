@@ -63,9 +63,10 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
     final sid = active['id'] as String;
     final wornKey = (active['avatar_key'] as String?) ?? 'jalapeno';
     final purchases = ref.watch(purchasesProvider(sid)).valueOrNull ?? [];
-    // Every kid's band starts with both freebies (Tour 2.0 interim,
-    // founder-directed 2026-11-05): Señor Jalapresto + Ms. Straw-ccato.
-    final owned = <String>['jalapeno', 'strawberry'];
+    // Every kid's band starts with the three freebies (Tour 2.0 interim,
+    // founder-directed 2026-11-05; third member per JJ-021-C): Señor
+    // Jalapresto, Ms. Straw-ccato and Keywi.
+    final owned = <String>['jalapeno', 'strawberry', 'kiwi'];
     for (final p in purchases) {
       final item = p['market_items'] as Map<String, dynamic>?;
       final key = item?['asset_key'] as String?;

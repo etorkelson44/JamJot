@@ -13,6 +13,11 @@ const musicalAvatars =
     description: 'As fast as it gets. As hot as it gets.',
     emoji: '🌶️'
   ),
+  'kiwi': (
+    name: 'Keywi',
+    description: 'Fresh, fuzzy and ready to play.',
+    emoji: '🥝'
+  ),
   'grape': (
     name: 'Grape Arpeggio',
     description: 'A bunch of notes, climbing.',

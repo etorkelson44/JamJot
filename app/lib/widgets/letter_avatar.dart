@@ -12,6 +12,7 @@ const finalPngArt = <String>{};
 const placeholderPngArt = <String>{
   'avatar_strawberry',
   'avatar_jalapeno',
+  'avatar_kiwi',
   'avatar_grape',
   'avatar_lemon',
   'avatar_raspberry',
@@ -47,6 +48,7 @@ const berryAvatars = {
   'blueberry': '🫐',
   'strawberry': '🍓',
   'jalapeno': '🌶️',
+  'kiwi': '🥝',
   'grape': '🍇',
   'lemon': '🍋',
   'blackberry': '🥷',
