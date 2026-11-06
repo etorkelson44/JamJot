@@ -281,9 +281,35 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             (((session['total_seconds'] as num?)?.toInt()) ?? 0) * 1000;
         _soundMsTotal = storedMs > segmentMs ? storedMs : segmentMs;
       }
+      // Which songs were finished at any point this lesson week — the
+      // weekly setlist layer (founder-approved 2026-11-05). Written-only
+      // songs count once a caregiver has confirmed them.
+      try {
+        final since = DateTime.tryParse(
+                _lesson?['week_start'] as String? ?? '') ??
+            DateTime.now().subtract(const Duration(days: 7));
+        final segs = await JamJotBackend.client
+            .from('session_segments')
+            .select('assignment_id, sessions!inner(student_id, started_at)')
+            .eq('sessions.student_id', student['id'] as Object)
+            .eq('completed', true)
+            .gte('sessions.started_at', since.toUtc().toIso8601String());
+        for (final seg in segs) {
+          final aid = seg['assignment_id'] as String?;
+          if (aid != null) _coveredWeek.add(aid);
+        }
+      } catch (_) {
+        // The weekly stars are a bonus layer; practice works without them.
+      }
+      for (final song in _songs) {
+        if (_kindOf(song) == 'written' && _writtenVerified(song)) {
+          _coveredWeek.add(song['id'] as String);
+        }
+      }
       // No session row is created yet — that happens the moment a song's
       // Record button is pressed for the first time (_ensureSession).
       setState(() => _phase = _Phase.practicing);
+      _maybeNudgeSetlist();
     } catch (e) {
       if (!mounted) return;
       _lastError = e.toString();
@@ -601,8 +627,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           side: JamJotShape.border,
         ),
         title: Text('Done with ${song['title']}?'),
-        content: Text(
-            'You made ${_fmt(_songSeconds(id))} of real sound toward your ${_suggestedMinutes(song)} minute goal. ${_songSeconds(id) < _suggestedMinutes(song) * 60 ? 'A little more practice will help you reach it! You can also save and move on.' : 'You reached your minutes goal! Ready to save?'}'),
+        content: Text(_suggestedMinutes(song) == 0
+            ? 'You made ${_fmt(_songSeconds(id))} of real sound. Finishing this song is its goal — ready to save and turn it green?'
+            : 'You made ${_fmt(_songSeconds(id))} of real sound toward your ${_suggestedMinutes(song)} minute goal. ${_songSeconds(id) < _suggestedMinutes(song) * 60 ? 'A little more practice will help you reach it! You can also save and move on.' : 'You reached your minutes goal! Ready to save?'}'),
         actions: [
           OutlinedButton(
             onPressed: () => Navigator.of(context).pop('keep'),
@@ -724,6 +751,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       _bankedWallMs[id] = _wallMsBySong[id] ?? 0;
       saved = true;
       _done.add(id);
+      if (!gated) _coveredWeek.add(id);
       _openSong = null;
       _ratings[id] = rating;
       await JamJotBackend.client
@@ -1206,14 +1234,17 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       if (song.isNotEmpty) goalSec = _suggestedMinutes(song.first) * 60;
     } else {
       // General recording / free play: the light reads the whole practice —
-      // yellow at the one-minute minimum, green when the total real sound
-      // reaches the day's summed song goals (founder-directed 2026-11-05).
+      // yellow at the one-minute minimum, green at the DAILY minutes goal
+      // (founder-approved 2026-11-05; songs without minutes no longer feed
+      // a summed guess).
       sec = _activeSeconds;
-      for (final song in _songs) {
-        goalSec += _suggestedMinutes(song) * 60;
-      }
+      goalSec = ((_lesson?['goal_minutes'] as num?)?.toInt() ?? 15) * 60;
     }
-    final green = goalSec > 0 && sec >= goalSec;
+    final finishIsGoal =
+        songId != null && songId != '_freeplay' && goalSec == 0;
+    final green = finishIsGoal
+        ? _done.contains(songId)
+        : goalSec > 0 && sec >= goalSec;
     final yellow = !green && sec >= _minSongSeconds;
     // Founder art (2026-11-05): the real photo stoplight replaces the three
     // painted dots. One image per state; a short crossfade on switches.
@@ -1237,6 +1268,75 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   // Written assignments (founder-directed 2026-11-05): pages are proven with
   // photo/PDF uploads, the kid can mark it done and move on, and a caregiver
   // PIN confirms it — rewards settle only after that confirmation.
+
+  /// Lesson day is near and songs haven't been touched this week? One
+  /// friendly nudge per day, naming the untouched songs and the prizes
+  /// (founder-directed 2026-11-05).
+  Future<void> _maybeNudgeSetlist() async {
+    if (_songs.isEmpty) return;
+    final untouched = _songs
+        .where((s) => !_coveredWeek.contains(s['id'] as String))
+        .toList();
+    if (untouched.isEmpty) return;
+    // "Near": the next calendar lesson is within 48 hours, or the lesson
+    // week is in its last two days.
+    var near = false;
+    final sid = ref.read(activeStudentProvider)?['id'] as String?;
+    if (sid != null) {
+      try {
+        final sched =
+            await ref.read(lessonScheduleProvider(sid).future);
+        final nextAt = DateTime.tryParse(
+            (sched['next']?['starts_at'] as String?) ?? '');
+        if (nextAt != null &&
+            nextAt.toLocal().difference(DateTime.now()).inHours <= 48) {
+          near = true;
+        }
+      } catch (_) {}
+    }
+    final weekStart =
+        DateTime.tryParse(_lesson?['week_start'] as String? ?? '');
+    if (!near && weekStart != null) {
+      near = DateTime.now().difference(weekStart).inDays >= 5;
+    }
+    if (!near || !mounted) return;
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final key = 'setlist_nudge_${sid ?? 'x'}_$today';
+    if (prefs.getBool(key) == true) return;
+    await prefs.setBool(key, true);
+    if (!mounted) return;
+    final names = untouched
+        .take(4)
+        .map((s) => '🎼 ${s['title']}')
+        .join('\n');
+    final more = untouched.length > 4
+        ? '\n…and ${untouched.length - 4} more'
+        : '';
+    await _practiceDialog<void>(
+      builder: (context) => AlertDialog(
+        scrollable: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+          side: JamJotShape.border,
+        ),
+        title: const Text('Lesson day is coming! 🎵'),
+        content: Text(
+            'These songs are still waiting for their turn this week:\n\n$names$more\n\nFinish each one for +5 coins — and when every song on the list has been played this week, the Full Setlist bonus lands: +10 coins and 🕶️+10 fans!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+            child: const Text("Let's play them!"),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _addWrittenPages(Map<String, dynamic> song) async {
     final picked = await FilePicker.platform.pickFiles(
@@ -1361,8 +1461,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         berries += (data['berries'] as num?)?.toInt() ?? 0;
         fans += (data['fans'] as num?)?.toInt() ?? 0;
       }
-      setState(() =>
-          song['written_verified_at'] = DateTime.now().toIso8601String());
+      setState(() {
+        song['written_verified_at'] = DateTime.now().toIso8601String();
+        _coveredWeek.add(song['id'] as String);
+      });
       final sid = ref.read(activeStudentProvider)?['id'] as String?;
       if (sid != null) {
         ref.invalidate(berryBalanceProvider(sid));
@@ -1490,8 +1592,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               "$goalMin ${goalMin == 1 ? 'minute' : 'minutes'}!\n"
               "You're doing jam-azing!"
           : yellow
-              ? 'You reached the minimum practice time, keep '
-                  'going to meet your practice goal!'
+              ? (goalMin > 0
+                  ? 'You reached the minimum practice time, keep '
+                      'going to meet your practice goal!'
+                  : 'Minimum reached — finish the song when '
+                      "you're ready to turn the light green!")
               : 'Almost there!';
     }
     final showMark = _minuteMarkAt != null &&
@@ -1688,10 +1793,30 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
+                    // The weekly setlist layer: visit every song at least
+                    // once this week for the Full Setlist bonus
+                    // (founder-approved 2026-11-05).
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        _songs
+                                .every((s) =>
+                                    _coveredWeek.contains(s['id']))
+                            ? '⭐ Full setlist this week — every song practiced! (+10 coins · 🕶️+10)'
+                            : 'Setlist this week: ${_songs.where((s) => _coveredWeek.contains(s['id'])).length} of ${_songs.length} songs ⭐ — play them all for +10 coins & 🕶️+10!',
+                        style: text.labelSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
                     if (nextUp.isNotEmpty) header('🎵 Next up'),
                     for (final song in nextUp) ...[
                       _SongTile(
                         title: song['title'] as String,
+                        weeklyDone:
+                            _coveredWeek.contains(song['id'] as String),
+                        goalMetOverride: _suggestedMinutes(song) == 0
+                            ? _done.contains(song['id'])
+                            : null,
                         note: [
                           ..._writtenTag(song),
                           if (song['source'] != null) '🎻 ${song['source']}',
@@ -1726,6 +1851,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                         ];
                         return _SongTile(
                           title: song['title'] as String,
+                          weeklyDone: _coveredWeek.contains(id),
+                          goalMetOverride: _suggestedMinutes(song) == 0
+                              ? true
+                              : null,
                           note: parts.isEmpty
                               ? (song['song_note'] as String? ?? '')
                               : parts.join(' • '),
@@ -1768,14 +1897,17 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
 
   /// This song's practice-minutes suggestion: the teacher's number if set,
   /// otherwise the daily minutes goal split across today's songs.
+  /// A song's own minutes goal, or 0 when none was set — in which case
+  /// FINISHING the song is its goal (founder-approved 2026-11-05; this
+  /// replaces the old silent daily-goal ÷ song-count guess).
   int _suggestedMinutes(Map<String, dynamic> song) {
     final set = (song['suggested_minutes'] as num?)?.toInt();
-    if (set != null && set > 0) return set;
-    final goal = (_lesson?['goal_minutes'] as num?)?.toInt() ?? 15;
-    final songs = _songs.isEmpty ? 1 : _songs.length;
-    final share = (goal / songs).ceil();
-    return share < 1 ? 1 : share;
+    return (set != null && set > 0) ? set : 0;
   }
+
+  /// Songs finished at least once during this lesson week (any day) —
+  /// the weekly setlist layer (founder-approved 2026-11-05).
+  final Set<String> _coveredWeek = {};
 
   Widget _buildSongPage(TextTheme text) {
     final song = _openSong!;
@@ -1813,7 +1945,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                 // Static goal only — no progress timers or stoplight here
                 // (founder-directed 2026-11-05).
                 Text(
-                    "Goal: $target ${target == 1 ? 'minute' : 'minutes'}"
+                    "Goal: ${target > 0 ? "$target ${target == 1 ? 'minute' : 'minutes'}" : 'finish it'}"
                     "${_bookPage(song).isEmpty ? '' : ' • 📖 ${_bookPage(song)}'}",
                     style:
                         text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
@@ -2118,6 +2250,8 @@ class _SongTile extends StatelessWidget {
     required this.spentSeconds,
     required this.done,
     required this.onTap,
+    this.weeklyDone = false,
+    this.goalMetOverride,
   });
 
   final String title;
@@ -2127,11 +2261,18 @@ class _SongTile extends StatelessWidget {
   final bool done;
   final VoidCallback? onTap;
 
+  /// Finished at least once this lesson week (the setlist star).
+  final bool weeklyDone;
+
+  /// For songs whose goal is simply to be finished (no minutes set).
+  final bool? goalMetOverride;
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final spentMin = spentSeconds ~/ 60;
-    final goalMet = minutes != null && minutes! > 0 && spentSeconds >= minutes! * 60;
+    final goalMet = goalMetOverride ??
+        (minutes != null && minutes! > 0 && spentSeconds >= minutes! * 60);
     return Material(
       color: done ? JamJotColors.blueberryTint : Colors.white,
       shape: RoundedRectangleBorder(
@@ -2151,11 +2292,19 @@ class _SongTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: text.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            decoration:
-                                done ? TextDecoration.lineThrough : null)),
+                    Row(children: [
+                      Flexible(
+                        child: Text(title,
+                            style: text.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                decoration: done
+                                    ? TextDecoration.lineThrough
+                                    : null)),
+                      ),
+                      // The weekly star: this song was practiced at least
+                      // once during this lesson week.
+                      if (weeklyDone) const Text(' ⭐'),
+                    ]),
                     if (note.isNotEmpty)
                       Text(note,
                           style: text.bodySmall
