@@ -1070,6 +1070,7 @@ class _CreateAssignmentDialogState
   late final _book = TextEditingController(text: _p['book'] as String? ?? '');
   late final _pages = TextEditingController(text: _p['pages'] as String? ?? '');
   late final _note = TextEditingController(text: _p['note'] as String? ?? '');
+  late String _kind = (_p['kind'] as String?) ?? 'play';
   String _fileQuery = '';
   Map<String, dynamic>? _attachedFile;
   bool _prefilledFile = false;
@@ -1097,6 +1098,7 @@ class _CreateAssignmentDialogState
         'pages': _pages.text.trim(),
         'note': _note.text.trim(),
         'score_id': _attachedFile?['id'],
+        'kind': _kind,
       };
       final Map<String, dynamic> row;
       if (widget.existing != null) {
@@ -1131,6 +1133,7 @@ class _CreateAssignmentDialogState
       'pages': _pages.text.trim(),
       'note': _note.text.trim(),
       'score_id': _attachedFile?['id'],
+      'kind': _kind,
     });
     payload['assignments'] = list;
     await JamJotBackend.client
@@ -1168,6 +1171,9 @@ class _CreateAssignmentDialogState
         borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
         side: JamJotShape.border,
       ),
+      // Same keyboard fix as the lesson dialog: the whole dialog scrolls,
+      // so focusing a search box never hides the rest of the form.
+      scrollable: true,
       title: Text(
           widget.existing == null ? 'Create an assignment' : 'Edit assignment'),
       content: SizedBox(
@@ -1204,7 +1210,38 @@ class _CreateAssignmentDialogState
                 decoration: const InputDecoration(
                     labelText: 'Note for the student (optional)'),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
+              // Neither checked = instrument play only (founder-directed
+              // 2026-11-05).
+              CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text('🎹 Instrument play'),
+                value: _kind == 'play' || _kind == 'both',
+                onChanged: (v) => setState(() {
+                  final written = _kind == 'written' || _kind == 'both';
+                  _kind = (v ?? false)
+                      ? (written ? 'both' : 'play')
+                      : (written ? 'written' : 'play');
+                }),
+              ),
+              CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text('✍️ Written assignment'),
+                subtitle: const Text(
+                    'Finishes after page photos are uploaded and a caregiver confirms with their PIN'),
+                value: _kind == 'written' || _kind == 'both',
+                onChanged: (v) => setState(() {
+                  final play = _kind == 'play' || _kind == 'both';
+                  _kind = (v ?? false)
+                      ? (play ? 'both' : 'written')
+                      : 'play';
+                }),
+              ),
+              const SizedBox(height: 4),
               if (_attachedFile != null)
                 Chip(
                   avatar: const Text('📄'),
@@ -1420,12 +1457,20 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
       _title.text = draft['lesson_title'] as String? ?? 'This week';
       _picked.addAll(((draft['assignments'] as List?) ?? []).map((a) {
         final m = Map<String, dynamic>.from(a as Map);
+        final blob = '${m['title'] ?? ''} ${m['note'] ?? ''}'.toLowerCase();
+        final writtenish = m['written'] == true ||
+            RegExp(r'\b(write|written|worksheet|workbook|theory|fill in|'
+                    r'trace|label|compose|flashcard)')
+                .hasMatch(blob);
         return {
           'title': m['title'] ?? 'Song',
           'book': m['book'] ?? '',
           'pages': m['pages'] ?? '',
           'note': m['note'] ?? '',
           'score_id': m['score_id'],
+          // The scanner (or wording) suggests pencil-and-paper work — the
+          // creator is prompted to choose (founder-directed 2026-11-05).
+          if (writtenish) 'written_hint': true,
         };
       }));
     }
@@ -1622,6 +1667,14 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
           for (var i = 0; i < _picked.length; i++)
             Builder(builder: (context) {
               final note = (_picked[i]['note'] as String? ?? '').trim();
+              final kind = _picked[i]['kind'] as String?;
+              final hinted =
+                  _picked[i]['written_hint'] == true && kind == null;
+              const kindLabels = {
+                'play': '🎹 Play',
+                'written': '✍️ Written',
+                'both': '✍️🎹 Both',
+              };
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
                 decoration: BoxDecoration(
@@ -1635,19 +1688,52 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
                   leading: const Text('🎼'),
                   title: Text(_picked[i]['title'] as String? ?? '',
                       style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(
-                    note.isEmpty ? 'No note — tap to add one' : '📝 $note',
-                    style: TextStyle(
-                        color: note.isEmpty
-                            ? JamJotColors.inkSoft
-                            : JamJotColors.ink),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        note.isEmpty ? 'No note — tap to add one' : '📝 $note',
+                        style: TextStyle(
+                            color: note.isEmpty
+                                ? JamJotColors.inkSoft
+                                : JamJotColors.ink),
+                      ),
+                      if (hinted)
+                        const Text(
+                          '✍️ This looks like it may include written work — choose Play, Written or Both →',
+                          style: TextStyle(
+                              color: Color(0xFFB77400),
+                              fontWeight: FontWeight.w700),
+                        ),
+                    ],
                   ),
                   onTap: () => _editAssignmentNote(i),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    tooltip: 'Remove from lesson',
-                    onPressed: () => setState(() => _picked.removeAt(i)),
-                  ),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    PopupMenuButton<String>(
+                      tooltip: 'Play, written, or both?',
+                      initialValue: kind ?? 'play',
+                      onSelected: (v) =>
+                          setState(() => _picked[i]['kind'] = v),
+                      itemBuilder: (context) => [
+                        for (final e in kindLabels.entries)
+                          PopupMenuItem(value: e.key, child: Text(e.value)),
+                      ],
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Text(kindLabels[kind] ?? '🎹 Play',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: hinted
+                                    ? const Color(0xFFB77400)
+                                    : JamJotColors.ink)),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      tooltip: 'Remove from lesson',
+                      onPressed: () => setState(() => _picked.removeAt(i)),
+                    ),
+                  ]),
                 ),
               );
             }),
@@ -1662,6 +1748,14 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               prefixIcon: Icon(Icons.search)),
           onChanged: (v) => setState(() => _assignmentQuery = v),
         ),
+        if (_assignmentQuery.trim().isNotEmpty && matches.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text(
+              'No saved assignments match "${_assignmentQuery.trim()}" yet — create a new one below and it will be remembered for next time.',
+              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+            ),
+          ),
         for (final a in matches)
           ListTile(
             dense: true,
@@ -1988,6 +2082,10 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
         borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
         side: JamJotShape.border,
       ),
+      // scrollable keeps the whole dialog usable when the keyboard opens:
+      // the focused search box scrolls into view instead of the form
+      // collapsing to just the title (founder bug report 2026-11-05).
+      scrollable: true,
       title: Text(_editing
           ? 'Edit lesson'
           : _singleStudent
@@ -1995,9 +2093,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               : (_page == 0 ? 'Create a lesson' : 'Assign the lesson')),
       content: SizedBox(
         width: 440,
-        child: SingleChildScrollView(
-          child: _page == 0 ? _buildPageOne(text) : _buildPageTwo(text),
-        ),
+        child: _page == 0 ? _buildPageOne(text) : _buildPageTwo(text),
       ),
       actions: [
         if (_page == 1)

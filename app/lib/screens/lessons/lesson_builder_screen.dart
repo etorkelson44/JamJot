@@ -118,6 +118,9 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
     final minutes = TextEditingController();
     final book = TextEditingController();
     final pages = TextEditingController();
+    // Founder-directed 2026-11-05: neither box checked = instrument play only.
+    var isPlay = false;
+    var isWritten = false;
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -126,7 +129,8 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
           side: JamJotShape.border,
         ),
         title: const Text('Add a song'),
-        content: Column(
+        content: StatefulBuilder(
+            builder: (context, setLocal) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
@@ -169,8 +173,28 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
               decoration: const InputDecoration(
                   labelText: 'Minutes goal for this song (optional)'),
             ),
+            const SizedBox(height: 6),
+            // Neither checked = instrument play only (the default).
+            CheckboxListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text('🎹 Instrument play'),
+              value: isPlay,
+              onChanged: (v) => setLocal(() => isPlay = v ?? false),
+            ),
+            CheckboxListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text('✍️ Written assignment'),
+              subtitle: const Text(
+                  'Finishes only after page photos are uploaded and a caregiver confirms with their PIN'),
+              value: isWritten,
+              onChanged: (v) => setLocal(() => isWritten = v ?? false),
+            ),
           ],
-        ),
+        )),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -197,6 +221,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
         'order_idx': count,
         if (book.text.trim().isNotEmpty) 'book': book.text.trim(),
         if (pages.text.trim().isNotEmpty) 'pages': pages.text.trim(),
+        'kind': isWritten ? (isPlay ? 'both' : 'written') : 'play',
       });
       ref.invalidate(currentLessonProvider(widget.studentId));
     ref.invalidate(

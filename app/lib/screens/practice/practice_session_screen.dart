@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:record/record.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,6 +22,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/coin_pouch.dart';
+import '../../widgets/pin_dialog.dart';
 import '../../widgets/performing_avatar.dart';
 import '../../widgets/fan_stage.dart';
 import '../../widgets/score_frame.dart';
@@ -171,6 +173,30 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
 
   int get _activeSeconds => _soundMsTotal ~/ 1000;
 
+  /// play | written | both (founder-directed 2026-11-05).
+  String _kindOf(Map<String, dynamic> song) =>
+      (song['kind'] as String?) ?? 'play';
+
+  bool _writtenDone(Map<String, dynamic> song) =>
+      song['written_done_at'] != null;
+  bool _writtenVerified(Map<String, dynamic> song) =>
+      song['written_verified_at'] != null;
+
+  /// Card labels for the written part and its confirmation state.
+  List<String> _writtenTag(Map<String, dynamic> song) {
+    final kind = _kindOf(song);
+    if (kind == 'play') return const [];
+    final status = _writtenVerified(song)
+        ? '✍️ done ✓'
+        : _writtenDone(song)
+            ? '✍️ needs a grown-up ✓'
+            : null;
+    return [
+      kind == 'both' ? '✍️🎹 Written & instrument play' : '✍️ Written assignment',
+      if (status != null) status,
+    ];
+  }
+
   /// "Lesson Book p. 14" from an assignment's book/pages columns
   /// (founder-directed 2026-11-05).
   String _bookPage(Map<String, dynamic> song) {
@@ -243,7 +269,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             _bankedWallMs[aid] = (_bankedWallMs[aid] ?? 0) + wallMs;
             final rating =
                 (seg['goal_results'] as Map?)?['self_rating'] as String?;
-            if (seg['completed'] == true && rating != null) {
+            final awaiting =
+                (seg['goal_results'] as Map?)?['awaiting_written'] == true;
+            if ((seg['completed'] == true || awaiting) && rating != null) {
               _done.add(aid);
               _ratings[aid] = rating;
             }
@@ -660,6 +688,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
 
   Future<void> _completeSong(Map<String, dynamic> song, String rating) async {
     final id = song['id'] as String;
+    // A written-and-play song keeps its segment unfinished until a caregiver
+    // confirms the written part, so its rewards settle only then
+    // (founder-directed 2026-11-05). Nothing else about saving changes.
+    final gated = _kindOf(song) == 'both' && !_writtenVerified(song);
     if (_busy) return;
     setState(() => _busy = true);
     var saved = false;
@@ -675,8 +707,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             'kind': 'playing',
             'seconds':
                 ((_soundMsBySong[id] ?? 0) - (_bankedMs[id] ?? 0)) ~/ 1000,
-            'completed': true,
-            'goal_results': {'self_rating': rating},
+            'completed': !gated,
+            'goal_results': {
+              'self_rating': rating,
+              if (gated) 'awaiting_written': true,
+            },
             ..._clipFields(_takeClips(id)),
             'wall_seconds':
                 ((_wallMsBySong[id] ?? 0) - (_bankedWallMs[id] ?? 0)) ~/ 1000,
@@ -701,7 +736,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       fans = (data['fans'] as num?)?.toInt() ?? 0;
       _earnedBerries += berries;
       _earnedFans += fans;
-      _awardsLabel[id] = '+$berries coins · 🕶️+$fans';
+      _awardsLabel[id] = gated
+          ? '🔒 rewards unlock when a grown-up confirms the written part'
+          : '+$berries coins · 🕶️+$fans';
       if (fans > 0 && berries == 0) playSound('cheer');
       final sid = _lesson?['student_id'] as String? ??
           ref.read(activeStudentProvider)?['id'] as String?;
@@ -1196,6 +1233,226 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     );
   }
 
+  // ---------------------------------------------------------------- written
+  // Written assignments (founder-directed 2026-11-05): pages are proven with
+  // photo/PDF uploads, the kid can mark it done and move on, and a caregiver
+  // PIN confirms it — rewards settle only after that confirmation.
+
+  Future<void> _addWrittenPages(Map<String, dynamic> song) async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      withData: true,
+      allowMultiple: true, // several pages are welcome
+    );
+    if (picked == null || picked.files.isEmpty) return;
+    final sid = ref.read(activeStudentProvider)?['id'] as String?;
+    final aid = song['id'] as String;
+    if (sid == null) return;
+    final uploads =
+        List<dynamic>.from(song['written_uploads'] as List? ?? const []);
+    try {
+      for (final f in picked.files) {
+        final bytes = f.bytes;
+        if (bytes == null) continue;
+        final ext = (f.extension ?? 'jpg').toLowerCase();
+        final contentType = switch (ext) {
+          'pdf' => 'application/pdf',
+          'png' => 'image/png',
+          _ => 'image/jpeg',
+        };
+        final path = '$sid/written/$aid/${const Uuid().v4()}.$ext';
+        await JamJotBackend.client.storage.from('recordings').uploadBinary(
+            path, bytes,
+            fileOptions: FileOptions(contentType: contentType));
+        uploads.add(path);
+      }
+      setState(() => song['written_uploads'] = uploads);
+    } catch (_) {
+      _showProblem(
+          'The pages could not be uploaded yet. Check the connection and try again.');
+    }
+  }
+
+  Future<void> _submitWritten(Map<String, dynamic> song) async {
+    final uploads = song['written_uploads'] as List? ?? const [];
+    if (uploads.isEmpty) return;
+    try {
+      await JamJotBackend.client.rpc('submit_written_assignment', params: {
+        'p_assignment_id': song['id'],
+        'p_uploads': uploads,
+      });
+      setState(
+          () => song['written_done_at'] = DateTime.now().toIso8601String());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          duration: Duration(seconds: 5),
+          content: Text(
+              "Written work saved! 🔒 A grown-up's PIN confirms it — rewards for this assignment come after that.")));
+      if (_kindOf(song) == 'both') {
+        await _practiceDialog<void>(
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+              side: JamJotShape.border,
+            ),
+            title: const Text('Written part done! 🎉'),
+            content: const Text(
+                'On to the playing part — hit Record when you are ready. A grown-up can confirm the written pages now or later.'),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+                child: const Text("Let's play!"),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (_) {
+      _showProblem('The written work could not be saved yet. Try again.');
+    }
+  }
+
+  Future<void> _verifyWritten(Map<String, dynamic> song) async {
+    final profile = ref.read(myProfileProvider).valueOrNull;
+    final pinHash = profile?['app_pin_hash'] as String?;
+    if (pinHash == null) {
+      _showProblem(
+          'No grown-up PIN is set yet. Set one from the profile picker (top-right chip), then confirm here.');
+      return;
+    }
+    final ok =
+        await askForPin(context, title: 'Grown-up PIN', pinHash: pinHash);
+    if (!ok || !mounted) return;
+    var berries = 0;
+    var fans = 0;
+    try {
+      await JamJotBackend.client.rpc('verify_written_assignment',
+          params: {'p_assignment_id': song['id']});
+      // Release any play rewards that waited on this confirmation: the
+      // segment finishes now and the normal settle pays it.
+      final segs = await JamJotBackend.client
+          .from('session_segments')
+          .select('id, session_id, goal_results, completed')
+          .eq('assignment_id', song['id'] as Object);
+      final sessions = <String>{};
+      for (final seg in segs) {
+        if ((seg['goal_results'] as Map?)?['awaiting_written'] == true &&
+            seg['completed'] != true) {
+          await JamJotBackend.client
+              .from('session_segments')
+              .update({'completed': true}).eq('id', seg['id'] as Object);
+          final sess = seg['session_id'] as String?;
+          if (sess != null) sessions.add(sess);
+        }
+      }
+      for (final sess in sessions) {
+        final data = Map<String, dynamic>.from(await JamJotBackend.client.rpc(
+            'settle_practice_session',
+            params: {'p_session_id': sess}));
+        berries += (data['berries'] as num?)?.toInt() ?? 0;
+        fans += (data['fans'] as num?)?.toInt() ?? 0;
+      }
+      setState(() =>
+          song['written_verified_at'] = DateTime.now().toIso8601String());
+      final sid = ref.read(activeStudentProvider)?['id'] as String?;
+      if (sid != null) {
+        ref.invalidate(berryBalanceProvider(sid));
+        ref.invalidate(fanTotalProvider(sid));
+        ref.invalidate(weeklyFansProvider(sid));
+      }
+      _earnedBerries += berries;
+      _earnedFans += fans;
+      final aid = song['id'] as String;
+      if (berries > 0 || fans > 0) {
+        _awardsLabel[aid] = '+$berries coins · 🕶️+$fans';
+        playSound('cheer');
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(berries > 0 || fans > 0
+              ? 'Written work confirmed ✓ — +$berries coins and +$fans fans unlocked!'
+              : 'Written work confirmed ✓')));
+    } catch (_) {
+      _showProblem(
+          'The confirmation could not be saved. Mark the written work done (with pages uploaded) first, then try again.');
+    }
+  }
+
+  Widget _writtenPanel(Map<String, dynamic> song, TextTheme text) {
+    final kind = _kindOf(song);
+    if (kind == 'play') return const SizedBox.shrink();
+    final verified = _writtenVerified(song);
+    final done = _writtenDone(song);
+    final pageCount = (song['written_uploads'] as List? ?? const []).length;
+    return Container(
+      margin: const EdgeInsets.only(left: 48, bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: verified ? const Color(0xFF46A758) : JamJotColors.ink,
+            width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              kind == 'both'
+                  ? '✍️ Written part — do this first'
+                  : '✍️ Written assignment',
+              style: text.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          if (verified) ...[
+            Text('Complete ✓ — confirmed by a grown-up',
+                style: text.bodySmall?.copyWith(
+                    color: const Color(0xFF2F7A42),
+                    fontWeight: FontWeight.w700)),
+            if (kind == 'both')
+              Text('Only the playing part is left for today!',
+                  style: text.bodySmall),
+          ] else if (done) ...[
+            Text(
+                'Marked done — waiting for a grown-up to confirm.\n🔒 Rewards for this assignment unlock when a caregiver enters their PIN (now or later).',
+                style: text.bodySmall),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              OutlinedButton(
+                onPressed: () => _addWrittenPages(song),
+                child: Text('Add more pages ($pageCount)'),
+              ),
+              FilledButton(
+                onPressed: () => _verifyWritten(song),
+                child: const Text('Grown-up: confirm now'),
+              ),
+            ]),
+          ] else ...[
+            Text(
+                'Snap or upload a photo (or PDF) of every finished page — more than one is fine — then mark it done. A grown-up confirms with their PIN, and rewards come after that.',
+                style: text.bodySmall),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              OutlinedButton.icon(
+                onPressed: () => _addWrittenPages(song),
+                icon: const Icon(Icons.add_a_photo_outlined, size: 18),
+                label: Text(pageCount == 0
+                    ? 'Add photo or PDF'
+                    : 'Add more ($pageCount added)'),
+              ),
+              FilledButton(
+                onPressed:
+                    pageCount == 0 ? null : () => _submitWritten(song),
+                child: const Text('Mark written work done'),
+              ),
+            ]),
+          ],
+        ],
+      ),
+    );
+  }
+
   Future<void> _toggleSmartEars() async {
     final next = !_smartEars;
     setState(() {
@@ -1429,6 +1686,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                       _SongTile(
                         title: song['title'] as String,
                         note: [
+                          ..._writtenTag(song),
                           if (song['source'] != null) '🎻 ${song['source']}',
                           if (_bookPage(song).isNotEmpty)
                             '📖 ${_bookPage(song)}',
@@ -1452,6 +1710,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                           'working_on_it': '💪 Working on it',
                         };
                         final parts = [
+                          ..._writtenTag(song),
                           if (_ratings[id] != null)
                             ratingLabels[_ratings[id]] ?? '',
                           if (_awardsLabel[id] != null) _awardsLabel[id]!,
@@ -1552,6 +1811,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                     style:
                         text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
               ])),
+          _writtenPanel(song, text),
         ]);
 
         final notesPanel = Container(
@@ -1608,7 +1868,13 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         }
 
         final controls = <Widget>[
-          if (_done.contains(id)) ...[
+          if (_kindOf(song) == 'written') ...[
+            Text(
+              'This one is a written assignment — no recording needed. Finish the written part above.',
+              textAlign: TextAlign.center,
+              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
+            ),
+          ] else if (_done.contains(id)) ...[
             // Already finished — fresh 1-minute chunks earn bonus fans.
             _recordButton(),
             const SizedBox(height: 8),
