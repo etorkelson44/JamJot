@@ -344,7 +344,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
                   draft: draftFromLesson(lesson!),
                 ),
                 icon: const Icon(Icons.event_repeat, size: 18),
-                label: const Text("Assign again next week — tweak first"),
+                label: const Text('Re-assign'),
               ),
             ],
           ],
