@@ -1328,8 +1328,15 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     var berries = 0;
     var fans = 0;
     try {
-      await JamJotBackend.client.rpc('verify_written_assignment',
+      // The RPC stamps the confirmation and settles — for a written-only
+      // assignment its reply already carries the +5/+5 confirmation bonus
+      // (founder-approved 2026-11-05).
+      final vr = await JamJotBackend.client.rpc('verify_written_assignment',
           params: {'p_assignment_id': song['id']});
+      if (vr is Map) {
+        berries += (vr['berries'] as num?)?.toInt() ?? 0;
+        fans += (vr['fans'] as num?)?.toInt() ?? 0;
+      }
       // Release any play rewards that waited on this confirmation: the
       // segment finishes now and the normal settle pays it.
       final segs = await JamJotBackend.client
