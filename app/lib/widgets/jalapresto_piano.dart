@@ -2,7 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Señor Jalapresto at his grape-footed piano (founder art, 2026-11-06).
+/// Señor Jalapresto at his grape-footed piano (founder art, 2026-11-06;
+/// refreshed 2026-11-06 from the founder's updated layered files).
 ///
 /// Same layered cutout recipe as Ms. Straw-ccato's scene, per
 /// claude/avatar-animation-rules.md: the armless healed scene is the base,
@@ -27,11 +28,11 @@ class _JalaprestoPianoState extends State<JalaprestoPiano>
     with TickerProviderStateMixin {
   // Scene canvas the layers were exported on, and the measured pivots
   // (fractions of that canvas — the arms' drawn attachment points).
-  static const _w = 1200.0, _h = 1398.0;
-  static const _pivotUpper = Offset(0.27518 * _w, 0.52569 * _h);
-  static const _pivotLower = Offset(0.28029 * _w, 0.55890 * _h);
+  static const _w = 1102.0, _h = 1462.0;
+  static const _pivotUpper = Offset(0.29877 * _w, 0.55609 * _h);
+  static const _pivotLower = Offset(0.30490 * _w, 0.58020 * _h);
   static const _musicRect =
-      Rect.fromLTWH(0.60584 * _w, 0.0, 0.39416 * _w, 0.34148 * _h);
+      Rect.fromLTWH(0.52405 * _w, -0.00308 * _h, 0.47436 * _w, 0.35140 * _h);
 
   late final AnimationController _beat = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 1000))
