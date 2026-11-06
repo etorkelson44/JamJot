@@ -86,7 +86,6 @@ class HomeScreen extends ConsumerWidget {
                     ? 'Finish songs in practice to earn your first coins!'
                     : "Spend them at the Farmers' Market!",
                 tint: JamJotColors.plumTint,
-                trailing: JamJar(studentId: active['id'] as String),
                 onTap: () => context.go('/market'),
               );
             }),

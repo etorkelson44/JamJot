@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../services/sound_gate.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
@@ -170,6 +171,22 @@ class _OverviewTab extends ConsumerWidget {
               } catch (_) {}
             },
           ),
+        if (kid['is_primary'] == true) ...[
+          const SizedBox(height: 12),
+          JamJotCard(
+            emoji: '🔊',
+            tint: JamJotColors.marigoldTint,
+            title: "${kid['display_name']}'s sound effects",
+            subtitle: kid['sound_prefs'] is Map &&
+                    (kid['sound_prefs'] as Map)['enabled'] == false
+                ? 'All sound effects are off.'
+                : 'Choose whether this profile plays sounds, and which ones.',
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showDialog<void>(
+                context: context,
+                builder: (_) => _SoundSettingsDialog(kid: kid)),
+          ),
+        ],
         const SizedBox(height: 12),
         Text(
           'The Teachers tab holds each teacher connection (and your family-run practice) separately; Practices shows every session with recordings; Caregivers manages who helps and what they can do.',
@@ -965,6 +982,87 @@ $link
       onChanged: editable
           ? (v) => _setGrant(context, ref, row, field, v)
           : null,
+    );
+  }
+}
+
+/// The caregiver's switches for which sound effects a student's profile plays.
+/// Each change saves straight to the student's `sound_prefs`.
+class _SoundSettingsDialog extends ConsumerStatefulWidget {
+  const _SoundSettingsDialog({required this.kid});
+  final Map<String, dynamic> kid;
+  @override
+  ConsumerState<_SoundSettingsDialog> createState() =>
+      _SoundSettingsDialogState();
+}
+
+class _SoundSettingsDialogState extends ConsumerState<_SoundSettingsDialog> {
+  late Map<String, dynamic> _prefs;
+  @override
+  void initState() {
+    super.initState();
+    final saved = widget.kid['sound_prefs'];
+    _prefs = saved is Map ? Map<String, dynamic>.from(saved) : {};
+  }
+
+  bool _on(String key) => _prefs[key] != false;
+
+  Future<void> _set(String key, bool value) async {
+    final before = Map<String, dynamic>.from(_prefs);
+    setState(() => _prefs[key] = value);
+    try {
+      await JamJotBackend.client
+          .from('students')
+          .update({'sound_prefs': _prefs}).eq('id', widget.kid['id']);
+      ref.invalidate(myStudentsProvider);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _prefs = before);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Couldn't save that change. Please try again.")));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = widget.kid['display_name'] as String? ?? 'this profile';
+    final master = _on('enabled');
+    return AlertDialog(
+      title: Text("$name's sound effects"),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Play sound effects',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text(master
+                  ? 'Turn this off to keep $name\'s profile silent.'
+                  : 'Silent: none of the sounds below will play.'),
+              value: master,
+              onChanged: (v) => _set('enabled', v),
+            ),
+            const Divider(),
+            for (final fx in soundEffectOptions)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(fx.title),
+                subtitle: Text(fx.subtitle),
+                value: master && _on(fx.key),
+                onChanged: master ? (v) => _set(fx.key, v) : null,
+              ),
+            const SizedBox(height: 4),
+            const Text(
+                'Applies to this profile on every device the next time it is opened.',
+                style: TextStyle(fontSize: 12)),
+          ]),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context), child: const Text('Done'))
+      ],
     );
   }
 }
