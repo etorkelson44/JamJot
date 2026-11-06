@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/app_state.dart';
 import '../state/wardrobe.dart';
 import 'dressed_avatar.dart';
+import 'jalapresto_piano.dart';
 import 'strawccato_piano.dart';
 
 /// Instrument props the avatar can play (placeholder art — each swaps to a
@@ -94,6 +95,10 @@ class _PerformingAvatarState extends ConsumerState<PerformingAvatar>
     // still while the room is quiet, playing while sound is detected.
     if (wornKey == 'strawberry') {
       return StrawccatoPiano(playing: widget.playing, height: widget.size * 1.35);
+    }
+    // Señor Jalapresto gets his own piano scene too (founder art, 2026-11-06).
+    if (wornKey == 'jalapeno') {
+      return JalaprestoPiano(playing: widget.playing, height: widget.size * 1.35);
     }
     final instruments = (active?['instruments'] as List?)?.cast<String>();
     final prop = _propFor(widget.instrument ??
