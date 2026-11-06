@@ -25,3 +25,8 @@ Rive (.riv, preferred) or Lottie (.json).
 Colors to design against (the locked palette):
 cream #FAF6EE · ink #26323E · blueberry #4A5FAE · marigold #FFBE2E ·
 plum #6C4A91 · leaf-green stems #3E7C4A. Font: Space Grotesk.
+
+## Jam Jar art (assets/art/jar/)
+Purple/white-label jar with the stamped JJ coin on the right of the label. `closed.webp`, `open.webp`, `lid_seated.webp`, `lid_hover.webp` (tilted lid), `coin.webp` (mini stamped coin), `d0–d9.webp` + `jam.webp` (painted count lettering). The count is composed from the digit images (see `lib/widgets/jam_jar_art.dart`); a jar with no count shows JAM. The older `jar_closed/jar_open/jar_lid.png` are no longer used.
+
+Sound: `assets/audio/coin_retro.mp3` — Pixabay "Retro coin 4" by Driken5482 (replaces coin_drop.wav); one blip per coin with rising pitch.

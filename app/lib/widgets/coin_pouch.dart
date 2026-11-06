@@ -1,8 +1,8 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/app_state.dart';
 import '../state/coin_rewards.dart';
+import 'jam_jar_art.dart';
 
 /// The official JJ coin, trimmed tight — used anywhere a coin is shown.
 class JamCoin extends StatelessWidget {
@@ -74,14 +74,14 @@ class JamJar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final value = ref.watch(berryBalanceProvider(studentId));
     final balance = value.valueOrNull;
-    final size = big ? 70.0 : 52.0;
+    final size = big ? 84.0 : 64.0;
     void openSettings() => showDialog<void>(
         context: context,
         builder: (_) => Consumer(
             builder: (context, ref, child) => AlertDialog(
                   title: const Text('Your Jam Jar'),
                   content: Column(mainAxisSize: MainAxisSize.min, children: [
-                    JarStill(balance: balance ?? 0, width: 110),
+                    JarStill(balance: balance, width: 110),
                     const SizedBox(height: 8),
                     Text(balance == null
                         ? 'Loading your coins…'
@@ -114,53 +114,40 @@ class JamJar extends ConsumerWidget {
                   onTap: openSettings,
                   child: SizedBox(
                       width: size,
-                      height: size * 1.42 + 10,
-                      child: Stack(alignment: Alignment.topCenter, children: [
-                        JarStill(balance: balance ?? 0, width: size),
-                        Positioned(
-                            bottom: 0,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                  color: const Color(0xFF252220),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                      color: const Color(0xFFFFD66B))),
-                              child: Text('${balance ?? '…'}',
-                                  style: TextStyle(
-                                      color: const Color(0xFFFFD66B),
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: big ? 15 : 12)),
-                            )),
-                      ])),
+                      height: size * kJarImageH / kJarImageW + 4,
+                      child: Align(
+                          alignment: Alignment.topCenter,
+                          child: JarStill(balance: balance, width: size))),
                 ))));
   }
 }
 
-/// The closed jar as a still image: empty glass at zero coins, a quiet pile
-/// inside once there's something saved up.
+/// The closed jar as a still image, with the coin count painted on the
+/// label coin in the same lettering that spells "JAM" (shown while the count
+/// is unknown). A quiet pile of coins shows in the glass once there's
+/// something saved up.
 class JarStill extends StatelessWidget {
   const JarStill({super.key, required this.balance, required this.width});
-  final int balance;
+  final int? balance;
   final double width;
   @override
   Widget build(BuildContext context) {
-    final height = width * 793 / 560;
+    final height = width * kJarImageH / kJarImageW;
+    final count = balance;
     return SizedBox(
       width: width,
       height: height,
       child: Stack(children: [
-        Image.asset('assets/art/jar_closed.png',
-            width: width, height: height, fit: BoxFit.contain),
-        if (balance > 0)
-          // The coins live in the clear glass BELOW the JAM label: this
-          // clip is that band, so a tall pile disappears behind the label
-          // instead of floating in front of it.
+        Image.asset('assets/art/jar/closed.webp',
+            width: width, height: height, fit: BoxFit.fill),
+        if (count != null && count > 0)
+          // The coins live in the clear glass BELOW the label: this clip is
+          // that band, so a tall pile disappears behind the label instead
+          // of floating in front of it.
           Positioned(
-            left: width * 0.16,
-            right: width * 0.16,
-            top: height * 0.735,
+            left: width * 0.12,
+            right: width * 0.12,
+            top: height * 0.741,
             bottom: height * 0.065,
             child: ClipRect(
               child: Align(
@@ -168,116 +155,86 @@ class JarStill extends StatelessWidget {
                   child: _CoinsInside(jarWidth: width)),
             ),
           ),
+        positionedJarCount(count == null ? 'JAM' : '$count', width),
       ]),
     );
   }
 }
 
-/// The earning moment: the lid pops off, a few coins drop into the open jar,
-/// and the lid settles back on. The label gives the exact award.
-class FallingCoinJar extends StatefulWidget {
-  const FallingCoinJar({super.key, required this.animate, this.size = 112});
-  final bool animate;
-  final double size;
+/// The little jar in the corner, where the earn-coins flight starts and
+/// ends: it hides itself while the flight is on screen.
+final jarFlightActive = ValueNotifier<bool>(false);
+
+/// Screen rectangle of the corner jar, reported by whoever draws it, so the
+/// flight can start and end exactly there.
+Rect? jarCornerRect;
+
+class CornerJarReporter extends StatefulWidget {
+  const CornerJarReporter({super.key, required this.child});
+  final Widget child;
   @override
-  State<FallingCoinJar> createState() => _FallingCoinJarState();
+  State<CornerJarReporter> createState() => _CornerJarReporterState();
 }
 
-class _FallingCoinJarState extends State<FallingCoinJar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1500));
-  @override
-  void initState() {
-    super.initState();
-    if (widget.animate) _controller.forward();
-  }
-
-  @override
-  void didUpdateWidget(covariant FallingCoinJar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!widget.animate) _controller.stop();
-  }
-
+class _CornerJarReporterState extends State<CornerJarReporter> {
+  Rect? _mine;
   @override
   void dispose() {
-    _controller.dispose();
+    if (identical(jarCornerRect, _mine)) jarCornerRect = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final w = widget.size;
-    final jarH = w * 793 / 560; // closed-jar aspect
-    final openH = w * 743 / 560; // open-jar aspect
-    return ExcludeSemantics(
-      child: SizedBox(
-          width: w * 1.5,
-          height: jarH + 46,
-          child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final t = _controller.value;
-                final jarOpen = widget.animate && t >= 0.08 && t < 0.92;
-                // Lid flight: off and up-left, hovering tilted, then back.
-                double lift; // 0 = seated, 1 = hovering
-                if (!widget.animate) {
-                  lift = 0;
-                } else if (t < 0.08) {
-                  lift = 0;
-                } else if (t < 0.25) {
-                  lift = Curves.easeOut.transform((t - 0.08) / 0.17);
-                } else if (t < 0.72) {
-                  lift = 1;
-                } else if (t < 0.92) {
-                  lift = 1 - Curves.easeIn.transform((t - 0.72) / 0.20);
-                } else {
-                  lift = 0;
-                }
-                return Stack(
-                    alignment: Alignment.bottomCenter,
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Falling coins, aimed at the jar mouth, behind the lid.
-                      if (widget.animate && t >= 0.22 && t < 0.78)
-                        for (var i = 0; i < 6; i++)
-                          if (t >= 0.22 + i * .08 && t < 0.22 + i * .08 + .22)
-                            Positioned(
-                              bottom: jarH +
-                                  26 -
-                                  (jarH * 0.55 + 26) *
-                                      math
-                                          .pow((t - 0.22 - i * .08) / .22, 2)
-                                          .toDouble(),
-                              child: Transform.translate(
-                                offset: Offset((i.isEven ? -1 : 1) * 7.0, 0),
-                                child: Transform.rotate(
-                                    angle: (i.isEven ? 1 : -1) * t * 3,
-                                    child: JamCoin(size: w * 0.24)),
-                              ),
-                            ),
-                      // The jar itself: open while the lid is off.
-                      if (jarOpen)
-                        Image.asset('assets/art/jar_open.png',
-                            width: w, height: openH, fit: BoxFit.contain)
-                      else
-                        Image.asset('assets/art/jar_closed.png',
-                            width: w, height: jarH, fit: BoxFit.contain),
-                      // The lid, flying off and back on.
-                      if (lift > 0.01)
-                        Positioned(
-                          bottom: jarH - w * 0.18 + lift * w * 0.55,
-                          child: Transform.translate(
-                            offset: Offset(-lift * w * 0.42, 0),
-                            child: Transform.rotate(
-                              angle: -lift * 0.32,
-                              child: Image.asset('assets/art/jar_lid.png',
-                                  width: w * 0.78, fit: BoxFit.contain),
-                            ),
-                          ),
-                        ),
-                    ]);
-              })),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = context.findRenderObject();
+      if (box is RenderBox && box.hasSize && box.attached) {
+        _mine = box.localToGlobal(Offset.zero) & box.size;
+        jarCornerRect = _mine;
+      }
+    });
+    return ValueListenableBuilder<bool>(
+        valueListenable: jarFlightActive,
+        builder: (context, flying, child) =>
+            Opacity(opacity: flying ? 0 : 1, child: child),
+        child: widget.child);
+  }
+}
+
+/// The earning moment. Animated, it is the full-screen flight: the jar
+/// swings from the corner to the middle, the lid comes off, the coins drop
+/// in while the label count ticks up, and it flies home. Not animated (reduce
+/// motion), it is a still jar showing the new total.
+class FallingCoinJar extends StatelessWidget {
+  const FallingCoinJar({
+    super.key,
+    required this.animate,
+    this.size = 112,
+    this.startCount = 0,
+    this.earned = 1,
+    this.cornerCenter,
+    this.cornerWidth = 56,
+    this.onDone,
+  });
+  final bool animate;
+  final double size;
+  final int startCount, earned;
+  final Offset? cornerCenter;
+  final double cornerWidth;
+  final VoidCallback? onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!animate) {
+      return ExcludeSemantics(
+          child: JarStill(balance: startCount + earned, width: size));
+    }
+    return JarFlight(
+        startCount: startCount,
+        earned: earned,
+        cornerCenter: cornerCenter,
+        cornerWidth: cornerWidth,
+        onDone: onDone);
   }
 }

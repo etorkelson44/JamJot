@@ -9,6 +9,7 @@ import '../services/practice_navigation.dart';
 import '../theme/jamjot_theme.dart';
 import '../widgets/jamjot_icons.dart';
 import '../widgets/letter_avatar.dart';
+import '../widgets/coin_pouch.dart';
 
 /// The bottom-tab shell. Tabs follow who's signed in:
 /// kids:      Home · Practice · Market · Calendar
@@ -210,12 +211,14 @@ class _ProfileChip extends ConsumerWidget {
 }
 
 
-/// The Jam Jar companion to the profile chip: same scale, same corner,
-/// the kid's coins at a glance. Tapping it opens the Market.
+/// The Jam Jar companion to the profile chip: the closed jar with the kid's
+/// coins painted on its label. Tapping it opens the Market. This is also
+/// where the earn-coins flight starts and ends.
 class _JarChip extends ConsumerWidget {
   const _JarChip({required this.studentId, required this.onTap});
   final String? studentId;
   final VoidCallback onTap;
+  static const double jarWidth = 56;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -227,30 +230,15 @@ class _JarChip extends ConsumerWidget {
       label: 'Jam Jar, ${balance ?? 0} coins. Open the Market',
       child: Tooltip(
         message: 'Your Jam Jar · open the Market',
-        child: Material(
-          color: Colors.white,
-          shape: const StadiumBorder(
-              side: BorderSide(color: JamJotColors.ink, width: 2)),
-          elevation: 2,
-          shadowColor: Colors.black26,
-          child: InkWell(
-            customBorder: const StadiumBorder(),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                ExcludeSemantics(
-                    child: Image.asset('assets/art/jar_closed.png',
-                        height: 28, fit: BoxFit.contain)),
-                const SizedBox(width: 5),
-                Text('${balance ?? '…'}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                        color: JamJotColors.ink)),
-              ]),
-            ),
-          ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: ExcludeSemantics(
+              child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: CornerJarReporter(
+                child: JarStill(balance: balance, width: jarWidth)),
+          )),
         ),
       ),
     );

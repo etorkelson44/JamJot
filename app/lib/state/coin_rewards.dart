@@ -19,8 +19,9 @@ class CoinRewardTracker {
   }
 }
 
-final coinSoundPlayerProvider =
-    Provider<void Function()>((ref) => () => playSound('coinDrop'));
+/// Plays one coin blip per entry, each [delaysMs] milliseconds from now.
+final coinSoundPlayerProvider = Provider<void Function(List<int> delaysMs)>(
+    (ref) => (delaysMs) => playCoinPings(delaysMs));
 
 final coinSoundsProvider =
     StateNotifierProvider<CoinSounds, bool>((ref) => CoinSounds());

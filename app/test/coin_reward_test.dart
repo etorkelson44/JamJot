@@ -47,7 +47,7 @@ void main() {
         return balance;
       }),
       berryBalanceProvider('b').overrideWith((ref) async => 200),
-      coinSoundPlayerProvider.overrideWithValue(() {
+      coinSoundPlayerProvider.overrideWithValue((_) {
         plays++;
       }),
     ]);
@@ -100,7 +100,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(JamJar, skipOffstage: false), findsNWidgets(2));
     expect(plays, 1); // two mounted coin pots must not play two jingles
-    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 12));
     await update(tester, 55);
     expect(find.byType(FallingCoinJar), findsNothing);
     expect(plays, 1);
@@ -160,7 +160,7 @@ void main() {
     await open(tester);
     await tester.tap(find.byType(InkWell).first);
     await tester.pumpAndSettle();
-    expect(find.text('Your coin pot'), findsOneWidget);
+    expect(find.text('Your Jam Jar'), findsOneWidget);
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
     expect(container.read(coinSoundsProvider), false);
@@ -171,7 +171,7 @@ void main() {
     expect(
         tester.widgetList<Image>(find.byType(Image)).any((w) =>
             w.image is AssetImage &&
-            (w.image as AssetImage).assetName == 'assets/art/coin_pot.png'),
+            (w.image as AssetImage).assetName == 'assets/art/jar/closed.webp'),
         true);
     await tester.pumpWidget(const SizedBox());
   });
