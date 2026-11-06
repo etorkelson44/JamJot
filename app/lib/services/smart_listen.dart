@@ -34,16 +34,27 @@ class SmartHearing {
   final double instrument;
   final double clap;
 
+  /// Clapping together with a voice — a kid clapping while counting out
+  /// loud — is real practice (founder-directed 2026-11-05), so even a
+  /// fainter clap signal overrides the talking exclusion.
+  bool get clapAndVoice => ready && clap >= 0.08 && speech >= 0.2;
+
   /// True when the window sounds like talking and not at all like playing.
   /// Deliberately conservative: when in doubt, the kid keeps their minutes.
   bool get speechOnly =>
-      ready && speech > 0.3 && music < 0.12 && instrument < 0.1 && clap < 0.1;
+      ready &&
+      !clapAndVoice &&
+      speech > 0.3 &&
+      music < 0.12 &&
+      instrument < 0.1 &&
+      clap < 0.1;
 
   /// A tiny kid-facing word for the banner.
   String get label {
     if (state == 'loading') return 'warming up…';
     if (!ready) return '';
     if (instrument >= 0.1 || music >= 0.2) return 'music!';
+    if (clapAndVoice) return 'clap & count!';
     if (clap >= 0.1) return 'clapping';
     if (speech > 0.3) return 'talking';
     return 'quiet';
