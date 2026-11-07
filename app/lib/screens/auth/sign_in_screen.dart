@@ -258,7 +258,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                   await JamJotBackend.client.auth
                                       .resetPasswordForEmail(addr,
                                           redirectTo:
-                                              'https://etorkelson44.github.io/JamJot/');
+                                              'https://jamjot.app/');
                                   setState(() => _notice =
                                       'Check your email — a reset link is on its way. It brings you right back here to pick a new password.');
                                 } catch (_) {

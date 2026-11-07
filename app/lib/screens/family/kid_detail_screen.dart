@@ -354,7 +354,7 @@ class _TeachersTab extends ConsumerWidget {
   }
 
   Future<void> _emailTeacherInvite(String kidName) async {
-    const appLink = 'https://etorkelson44.github.io/JamJot/';
+    const appLink = 'https://jamjot.app/';
     final subject = Uri.encodeComponent(
         'Would you try JamJot for $kidName\'s music practice?');
     final body = Uri.encodeComponent('''Hi!
@@ -806,7 +806,7 @@ class _CaregiversTab extends ConsumerWidget {
           .single();
       if (!context.mounted) return;
       final link =
-          'https://etorkelson44.github.io/JamJot/#/invite?token=${invite['token']}';
+          'https://jamjot.app/#/invite?token=${invite['token']}';
       final allowed = [
         for (final key in grants.keys)
           if (grants[key] == true) labels[key]!.toLowerCase(),

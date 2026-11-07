@@ -236,7 +236,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   Future<void> _sendResetEmail(String email) async {
     try {
       await JamJotBackend.client.auth.resetPasswordForEmail(email,
-          redirectTo: 'https://etorkelson44.github.io/JamJot/');
+          redirectTo: 'https://jamjot.app/');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content:

@@ -101,7 +101,7 @@ class TeachingScreen extends ConsumerWidget {
     );
     if (created == null || !context.mounted) return;
     final link =
-        'https://etorkelson44.github.io/JamJot/#/invite?token=${created['token']}';
+        'https://jamjot.app/#/invite?token=${created['token']}';
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -179,7 +179,7 @@ class TeachingScreen extends ConsumerWidget {
     }
     if (!context.mounted) return;
     final code = invite['token'] as String;
-    final link = 'https://etorkelson44.github.io/JamJot/#/invite?token=$code';
+    final link = 'https://jamjot.app/#/invite?token=$code';
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
