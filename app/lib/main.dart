@@ -313,6 +313,20 @@ class _JamJotAppState extends ConsumerState<JamJotApp>
     WidgetsBinding.instance.addObserver(this);
   }
 
+  bool _maestroLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load perplexed Maestro now, so the jammed-up screen shows him even if
+    // the connection drops before anything goes wrong.
+    if (!_maestroLoaded) {
+      _maestroLoaded = true;
+      precacheImage(const AssetImage(JammedUp.artAsset), context,
+          onError: (_, __) {});
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
