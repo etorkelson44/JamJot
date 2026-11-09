@@ -65,9 +65,16 @@ class HomeScreen extends ConsumerWidget {
             JamJotCard(
               leading: instrumentIcon(
                   (active['instruments'] as List?)?.firstOrNull as String?,
-                  size: 26,
-                  fallback: '🎻'),
+                  size: 34),
               title: (active['instruments'] as List?)?.join(' · ') ?? 'Music',
+              titleWidget: ((active['instruments'] as List?)?.length ?? 0) > 1
+                  ? InstrumentList(active['instruments'] as List,
+                      iconSize: 22,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700))
+                  : null,
               subtitle: 'Tap to start a practice session!',
               tint: JamJotColors.blueberryTint,
               onTap: () => context.go('/practice'),
@@ -139,8 +146,7 @@ class HomeScreen extends ConsumerWidget {
                   leading: instrumentIcon(
                       (teacher['instruments'] as List?)?.firstOrNull
                           as String?,
-                      size: 26,
-                      fallback: '🎻'),
+                      size: 34),
                   tint: JamJotColors.blueberryTint,
                   title: 'My teaching',
                   subtitle:
@@ -187,8 +193,11 @@ class HomeScreen extends ConsumerWidget {
                           : (kid['display_name'] as String)[0].toUpperCase(),
                       tint: JamJotColors.neutral,
                       title: kid['display_name'] as String,
-                      subtitle:
-                          '${(kid['instruments'] as List?)?.join(' · ') ?? 'Music'} — practice list, lessons, history & chat',
+                      extra: InstrumentList(
+                          (kid['instruments'] as List?) ?? const [],
+                          iconSize: 20,
+                          style: Theme.of(context).textTheme.bodySmall),
+                      subtitle: 'Practice list, lessons, history & chat',
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.go('/kid?student=${kid['id']}'),
                     ),

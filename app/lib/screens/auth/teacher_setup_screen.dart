@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
-import 'add_student_screen.dart' show kInstruments;
+import '../../widgets/instrument_picker.dart';
 
 class TeacherSetupScreen extends ConsumerStatefulWidget {
   const TeacherSetupScreen({super.key});
@@ -17,9 +17,8 @@ class TeacherSetupScreen extends ConsumerStatefulWidget {
 
 class _TeacherSetupScreenState extends ConsumerState<TeacherSetupScreen> {
   final _name = TextEditingController();
-  final _otherInstrument = TextEditingController();
   final _studioName = TextEditingController();
-  final Set<String> _instruments = {};
+  List<String> _instruments = [];
   String _mode = 'solo'; // solo | own_studio | join_studio
   bool _busy = false;
   String? _error;
@@ -27,15 +26,13 @@ class _TeacherSetupScreenState extends ConsumerState<TeacherSetupScreen> {
   @override
   void dispose() {
     _name.dispose();
-    _otherInstrument.dispose();
     _studioName.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final name = _name.text.trim();
-    final other = _otherInstrument.text.trim();
-    final instruments = {..._instruments, if (other.isNotEmpty) other}.toList();
+    final instruments = [..._instruments];
     if (name.isEmpty) {
       setState(() => _error = 'Please enter the name students will see.');
       return;
@@ -101,26 +98,9 @@ class _TeacherSetupScreenState extends ConsumerState<TeacherSetupScreen> {
                       style: text.titleSmall
                           ?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final i in kInstruments)
-                        FilterChip(
-                          label: Text(i),
-                          selected: _instruments.contains(i),
-                          selectedColor: JamJotColors.marigoldTint,
-                          onSelected: (sel) => setState(() =>
-                              sel ? _instruments.add(i) : _instruments.remove(i)),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _otherInstrument,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                        labelText: 'Something else? Type it here'),
+                  InstrumentPicker(
+                    value: _instruments,
+                    onChanged: (v) => setState(() => _instruments = v),
                   ),
                   const SizedBox(height: 20),
                   Text('How do you teach?',

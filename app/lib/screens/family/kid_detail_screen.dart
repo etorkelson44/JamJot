@@ -19,6 +19,7 @@ import '../library/library_screen.dart' show showCreateLessonDialog;
 import 'scan_sheet.dart';
 import '../../widgets/maestro_loader.dart';
 import '../../widgets/instrument_icon.dart';
+import '../../widgets/change_instrument.dart';
 
 /// One kid's world in the grown-up view, organized into tabs:
 /// Overview • Teachers • Practices • Caregivers.
@@ -122,9 +123,19 @@ class _OverviewTab extends ConsumerWidget {
                   Text(kid['display_name'] as String,
                       style: text.titleLarge
                           ?.copyWith(fontWeight: FontWeight.w700)),
-                  Text((kid['instruments'] as List?)?.join(' · ') ?? '',
+                  const SizedBox(height: 4),
+                  InstrumentList((kid['instruments'] as List?) ?? const [],
+                      iconSize: 24,
                       style: text.bodyMedium
                           ?.copyWith(color: JamJotColors.inkSoft)),
+                  if (kid['is_primary'] == true)
+                    TextButton(
+                      style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 36)),
+                      onPressed: () => changeKidInstruments(context, ref, kid),
+                      child: const Text('Change instruments'),
+                    ),
                 ],
               ),
             ),
@@ -212,7 +223,7 @@ class _TeachersTab extends ConsumerWidget {
     final chats = ref.watch(myChatsProvider).valueOrNull ?? [];
     final text = Theme.of(context).textTheme;
 
-    Widget header(String label, {Widget? icon}) => Padding(
+    Widget header(String label, {Widget? icon, Widget? action}) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(children: [
             if (icon != null) ...[icon, const SizedBox(width: 8)],
@@ -221,6 +232,7 @@ class _TeachersTab extends ConsumerWidget {
                   style: text.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700)),
             ),
+            if (action != null) action,
           ]),
         );
 
@@ -230,8 +242,17 @@ class _TeachersTab extends ConsumerWidget {
         for (final e in enrollments) ...[
           header(
               '${(e['teachers'] as Map?)?['display_name'] ?? 'Teacher'} • ${e['instrument']}',
-              icon: instrumentIcon(e['instrument'] as String?,
-                  size: 26, fallback: '🎻')),
+              icon: instrumentIcon(e['instrument'] as String?, size: 30),
+              action: kid['is_primary'] == true
+                  ? TextButton(
+                      onPressed: () => changeEnrollmentInstrument(context, ref,
+                          enrollmentId: e['id'] as String,
+                          studentId: studentId,
+                          current: e['instrument'] as String?,
+                          studentName: name),
+                      child: const Text('Change'),
+                    )
+                  : null),
           _SectionCards(
             kid: kid,
             name: name,
@@ -455,7 +476,10 @@ class _SectionCards extends ConsumerWidget {
         JamJotCard(
           emoji: '💬',
           title: 'Chat with ${chat!['teacher_name']}',
-          subtitle: chat!['instrument'] as String?,
+          extra: chat!['instrument'] == null
+              ? null
+              : InstrumentLabel(chat!['instrument'] as String,
+                  iconSize: 20, style: Theme.of(context).textTheme.bodySmall),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.go(
               '/chat?enrollment=${chat!['enrollment_id']}&title=${Uri.encodeComponent('$name × ${chat!['teacher_name']}')}&primary=${chat!['i_am_primary'] == true ? 1 : 0}&teacher=${chat!['teacher_profile_id']}'),

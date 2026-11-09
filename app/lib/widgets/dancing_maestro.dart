@@ -6,8 +6,8 @@ import 'jar_logo.dart';
 
 /// Maestro Marmalade, doing a little dance once when the screen loads:
 /// a happy hop with a side-to-side wiggle, then settling into place.
-class DancingNote extends StatefulWidget {
-  const DancingNote({super.key, this.size = 230, this.asset});
+class DancingMaestro extends StatefulWidget {
+  const DancingMaestro({super.key, this.size = 230, this.asset});
 
   final double size;
 
@@ -16,10 +16,10 @@ class DancingNote extends StatefulWidget {
   final String? asset;
 
   @override
-  State<DancingNote> createState() => _DancingNoteState();
+  State<DancingMaestro> createState() => _DancingMaestroState();
 }
 
-class _DancingNoteState extends State<DancingNote>
+class _DancingMaestroState extends State<DancingMaestro>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,

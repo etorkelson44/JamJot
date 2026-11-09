@@ -1,46 +1,105 @@
 import 'package:flutter/material.dart';
 
-/// One place that decides how an instrument is drawn.
-///
-/// Piano and keyboard use the founder's own piano drawing
-/// (assets/art/icon_piano.png) everywhere — never an emoji. Other
-/// instruments keep their emoji until they get drawn art.
-const _instrumentEmoji = <String, String>{
-  'piano': '🎹',
-  'keyboard': '🎹',
-  'violin': '🎻',
-  'viola': '🎻',
-  'cello': '🎻',
-  'bass': '🎻',
-  'guitar': '🎸',
-  'ukulele': '🎸',
-  'drums': '🥁',
-  'percussion': '🥁',
-  'voice': '🎤',
-  'singing': '🎤',
-  'flute': '🪈',
-  'recorder': '🪈',
-  'clarinet': '🪈',
-  'saxophone': '🎷',
-  'trumpet': '🎺',
-  'trombone': '🎺',
-  'harp': '🪕',
-  'banjo': '🪕',
-};
+import '../models/instruments.dart';
 
-/// The emoji for an instrument name ('🎵' when unknown or null).
-String instrumentEmoji(String? instrument) {
-  if (instrument == null) return '🎵';
-  final key = instrument.trim().toLowerCase();
-  for (final entry in _instrumentEmoji.entries) {
-    if (key.contains(entry.key)) return entry.value;
+/// One place that decides how an instrument is drawn (JJ-036-C).
+///
+/// Every instrument shows its photo icon from assets/instruments/ on a
+/// white rounded tile (some photos have white, not transparent,
+/// backgrounds). Saved values are matched by [resolveInstrument]; anything
+/// not on the list gets the music-notes "Other" picture.
+class InstrumentIcon extends StatelessWidget {
+  const InstrumentIcon(this.instrument, {super.key, this.size = 24});
+
+  /// The saved instrument text (any spelling), or null.
+  final String? instrument;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final entry = resolveInstrument(instrument);
+    return Semantics(
+      image: true,
+      label: instrument ?? 'Music',
+      child: Container(
+        width: size,
+        height: size,
+        padding: EdgeInsets.all(size * 0.06),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(size * 0.24),
+          border: Border.all(color: const Color(0x1F000000)),
+        ),
+        child: Image.asset(
+          entry.asset,
+          fit: BoxFit.contain,
+          excludeFromSemantics: true,
+          errorBuilder: (_, __, ___) => FittedBox(
+              child: Text('🎵', style: TextStyle(fontSize: size * 0.7))),
+        ),
+      ),
+    );
   }
-  return '🎵';
 }
 
-bool isPianoInstrument(String? instrument) => instrumentEmoji(instrument) == '🎹';
+/// An icon for an instrument. [fallback] is kept for older callers and is
+/// no longer used: unknown instruments show the "Other" picture.
+Widget instrumentIcon(String? instrument,
+        {double size = 24, String fallback = '🎵'}) =>
+    InstrumentIcon(instrument, size: size);
 
-/// The founder's piano drawing, sized like an icon.
+/// The instrument's icon followed by its name, exactly as saved.
+class InstrumentLabel extends StatelessWidget {
+  const InstrumentLabel(this.instrument,
+      {super.key, this.style, this.iconSize = 22});
+  final String instrument;
+  final TextStyle? style;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InstrumentIcon(instrument, size: iconSize),
+          const SizedBox(width: 6),
+          Flexible(
+              child: Text(instrument,
+                  style: style, overflow: TextOverflow.ellipsis)),
+        ],
+      );
+}
+
+/// Several instruments, each with its icon (wraps onto new lines).
+class InstrumentList extends StatelessWidget {
+  const InstrumentList(this.instruments,
+      {super.key, this.style, this.iconSize = 22, this.empty = ''});
+  final List instruments;
+  final TextStyle? style;
+  final double iconSize;
+
+  /// Text shown when there are no instruments.
+  final String empty;
+
+  @override
+  Widget build(BuildContext context) {
+    final names = instruments.whereType<String>().toList();
+    if (names.isEmpty) {
+      return empty.isEmpty ? const SizedBox.shrink() : Text(empty, style: style);
+    }
+    return Wrap(
+      spacing: 12,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final n in names)
+          InstrumentLabel(n, style: style, iconSize: iconSize),
+      ],
+    );
+  }
+}
+
+/// The founder's piano drawing, sized like an icon. Used inline by
+/// [PianoText] for "instrument play" assignment labels.
 class PianoIcon extends StatelessWidget {
   const PianoIcon({super.key, this.size = 24});
   final double size;
@@ -52,18 +111,6 @@ class PianoIcon extends StatelessWidget {
         height: size,
         fit: BoxFit.contain,
       );
-}
-
-/// An icon for an instrument: the piano drawing for piano/keyboard, the
-/// instrument's emoji for everything else. [fallback] is used when no
-/// instrument is known.
-Widget instrumentIcon(String? instrument,
-    {double size = 24, String fallback = '🎵'}) {
-  if (isPianoInstrument(instrument)) return PianoIcon(size: size);
-  final e = instrument == null || instrumentEmoji(instrument) == '🎵'
-      ? fallback
-      : instrumentEmoji(instrument);
-  return Text(e, style: TextStyle(fontSize: size * 0.85));
 }
 
 /// Text in which any piano emoji is drawn as the piano image instead.

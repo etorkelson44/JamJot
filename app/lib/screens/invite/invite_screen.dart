@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
-import '../../widgets/dancing_note.dart';
+import '../../widgets/dancing_maestro.dart';
+import '../../widgets/instrument_icon.dart';
 import '../../widgets/maestro_loader.dart';
 
 /// Where a teacher's invite link lands. Signed out: a warm hello and the
@@ -177,7 +178,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: DancingNote(size: 150)),
+          const Center(child: DancingMaestro(size: 150)),
           const SizedBox(height: 12),
           Text("You're invited to JamJot! 🎉",
               textAlign: TextAlign.center,
@@ -222,7 +223,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: DancingNote(size: 130)),
+          const Center(child: DancingMaestro(size: 130)),
           const SizedBox(height: 12),
           Text(
             _info!['caregiver_name'] != null
@@ -250,8 +251,14 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 10),
-          const Center(child: DancingNote(size: 120)),
+          const Center(child: DancingMaestro(size: 120)),
           const SizedBox(height: 10),
+          if (_info!['instrument'] != null) ...[
+            Center(
+                child: InstrumentIcon(_info!['instrument'] as String?,
+                    size: 56)),
+            const SizedBox(height: 8),
+          ],
           Text(
             '${_info!['teacher_name']}${_info!['studio_name'] != null ? ' (${_info!['studio_name']})' : ''} invites your family to connect for ${_info!['instrument'] ?? 'music'} lessons${hint != null ? ' — for $hint' : ''}.',
             textAlign: TextAlign.center,

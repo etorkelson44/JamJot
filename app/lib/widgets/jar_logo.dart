@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/jamjot_theme.dart';
 
-/// The JamJot jar with the (nameless) note mascot inside, drawn in code as
-/// the placeholder until Erika's own art replaces it
+/// The JamJot jar, drawn in code as the placeholder until Erika's own art
+/// replaces it. Its old note mascot was retired (JJ-035-C, 2026-11-09)
 /// (drop-in slot: assets/mascot/jar_hero.svg — see ART_MANIFEST.md).
 class JarLogo extends StatelessWidget {
   const JarLogo({super.key, this.size = 200});
@@ -68,40 +68,6 @@ class _JarPainter extends CustomPainter {
     ]) {
       canvas.drawCircle(Offset(w * dx, h * dy), w * r, spark);
     }
-
-    // The note mascot
-    final cx = w * 0.47, cy = h * 0.62;
-    final head = Paint()..color = JamJotColors.ink;
-    canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(cx, cy), width: w * 0.26, height: h * 0.18),
-        head);
-    // Stem + flag
-    canvas.drawLine(Offset(cx + w * 0.115, cy - h * 0.01),
-        Offset(cx + w * 0.115, cy - h * 0.30), inkStroke..strokeWidth = w * 0.045);
-    final flag = Path()
-      ..moveTo(cx + w * 0.115, cy - h * 0.30)
-      ..quadraticBezierTo(
-          cx + w * 0.16, cy - h * 0.345, cx + w * 0.21, cy - h * 0.315);
-    canvas.drawPath(flag, inkStroke);
-    // Face
-    final eye = Paint()..color = JamJotColors.cream;
-    canvas.drawCircle(Offset(cx - w * 0.045, cy - h * 0.018), w * 0.016, eye);
-    canvas.drawCircle(Offset(cx + w * 0.035, cy - h * 0.018), w * 0.016, eye);
-    final smile = Path()
-      ..moveTo(cx - w * 0.04, cy + h * 0.02)
-      ..quadraticBezierTo(cx, cy + h * 0.045, cx + w * 0.04, cy + h * 0.02);
-    canvas.drawPath(
-        smile,
-        Paint()
-          ..color = JamJotColors.cream
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = w * 0.014
-          ..strokeCap = StrokeCap.round);
-    // Cheeks
-    final cheek = Paint()..color = JamJotColors.marigold;
-    canvas.drawCircle(Offset(cx - w * 0.095, cy + h * 0.012), w * 0.016, cheek);
-    canvas.drawCircle(Offset(cx + w * 0.085, cy + h * 0.012), w * 0.016, cheek);
   }
 
   @override

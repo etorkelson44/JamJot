@@ -9,6 +9,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/jamjot_card.dart';
+import '../../widgets/instrument_icon.dart';
 
 /// All my chats — one per student-teacher connection.
 class MessagesScreen extends ConsumerWidget {
@@ -44,7 +45,11 @@ class MessagesScreen extends ConsumerWidget {
                       emoji: '💬',
                       tint: JamJotColors.blueberryTint,
                       title: '${c['student_name']} × ${c['teacher_name']}',
-                      subtitle: c['instrument'] as String?,
+                      extra: c['instrument'] == null
+                          ? null
+                          : InstrumentLabel(c['instrument'] as String,
+                              iconSize: 20,
+                              style: Theme.of(context).textTheme.bodySmall),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.go(
                           '/chat?enrollment=${c['enrollment_id']}&title=${Uri.encodeComponent('${c['student_name']} × ${c['teacher_name']}')}&primary=${c['i_am_primary'] == true ? 1 : 0}&teacher=${c['teacher_profile_id']}'),

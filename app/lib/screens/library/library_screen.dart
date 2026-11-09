@@ -2039,7 +2039,11 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
               title: Text(s['display_name'] as String),
               subtitle: s['enrollment_instrument'] == null
                   ? null
-                  : Text(s['enrollment_instrument'] as String),
+                  : Align(
+                      alignment: Alignment.centerLeft,
+                      child: InstrumentLabel(
+                          s['enrollment_instrument'] as String,
+                          iconSize: 18)),
               onChanged: (v) => _toggleStudent(s, v == true),
             ),
           for (final s in others)
@@ -2068,7 +2072,11 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
             title: Text(s['display_name'] as String),
             subtitle: s['enrollment_instrument'] == null
                 ? null
-                : Text(s['enrollment_instrument'] as String),
+                : Align(
+                    alignment: Alignment.centerLeft,
+                    child: InstrumentLabel(
+                        s['enrollment_instrument'] as String,
+                        iconSize: 18)),
             onChanged: (v) => _toggleStudent(s, v == true),
           ),
         const SizedBox(height: 8),

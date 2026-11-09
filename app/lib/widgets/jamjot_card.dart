@@ -13,7 +13,15 @@ class JamJotCard extends StatelessWidget {
     this.onTap,
     this.trailing,
     this.leading,
+    this.titleWidget,
+    this.extra,
   });
+
+  /// Shown instead of the [title] text (e.g. instruments with icons).
+  final Widget? titleWidget;
+
+  /// Shown between the title and the subtitle.
+  final Widget? extra;
 
   /// Custom leading widget shown in the tile slot instead of [emoji].
 
@@ -58,9 +66,15 @@ class JamJotCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: text.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w700)),
+                    titleWidget ??
+                        Text(title,
+                            style: text.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700)),
+                    if (extra != null) ...[
+                      const SizedBox(height: 4),
+                      extra!,
+                      const SizedBox(height: 2),
+                    ],
                     if (subtitle != null)
                       Text(subtitle!,
                           style: text.bodySmall

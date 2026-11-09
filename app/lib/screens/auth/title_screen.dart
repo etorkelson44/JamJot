@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../theme/jamjot_theme.dart';
-import '../../widgets/dancing_note.dart';
+import '../../widgets/dancing_maestro.dart';
 import '../../widgets/ask_maestro.dart' show TisdaleImprint;
 import '../../widgets/jamjot_card.dart';
 
@@ -147,7 +147,7 @@ class TitleScreen extends StatelessWidget {
               const SizedBox(height: 16),
               // Maestro Marmalade, in his tuxedo with his pencil baton,
               // welcomes everyone with a little dance.
-              const DancingNote(
+              const DancingMaestro(
                   size: 170, asset: 'assets/mascot/maestro_tux.png'),
               const SizedBox(height: 20),
               Row(

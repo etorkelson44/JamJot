@@ -5,11 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
-
-const kInstruments = [
-  'Piano', 'Violin', 'Guitar', 'Voice', 'Cello', 'Drums',
-  'Flute', 'Trumpet', 'Clarinet', 'Saxophone', 'Ukulele', 'Viola',
-];
+import '../../widgets/instrument_picker.dart';
 
 class AddStudentScreen extends ConsumerStatefulWidget {
   const AddStudentScreen({super.key});
@@ -21,8 +17,7 @@ class AddStudentScreen extends ConsumerStatefulWidget {
 class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
   final _name = TextEditingController();
   final _pin = TextEditingController();
-  final _otherInstrument = TextEditingController();
-  final Set<String> _instruments = {};
+  List<String> _instruments = [];
   bool _busy = false;
   String? _error;
 
@@ -30,15 +25,13 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
   void dispose() {
     _name.dispose();
     _pin.dispose();
-    _otherInstrument.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final name = _name.text.trim();
     final pin = _pin.text.trim();
-    final other = _otherInstrument.text.trim();
-    final instruments = {..._instruments, if (other.isNotEmpty) other}.toList();
+    final instruments = [..._instruments];
     if (name.isEmpty) {
       setState(() => _error = 'Please enter a name.');
       return;
@@ -113,26 +106,9 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
                       style: text.titleSmall
                           ?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final i in kInstruments)
-                        FilterChip(
-                          label: Text(i),
-                          selected: _instruments.contains(i),
-                          selectedColor: JamJotColors.blueberryTint,
-                          onSelected: (sel) => setState(() =>
-                              sel ? _instruments.add(i) : _instruments.remove(i)),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _otherInstrument,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                        labelText: 'Something else? Type it here'),
+                  InstrumentPicker(
+                    value: _instruments,
+                    onChanged: (v) => setState(() => _instruments = v),
                   ),
                   const SizedBox(height: 20),
                   Text('Profile PIN (optional)',

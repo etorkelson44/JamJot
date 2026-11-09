@@ -1,140 +1,62 @@
-import 'dart:math' as math;
-
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/instruments.dart';
 import '../state/app_state.dart';
 import '../state/wardrobe.dart';
 import 'dressed_avatar.dart';
-import 'instrument_icon.dart';
-import 'jalapresto_piano.dart';
-import 'kiwi_piano.dart';
-import 'strawccato_piano.dart';
 
-String _propFor(String? instrument) => instrumentEmoji(instrument);
+/// Where the founder's avatar-plays-instrument stills go, one per avatar
+/// and instrument (e.g. assets/art/avatar_instrument/strawberry_violin.png).
+/// Drop a file in and it is used automatically; until then the avatar's
+/// regular still pose shows.
+String avatarInstrumentStill(String avatarKey, String instrumentKey) =>
+    'assets/art/avatar_instrument/${avatarKey}_$instrumentKey.png';
 
-/// The active student's dressed avatar performing on their own instrument:
-/// a gentle 3/4-time sway, the instrument at their hands, and music notes
-/// floating up while they play.
-class PerformingAvatar extends ConsumerStatefulWidget {
-  const PerformingAvatar(
-      {super.key, this.size = 84, this.instrument, this.playing = true});
+/// Every bundled asset path, read once from the asset manifest.
+final _bundledAssetsProvider = FutureProvider<Set<String>>((ref) async {
+  try {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    return manifest.listAssets().toSet();
+  } catch (_) {
+    return <String>{};
+  }
+});
+
+/// The active student's avatar at their instrument: one still image, no
+/// animation (founder decision 2026-11-09). Shows the avatar+instrument
+/// still when it exists, otherwise the avatar's regular pose with its worn
+/// outfit. Applies to every avatar and every instrument, piano included.
+class PerformingAvatar extends ConsumerWidget {
+  const PerformingAvatar({super.key, this.size = 84, this.instrument});
 
   final double size;
 
-  /// Whether real sound is being made right now (the practice screen's
-  /// mic gate). Ms. Straw-ccato's piano scene eases between still and
-  /// playing on this; other avatars keep their usual sway.
-  final bool playing;
-
   /// The instrument being practiced; falls back to the student's first
-  /// listed instrument, then to a plain music note.
+  /// listed instrument.
   final String? instrument;
 
   @override
-  ConsumerState<PerformingAvatar> createState() => _PerformingAvatarState();
-}
-
-class _PerformingAvatarState extends ConsumerState<PerformingAvatar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 2))
-          ..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final active = ref.watch(activeStudentProvider);
     final wornKey = (active?['avatar_key'] as String?) ?? 'jalapeno';
     final sid = active?['id'] as String?;
-    final outfit = sid == null
-        ? const <String>[]
-        : ref.watch(wardrobeProvider(sid)).outfitFor(wornKey);
-    // Ms. Straw-ccato performs at her own piano (founder art, JJ-021 era):
-    // still while the room is quiet, playing while sound is detected.
-    if (wornKey == 'strawberry') {
-      return StrawccatoPiano(playing: widget.playing, height: widget.size * 1.35);
-    }
-    // Señor Jalapresto gets his own piano scene too (founder art, 2026-11-06).
-    if (wornKey == 'jalapeno') {
-      return JalaprestoPiano(playing: widget.playing, height: widget.size * 1.35);
-    }
-    // Keywi, the gender-neutral third freebie, plays a black piano
-    // (founder art, 2026-11-06).
-    if (wornKey == 'kiwi') {
-      return KiwiPiano(playing: widget.playing, height: widget.size * 1.35);
-    }
     final instruments = (active?['instruments'] as List?)?.cast<String>();
-    final prop = _propFor(widget.instrument ??
+    final entry = resolveInstrument(instrument ??
         (instruments != null && instruments.isNotEmpty
             ? instruments.first
             : null));
-    final s = widget.size;
+    final still = avatarInstrumentStill(wornKey, entry.key);
+    final bundled = ref.watch(_bundledAssetsProvider).valueOrNull;
 
-    return SizedBox(
-      width: s * 1.5,
-      height: s * 1.2,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          final t = _controller.value;
-          final sway = math.sin(t * 2 * math.pi) * 0.06;
-          final bob = math.sin(t * 4 * math.pi).abs() * 3;
-          return Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.bottomCenter,
-            children: [
-              // Floating notes while the music plays.
-              for (var i = 0; i < 2; i++)
-                Positioned(
-                  bottom: s * 0.5 + ((t + i * 0.5) % 1) * s * 0.65,
-                  right: s * 0.08 + i * s * 0.14,
-                  child: Opacity(
-                    opacity: (1 - ((t + i * 0.5) % 1)).clamp(0.0, 0.9),
-                    child: Text(i.isEven ? '♪' : '♫',
-                        style: TextStyle(
-                            fontSize: s * 0.26,
-                            color: const Color(0xFF6C4A91))),
-                  ),
-                ),
-              // The musician, swaying in time.
-              Positioned(
-                bottom: bob,
-                child: Transform.rotate(
-                  angle: sway,
-                  alignment: Alignment.bottomCenter,
-                  child: DressedAvatar(
-                      avatarKey: wornKey, outfit: outfit, size: s),
-                ),
-              ),
-              // Their instrument, right at their hands.
-              Positioned(
-                bottom: s * 0.08 - bob * 0.4,
-                right: s * 0.02,
-                child: Transform.rotate(
-                  angle: -sway * 0.6,
-                  child: prop == '🎹'
-                      // The founder's own piano drawing replaces the
-                      // keyboard emoji (2026-11-06).
-                      ? PianoIcon(size: s * 0.5)
-                      : Text(prop, style: TextStyle(fontSize: s * 0.42)),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+    if (bundled != null && bundled.contains(still)) {
+      return Image.asset(still,
+          width: size * 1.35, height: size * 1.35, fit: BoxFit.contain);
+    }
+    final outfit = sid == null
+        ? const <String>[]
+        : ref.watch(wardrobeProvider(sid)).outfitFor(wornKey);
+    return DressedAvatar(avatarKey: wornKey, outfit: outfit, size: size);
   }
 }

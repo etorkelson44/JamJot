@@ -8,7 +8,7 @@ Read-only inspection of the live schema confirmed sessions.source exists but ses
 
 The new latestResumablePracticeSession reader selects existing session fields and checks the optional correction field in the returned data. This works before and after that migration. It keeps the child/source/local-day filters, skips corrected sessions (including a zero-minute correction), and reads additional ordered pages when necessary. Real errors still reach the existing retry screen. An unmounted screen no longer attempts a startup error update.
 
-DancingNote now defaults to the existing general-purpose assets/mascot/maestro.png. This updates child Home, Practice, and invitation screens while preserving their animation. The sign-in Maestro and loaders remain intact. The founder's magnifying-glass image stays on the calendar; its exact bytes and quote were preserved.
+DancingNote (renamed DancingMaestro on 2026-11-09, when the Note mascot was retired) now defaults to the existing general-purpose assets/mascot/maestro.png. This updates child Home, Practice, and invitation screens while preserving their animation. The sign-in Maestro and loaders remain intact. The founder's magnifying-glass image stays on the calendar; its exact bytes and quote were preserved.
 
 ## Integration findings
 | Area | Independently checked status |

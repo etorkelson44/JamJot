@@ -13,6 +13,9 @@ import '../../widgets/log_practice.dart' show logOfflinePractice;
 import '../calendar/weekly_lesson.dart' show editWeeklySchedule;
 import '../library/library_screen.dart' show showCreateLessonDialog;
 import '../../widgets/maestro_loader.dart';
+import '../../widgets/instrument_icon.dart';
+import '../../widgets/instrument_picker.dart';
+import '../../widgets/change_instrument.dart';
 
 /// Pending change requests on events this teacher owns.
 final changeRequestsProvider =
@@ -38,8 +41,8 @@ class TeachingScreen extends ConsumerWidget {
   Future<void> _inviteFamily(BuildContext context, WidgetRef ref,
       Map<String, dynamic> teacher) async {
     final name = TextEditingController();
-    final instrument = TextEditingController(
-        text: (teacher['instruments'] as List?)?.firstOrNull ?? '');
+    final first = (teacher['instruments'] as List?)?.firstOrNull as String?;
+    var instrument = <String>[if (first != null && first.isNotEmpty) first];
     final created = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => AlertDialog(
@@ -58,11 +61,13 @@ class TeachingScreen extends ConsumerWidget {
               decoration: const InputDecoration(
                   labelText: "Student's first name (optional)"),
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: instrument,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Instrument'),
+            const SizedBox(height: 14),
+            StatefulBuilder(
+              builder: (context, setState) => InstrumentPicker(
+                value: instrument,
+                multiple: false,
+                onChanged: (v) => setState(() => instrument = v),
+              ),
             ),
           ],
         ),
@@ -81,9 +86,8 @@ class TeachingScreen extends ConsumerWidget {
                     'created_by': uid,
                     'teacher_id': teacher['id'],
                     'studio_id': teacher['studio_id'],
-                    'instrument': instrument.text.trim().isEmpty
-                        ? 'Music'
-                        : instrument.text.trim(),
+                    'instrument':
+                        instrument.isEmpty ? 'Music' : instrument.first,
                     'preset_grants': {
                       if (name.text.trim().isNotEmpty)
                         'student_name': name.text.trim(),
@@ -425,8 +429,9 @@ class TeachingScreen extends ConsumerWidget {
                   Text(teacher['display_name'] as String? ?? '',
                       style: text.headlineSmall
                           ?.copyWith(fontWeight: FontWeight.w700)),
-                  Text(
-                      (teacher['instruments'] as List?)?.join(' · ') ?? '',
+                  const SizedBox(height: 4),
+                  InstrumentList((teacher['instruments'] as List?) ?? const [],
+                      iconSize: 24,
                       style: text.bodyMedium
                           ?.copyWith(color: JamJotColors.inkSoft)),
                   const SizedBox(height: 16),
@@ -532,7 +537,21 @@ class TeachingScreen extends ConsumerWidget {
                             : (s['display_name'] as String)[0].toUpperCase(),
                         tint: JamJotColors.neutral,
                         title: s['display_name'] as String,
-                        subtitle: s['enrollment_instrument'] as String?,
+                        extra: s['enrollment_instrument'] == null
+                            ? null
+                            : InstrumentLabel(
+                                s['enrollment_instrument'] as String,
+                                iconSize: 22,
+                                style: text.bodySmall),
+                        trailing: TextButton(
+                          onPressed: () => changeEnrollmentInstrument(
+                              context, ref,
+                              enrollmentId: s['enrollment_id'] as String,
+                              studentId: s['id'] as String,
+                              current: s['enrollment_instrument'] as String?,
+                              studentName: s['display_name'] as String?),
+                          child: const Text('Change'),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(children: [
