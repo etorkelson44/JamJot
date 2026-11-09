@@ -6,6 +6,7 @@ app/web/*
 !app/web/index.html
 !app/web/smart_listen.js
 !app/web/coin_drop.js
+!app/web/404.html
 !app/web/smart/
 app/ios/
 app/android/
