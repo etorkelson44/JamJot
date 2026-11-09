@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../theme/jamjot_theme.dart';
@@ -12,8 +10,8 @@ import '../theme/jamjot_theme.dart';
 /// main.dart), the whole app when it can't start, and the plain-HTML twin in
 /// web/index.html for when the app can't load at all.
 ///
-/// It adapts to the room it's given — a full page, a compact card (a broken
-/// list item), or just Maestro (a tiny slot) — and deliberately leans on
+/// It adapts to the room it's given — a full page with Maestro, or words
+/// only for a broken list item or tiny slot — and deliberately leans on
 /// nothing that could itself be broken: no providers, router or MediaQuery.
 class JammedUp extends StatelessWidget {
   const JammedUp({super.key, this.onRetry, this.onHome});
@@ -64,7 +62,7 @@ class JammedUp extends StatelessWidget {
         final w = c.maxWidth;
         final h = c.maxHeight;
         if (!w.isFinite || w < 200 || (h.isFinite && h < 130)) {
-          return _tiny(w, h);
+          return _tiny(context, w, h);
         }
         if (h.isFinite && h >= 420 && w >= 300) return _full(context, h);
         return _compact(context);
@@ -81,48 +79,86 @@ class JammedUp extends StatelessWidget {
         errorBuilder: (_, __, ___) => SizedBox(height: height),
       );
 
-  /// Just Maestro, for slots too small for words.
-  Widget _tiny(double w, double h) {
-    final side = [48.0, if (w.isFinite) w, if (h.isFinite) h].reduce(math.min);
+  /// Small slots (one broken item or tile) get words only, no Maestro
+  /// (founder, 2026-11-09): what didn't show up and how to fix it.
+  static const String smallTitle = 'Berries and jam!';
+  static const String smallNote = 'This part didn\u2019t load.';
+  static const String smallFixRetry = 'Tap Try again or refresh the page.';
+  static const String smallFix = 'Refresh the page to try again.';
+  static const String tinyNote = 'Didn\u2019t load. Refresh.';
+
+  TextStyle _smallTitleStyle(BuildContext context, double size) =>
+      TextStyle(
+        color: JamStand.ink,
+        fontWeight: FontWeight.w800,
+        fontSize: size,
+        height: 1.2,
+        decoration: TextDecoration.none,
+      );
+
+  TextStyle _smallBodyStyle(double size) => TextStyle(
+        color: JamStand.inkSoft,
+        fontSize: size,
+        height: 1.3,
+        decoration: TextDecoration.none,
+      );
+
+  /// A tiny slot: two short lines, shrunk to fit.
+  Widget _tiny(BuildContext context, double w, double h) {
     return Semantics(
-      label: message,
-      child: Center(child: _art(side)),
+      container: true,
+      label: '$smallTitle $tinyNote',
+      child: ExcludeSemantics(
+        child: Material(
+          color: JamStand.paper,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(smallTitle,
+                      textAlign: TextAlign.center,
+                      style: _smallTitleStyle(context, 13)),
+                  Text(tinyNote,
+                      textAlign: TextAlign.center, style: _smallBodyStyle(11)),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  /// A small card: Maestro beside the message (a broken list item, say).
+  /// A small card where one item broke: the words and a Try again link.
   Widget _compact(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     return Material(
       color: JamStand.paper,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Semantics(
           container: true,
-          label: message,
-          child: Row(children: [
-            _art(64),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    message,
-                    style: (text.titleSmall ?? const TextStyle(fontSize: 14))
-                        .copyWith(
-                      color: JamStand.ink,
-                      fontWeight: FontWeight.w800,
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                  if (onRetry != null)
-                    TextButton(onPressed: onRetry, child: const Text('Try again')),
-                ],
-              ),
-            ),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(smallTitle, style: _smallTitleStyle(context, 16)),
+              const SizedBox(height: 2),
+              Text(
+                  '$smallNote ${onRetry != null ? smallFixRetry : smallFix}',
+                  style: _smallBodyStyle(14)),
+              if (onRetry != null)
+                TextButton(
+                  style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 36),
+                      alignment: Alignment.centerLeft),
+                  onPressed: onRetry,
+                  child: const Text('Try again'),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -27,8 +27,7 @@ void main() {
     expect(find.text('Back to start'), findsOneWidget);
   });
 
-  testWidgets('a small slot gets a compact card, a tiny slot just Maestro',
-      (t) async {
+  testWidgets('small and tiny slots get words only, no Maestro', (t) async {
     await pump(
         t,
         const Center(
@@ -36,15 +35,21 @@ void main() {
                 width: 320,
                 height: 160,
                 child: JammedUp(onRetry: _noop))));
-    expect(find.text(JammedUp.message), findsOneWidget);
-    expect(find.text(JammedUp.directions), findsNothing);
+    expect(find.text(JammedUp.smallTitle), findsOneWidget);
+    expect(
+        find.text('${JammedUp.smallNote} ${JammedUp.smallFixRetry}'),
+        findsOneWidget);
+    expect(find.text('Try again'), findsOneWidget);
+    expect(find.text(JammedUp.message), findsNothing);
+    expect(find.byType(Image), findsNothing);
 
     await pump(
         t,
         const Center(
             child: SizedBox(width: 60, height: 60, child: JammedUp())));
-    expect(find.text(JammedUp.message), findsNothing);
-    expect(find.byType(Image), findsOneWidget);
+    expect(find.text(JammedUp.smallTitle), findsOneWidget);
+    expect(find.text(JammedUp.tinyNote), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
   });
 }
 
