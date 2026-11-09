@@ -4,28 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
-  <title>JamJot — page not found</title>
-  <!-- Having this file makes the host answer missing files with a real
-       404 instead of the app page. App links all use jamjot.app/#/…,
-       so they are unaffected. -->
-  <style>
-    html, body { margin: 0; height: 100%; background: #FAF6EE; color: #26323E;
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-    main { min-height: 100%; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; text-align: center;
-      padding: 24px 16px; box-sizing: border-box; }
-    h1 { font-size: 1.6rem; margin: 0 0 8px; }
-    p { margin: 0 0 20px; color: #55606B; }
-    a { display: inline-block; background: #4A5FAE; color: #fff;
-      text-decoration: none; padding: 12px 22px; border-radius: 999px;
-      font-weight: 700; }
-  </style>
+  <title>JamJot</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <!-- Plain-HTML twin of the in-app "jammed up" page (lib/widgets/jammed_up.dart),
+       the no-Try-again version used for addresses that don't exist.
+       Having this file also makes the host answer missing files with a
+       real 404. App links all use jamjot.app/#/…, so they are unaffected.
+       Paths are absolute because this page can be served at any depth. -->
 </head>
-<body>
-  <main>
-    <h1>That page isn't here.</h1>
-    <p>Let's get you back to the jar.</p>
-    <a href="/">Open JamJot</a>
-  </main>
+<body style="margin:0;">
+  <div role="alert" style="position:fixed;inset:0;background:#F8F3E9;color:#2E2A26;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;overflow:auto;font-family:'Nunito Sans','Segoe UI',system-ui,sans-serif;">
+    <div style="max-width:460px;">
+      <img src="/assets/assets/mascot/maestro_jammed.png" alt="Maestro Marmalade, a slice of toast with marmalade, looking worried" style="width:min(62vw,300px);height:auto;max-height:42vh;object-fit:contain;">
+      <h1 style="font-size:24px;line-height:1.2;margin:20px 0 12px;font-weight:800;">Berries and Cream! Looks like we're jammed up.</h1>
+      <p style="font-size:16px;line-height:1.4;margin:0 0 22px;color:#6B6257;">That page has wandered off. Tap Back to start.</p>
+      <a href="/" style="display:inline-flex;align-items:center;justify-content:center;font-weight:800;min-width:168px;min-height:52px;box-sizing:border-box;border:0;border-radius:999px;background:#E8A23D;color:#2E2A26;margin:6px;text-decoration:none;">Back to start</a>
+    </div>
+  </div>
 </body>
 </html>
