@@ -17,7 +17,6 @@ const placeholderPngArt = <String>{
   'avatar_lemon',
   'avatar_raspberry',
   'avatar_blueberry',
-  'avatar_sonatina', // JJ-011/JJ-012 starter: founder's seed photo, rigged
   'brand_tisdale', // Tisdale Applications imprint
   'crowd_color', // fan crowd silhouettes (founder reference style)
   'crowd_black',
@@ -44,7 +43,6 @@ Widget artAsset(String base,
 /// Berry characters bought at the market (JamJot-drawn placeholders — each
 /// key swaps to Erika's final artwork later, same file names).
 const berryAvatars = {
-  'sonatina': '🌱', // Sonatina Sprout — every student's free starter (JJ-011)
   'blueberry': '🫐',
   'strawberry': '🍓',
   'jalapeno': '🌶️',
@@ -57,6 +55,19 @@ const berryAvatars = {
   'dragonfruit': '🐉',
   'golden': '⭐',
 };
+
+/// Every student's default band member: Keywi (JJ-040-C). A student never
+/// has "no avatar" — an unset, missing or unknown key shows Keywi.
+const defaultAvatarKey = 'kiwi';
+
+/// True when [key] names a real character a student can wear.
+bool isWearableAvatar(String? key) =>
+    key != null && key.isNotEmpty && berryAvatars.containsKey(key);
+
+/// The avatar to show for a student: their worn one when it is a known
+/// character, otherwise Keywi.
+String studentAvatarKey(String? key) =>
+    isWearableAvatar(key) ? key! : defaultAvatarKey;
 
 /// The drawn character for a berry key (null if unknown).
 Widget? berryArt(String? key, double size) {
@@ -81,15 +92,14 @@ class LetterAvatar extends StatelessWidget {
   /// The worn character (students.avatar_key), when there is one.
   final String? avatarKey;
 
-  /// For students: no worn avatar yet means Jalapresto, one of the two
-  /// free band members every student starts with (Tour 2.0 interim,
-  /// 2026-11-05). Grown-ups keep the letter circle.
+  /// For students: an unset or unknown worn avatar shows Keywi, every
+  /// student's default (JJ-040-C). Grown-ups keep the letter circle.
   final bool starterDefault;
 
   @override
   Widget build(BuildContext context) {
     final effectiveKey =
-        avatarKey ?? (starterDefault ? 'jalapeno' : null);
+        starterDefault ? studentAvatarKey(avatarKey) : avatarKey;
     final art = berryArt(effectiveKey, size * 0.84);
     if (art != null) {
       return Container(

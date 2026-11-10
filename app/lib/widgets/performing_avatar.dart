@@ -6,6 +6,7 @@ import '../models/instruments.dart';
 import '../state/app_state.dart';
 import '../state/wardrobe.dart';
 import 'dressed_avatar.dart';
+import 'letter_avatar.dart' show studentAvatarKey;
 
 /// Where the founder's avatar-plays-instrument stills go, one per avatar
 /// and instrument (e.g. assets/art/avatar_instrument/strawberry_violin.png).
@@ -40,7 +41,7 @@ class PerformingAvatar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final active = ref.watch(activeStudentProvider);
-    final wornKey = (active?['avatar_key'] as String?) ?? 'jalapeno';
+    final wornKey = studentAvatarKey(active?['avatar_key'] as String?);
     final sid = active?['id'] as String?;
     final instruments = (active?['instruments'] as List?)?.cast<String>();
     final entry = resolveInstrument(instrument ??

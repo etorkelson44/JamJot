@@ -6,6 +6,7 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/instrument_picker.dart';
+import '../../widgets/letter_avatar.dart' show defaultAvatarKey;
 
 class AddStudentScreen extends ConsumerStatefulWidget {
   const AddStudentScreen({super.key});
@@ -57,6 +58,8 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
             'instruments': instruments,
             'pin_hash': pin.isEmpty ? null : hashPin(pin),
             'created_by': uid,
+            // Every new student starts with Keywi in the spotlight (JJ-040-C).
+            'avatar_key': defaultAvatarKey,
           })
           .select()
           .single();

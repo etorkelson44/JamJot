@@ -6,7 +6,7 @@ import '../state/app_state.dart';
 import '../state/wardrobe.dart';
 import '../theme/jamjot_theme.dart';
 import 'dressed_avatar.dart';
-import 'letter_avatar.dart' show artAsset;
+import 'letter_avatar.dart' show artAsset, studentAvatarKey;
 
 /// Every new student opens their first show to a small friendly crowd.
 /// (Display-side seed for now; becomes a server-side ledger grant at the
@@ -344,7 +344,7 @@ class VenueBackdrop extends ConsumerWidget {
     final venueIndex = venues.indexOf(venue);
     final crowdCount = fans <= 0 ? 0 : (fans / 4).ceil().clamp(1, 36);
     final active = ref.watch(activeStudentProvider);
-    final wornKey = (active?['avatar_key'] as String?) ?? 'jalapeno';
+    final wornKey = studentAvatarKey(active?['avatar_key'] as String?);
     final outfit = ref.watch(wardrobeProvider(studentId)).outfitFor(wornKey);
     return Stack(fit: StackFit.expand, children: [
       // The stage scene, anchored to the bottom of the page.

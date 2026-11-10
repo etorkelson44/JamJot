@@ -7,6 +7,7 @@ import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../state/wardrobe.dart';
 import '../../widgets/dressed_avatar.dart';
+import '../../widgets/letter_avatar.dart' show studentAvatarKey;
 import '../../widgets/coin_pouch.dart';
 import '../../widgets/fan_stage.dart';
 import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
@@ -259,7 +260,7 @@ class _HomeAvatarState extends ConsumerState<_HomeAvatar>
   @override
   Widget build(BuildContext context) {
     final sid = widget.student['id'] as String;
-    final avatarKey = (widget.student['avatar_key'] as String?) ?? 'jalapeno';
+    final avatarKey = studentAvatarKey(widget.student['avatar_key'] as String?);
     final outfit = ref.watch(wardrobeProvider(sid)).outfitFor(avatarKey);
     return AnimatedBuilder(
       animation: _bob,

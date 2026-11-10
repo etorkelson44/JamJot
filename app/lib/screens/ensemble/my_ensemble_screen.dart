@@ -12,14 +12,14 @@ import '../../theme/jamjot_theme.dart';
 import '../../widgets/ask_maestro.dart' show TisdaleImprint;
 import '../../widgets/dressed_avatar.dart';
 import '../../widgets/fan_stage.dart';
-import '../../widgets/letter_avatar.dart' show artAsset;
+import '../../widgets/letter_avatar.dart'
+    show artAsset, isWearableAvatar, studentAvatarKey;
 import '../../widgets/maestro_tour_bus.dart';
 import '../market/market_screen.dart' show purchasesProvider;
 import '../../models/market_avatars.dart' show musicalAvatars;
 
 /// Display names for band members (falls back to the musical-avatar cast).
 String _avatarName(String key) {
-  if (key == 'sonatina') return 'Sonatina Sprout';
   final cast = musicalAvatars[key];
   if (cast != null) return cast.name;
   return key[0].toUpperCase() + key.substring(1);
@@ -61,12 +61,11 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       );
     }
     final sid = active['id'] as String;
-    final wornKey = (active['avatar_key'] as String?) ?? 'jalapeno';
+    final wornKey = studentAvatarKey(active['avatar_key'] as String?);
     final purchases = ref.watch(purchasesProvider(sid)).valueOrNull ?? [];
-    // Every kid's band starts with the three freebies (Tour 2.0 interim,
-    // founder-directed 2026-11-05; third member per JJ-021-C): Señor
-    // Jalapresto, Ms. Straw-ccato and Keywi.
-    final owned = <String>['jalapeno', 'strawberry', 'kiwi'];
+    // Every kid's band starts with the three freebies (JJ-017-C/JJ-040-C):
+    // Keywi (the default), Ms. Straw-ccato and Señor Jalapresto.
+    final owned = <String>['kiwi', 'strawberry', 'jalapeno'];
     for (final p in purchases) {
       final item = p['market_items'] as Map<String, dynamic>?;
       final key = item?['asset_key'] as String?;
@@ -296,15 +295,20 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       setState(() => _cheerSeq++);
       return;
     }
+    await _wear(sid, key);
+  }
+
+  /// Gives the spotlight to [key]. A student always has an avatar
+  /// (JJ-040-C): an empty or unknown key is refused, never saved.
+  Future<bool> _wear(String sid, String key) async {
+    if (!isWearableAvatar(key)) return false;
     var ok = false;
-    if (key != 'sonatina') {
-      try {
-        final data = Map<String, dynamic>.from(await JamJotBackend.client
-            .rpc('wear_owned_avatar',
-                params: {'p_student_id': sid, 'p_asset_key': key}));
-        ok = data['ok'] == true;
-      } catch (_) {/* fall through to direct update */}
-    }
+    try {
+      final data = Map<String, dynamic>.from(await JamJotBackend.client
+          .rpc('wear_owned_avatar',
+              params: {'p_student_id': sid, 'p_asset_key': key}));
+      ok = data['ok'] == true;
+    } catch (_) {/* fall through to direct update */}
     if (!ok) {
       try {
         await JamJotBackend.client
@@ -313,14 +317,16 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
         ok = true;
       } catch (_) {}
     }
-    if (!ok || !mounted) return;
+    if (!ok || !mounted) return false;
     ref.invalidate(myStudentsProvider);
+    final active = ref.read(activeStudentProvider);
     if (active?['id'] == sid) {
       ref.read(activeStudentProvider.notifier).state = {
         ...active!,
         'avatar_key': key,
       };
     }
+    return true;
   }
 
   // ─────────────────────────── DRESSING ROOM ───────────────────────────
@@ -606,25 +612,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
   }
 
   Future<void> _giveSpotlight(String sid, String assetKey) async {
-    try {
-      final data = Map<String, dynamic>.from(
-          await JamJotBackend.client.rpc('wear_owned_avatar', params: {
-        'p_student_id': sid,
-        'p_asset_key': assetKey,
-      }));
-      if (!mounted) return;
-      if (data['ok'] == true) {
-        playSound('cheer');
-        ref.invalidate(myStudentsProvider);
-        final active = ref.read(activeStudentProvider);
-        if (active?['id'] == sid) {
-          ref.read(activeStudentProvider.notifier).state = {
-            ...active!,
-            'avatar_key': assetKey
-          };
-        }
-      }
-    } catch (_) {/* stays as-is */}
+    if (await _wear(sid, assetKey)) playSound('cheer');
   }
 
   Widget _closetTile(BuildContext context, String sid, String wornKey,

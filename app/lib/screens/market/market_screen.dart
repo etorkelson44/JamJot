@@ -185,6 +185,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
   }
 
   Future<void> _wear(String studentId, String assetKey) async {
+    // A student always has an avatar (JJ-040-C).
+    if (!isWearableAvatar(assetKey)) return;
     try {
       final data = Map<String, dynamic>.from(
           await JamJotBackend.client.rpc('wear_owned_avatar', params: {

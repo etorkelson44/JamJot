@@ -9,7 +9,6 @@ import 'letter_avatar.dart' show berryArt;
 /// shoes), so items land exactly right on every body (JJ-012/JJ-014 art
 /// pass, founder-directed 2026-11-04).
 const _tailoredAvatars = <String>{
-  'sonatina',
   'strawberry',
   'jalapeno',
   'grape',
