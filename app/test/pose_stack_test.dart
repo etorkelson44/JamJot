@@ -31,8 +31,8 @@ void main() {
     expect(order.contains('fictional/skipped.png'), isFalse);
   });
 
-  test('both bundled poses list layers that exist as PNG files', () {
-    for (final pose in ['jalapeno_violin', 'jalapeno_piano']) {
+  test('all bundled poses list layers that exist as PNG files', () {
+    for (final pose in ['jalapeno_violin', 'jalapeno_piano', 'jalapeno_viola']) {
       final dir = 'assets/art/avatar_instrument/$pose';
       final m = PoseManifest.parse(
           dir, File('$dir/manifest.json').readAsStringSync());

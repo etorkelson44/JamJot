@@ -1,0 +1,55 @@
+{
+  "character": "senor_jalapresto",
+  "pose": "viola",
+  "canvas": [
+    1000,
+    1000
+  ],
+  "format": "png-rgba",
+  "note": "Layers are square transparent PNGs on one shared canvas (authored at 2000x2000, shipped at 1000x1000), so they stack with no offsets. Draw in list order, first = bottom. An accessory layer must be a square transparent PNG drawn on the same canvas; it is inserted at a slot: 'after' = directly above the named layer, 'before' = directly below it. Do not trim layers.",
+  "layers": [
+    "1_pepper_body",
+    "2_eyes_brows",
+    "3_legs_feet",
+    "4_left_arm_hand",
+    "5_right_upper_arm",
+    "6_viola",
+    "7_mustache",
+    "8_teeth",
+    "9_bow",
+    "10_right_forearm_bow_hand"
+  ],
+  "accessory_slots": {
+    "behind_body": {
+      "before": "1_pepper_body",
+      "note": "capes, wings, backpacks"
+    },
+    "clothing_torso": {
+      "after": "1_pepper_body",
+      "note": "shirts, scarves, bow ties; stays under eyes, viola and arms"
+    },
+    "shoes": {
+      "after": "3_legs_feet"
+    },
+    "sleeves_left_arm": {
+      "after": "4_left_arm_hand",
+      "note": "left arm sits under the viola so the hand holds the neck from behind"
+    },
+    "sleeves_right_upper_arm": {
+      "after": "5_right_upper_arm",
+      "note": "bow-arm upper half sits under the viola; a bow-arm sleeve needs this piece plus sleeves_right_arm"
+    },
+    "face": {
+      "after": "8_teeth",
+      "note": "glasses, masks"
+    },
+    "sleeves_right_arm": {
+      "after": "10_right_forearm_bow_hand",
+      "note": "bow-arm forearm and hand, on top of the bow"
+    },
+    "hat": {
+      "after": "10_right_forearm_bow_hand",
+      "note": "top of stack"
+    }
+  }
+}
