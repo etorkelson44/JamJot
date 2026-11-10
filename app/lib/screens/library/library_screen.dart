@@ -11,10 +11,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/folder_picker.dart';
 import '../family/scan_sheet.dart' show scanSheetToLesson;
 import '../../services/unload_guard.dart';
+import '../../services/student_instruments.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/instrument_icon.dart';
+import '../../widgets/instrument_picker.dart' show InstrumentSearchField;
 
 /// My Library: Files (music/books), Assignments, and Lessons — with loose
 /// search everywhere. Later, score stores & converters plug in here too.
@@ -1365,6 +1367,12 @@ class _CreateLessonDialog extends ConsumerStatefulWidget {
 }
 
 class _StudentPlan {
+  /// The instrument this lesson is for (required, JJ-043-C). [options] are
+  /// the student's instruments (or the teacher connection's one); an
+  /// instrument the student doesn't have yet is added to them on save.
+  String? instrument;
+  List<String> options = [];
+  bool instrumentIsNew = false;
   final notes = TextEditingController();
   final days = TextEditingController(text: '4');
   final minutes = TextEditingController(text: '15');
@@ -1484,6 +1492,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
       final id = widget.student!['id'] as String;
       _checked.add(id);
       _plans[id] = _newPlan();
+      _initInstrument(_plans[id]!, widget.student!);
       _enrollments[id] = widget.enrollmentId;
     }
     // Scanned drafts: title follows the sheet's date + who it's for.
@@ -1588,10 +1597,29 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
         _templateSaved = true;
         ref.invalidate(savedLessonsProvider);
       }
-      // 2) A real lesson for each chosen student.
+      // 2) A real lesson for each chosen student. Each needs an instrument.
+      for (final sid in _checked) {
+        if (_assignedStudents.contains(sid)) continue;
+        if (_plans[sid]!.instrument == null) {
+          if (mounted) {
+            setState(() => _busy = false);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content:
+                    Text('Choose an instrument for ${_nameOf(sid)} first.')));
+          }
+          return;
+        }
+      }
       for (final sid in _checked) {
         if (_assignedStudents.contains(sid)) continue;
         final plan = _plans[sid]!;
+        if (plan.instrumentIsNew) {
+          // The student doesn't play it yet — add it to their list first.
+          await addStudentInstrument(sid, plan.instrument!);
+          plan.instrumentIsNew = false;
+          ref.invalidate(myStudentsProvider);
+          ref.invalidate(teacherStudentsProvider);
+        }
         final eventId = await _lessonEventOn(sid, plan.assignOn);
         await JamJotBackend.client.rpc('assign_library_lesson', params: {
           'p_request_id':
@@ -1599,6 +1627,7 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
           'p_lesson': {
             'student_id': sid,
             'enrollment_id': _enrollments[sid],
+            'instrument': plan.instrument,
             'event_id': eventId,
             'title': _title.text.trim(),
             'lesson_note': plan.notes.text.trim(),
@@ -1909,6 +1938,32 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
         Text(name,
             style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
+        if (plan.options.length > 1 || plan.instrument == null) ...[
+          DropdownButtonFormField<String>(
+            key: ValueKey('instrument-${plan.options.length}-${plan.instrument}'),
+            initialValue: plan.instrument,
+            decoration: const InputDecoration(labelText: 'Instrument'),
+            items: [
+              for (final o in plan.options)
+                DropdownMenuItem(value: o, child: Text(o)),
+            ],
+            onChanged: (v) => setState(() {
+              plan.instrument = v;
+              plan.instrumentIsNew = false;
+            }),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => _otherInstrument(plan),
+              child: Text('$name plays something else…'),
+            ),
+          ),
+        ] else
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: InstrumentLabel(plan.instrument!, iconSize: 18),
+          ),
         TextField(
           controller: plan.notes,
           textCapitalization: TextCapitalization.sentences,
@@ -1995,12 +2050,57 @@ class _CreateLessonDialogState extends ConsumerState<_CreateLessonDialog> {
     return 'your student';
   }
 
+  /// Fills in the instrument choices for a student's lesson: a teacher
+  /// connection names one; otherwise the student's own list, and a student
+  /// with exactly one needs no question.
+  void _initInstrument(_StudentPlan plan, Map<String, dynamic> s) {
+    final fromEnrollment = s['enrollment_instrument'] as String?;
+    final own = ((s['instruments'] as List?) ?? const [])
+        .whereType<String>()
+        .toList();
+    plan.options = fromEnrollment != null && fromEnrollment.isNotEmpty
+        ? [fromEnrollment]
+        : own;
+    if (plan.instrument == null && plan.options.length == 1) {
+      plan.instrument = plan.options.first;
+    }
+  }
+
+  Future<void> _otherInstrument(_StudentPlan plan) async {
+    final chosen = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Which instrument?'),
+        content: SizedBox(
+          width: 360,
+          child: InstrumentSearchField(
+            autofocus: true,
+            exclude: plan.options.toSet(),
+            onChosen: (name) => Navigator.pop(context, name),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+        ],
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    setState(() {
+      plan.options = [...plan.options, chosen];
+      plan.instrument = chosen;
+      plan.instrumentIsNew = true;
+    });
+  }
+
   void _toggleStudent(Map<String, dynamic> s, bool checked) {
     setState(() {
       final id = s['id'] as String;
       if (checked) {
         _checked.add(id);
         _plans[id] ??= _newPlan();
+        _initInstrument(_plans[id]!, s);
         _enrollments[id] = s['enrollment_id'] as String?;
       } else {
         _checked.remove(id);

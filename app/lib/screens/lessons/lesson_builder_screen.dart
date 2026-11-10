@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../services/student_instruments.dart';
 import '../../services/supabase_service.dart';
 import '../library/library_screen.dart' show showCreateLessonDialog;
 import '../../state/app_state.dart';
@@ -36,11 +37,47 @@ class LessonBuilderScreen extends ConsumerStatefulWidget {
 class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
   bool _busy = false;
 
-  Future<Map<String, dynamic>> _ensureLesson() async {
+  /// Every lesson belongs to one instrument (JJ-043-C). A teacher connection
+  /// already names it; for family-run lessons a kid with one instrument is
+  /// obvious, and with several the grown-up picks. Null = they cancelled.
+  Future<String?> _lessonInstrument() async {
+    if (widget.enrollmentId != null) {
+      final rows = await ref.read(kidEnrollmentsProvider(widget.studentId).future);
+      for (final e in rows) {
+        if (e['id'] == widget.enrollmentId) {
+          final i = e['instrument'] as String?;
+          if (i != null && i.isNotEmpty) return i;
+        }
+      }
+    }
+    final items =
+        await ref.read(studentInstrumentsProvider(widget.studentId).future);
+    final names = [for (final i in items) i.instrument];
+    if (names.length == 1) return names.first;
+    if (names.isEmpty) return 'Music';
+    if (!mounted) return null;
+    return showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text('Which instrument is this lesson for?'),
+        children: [
+          for (final n in names)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, n),
+              child: InstrumentLabel(n, iconSize: 24),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>?> _ensureLesson() async {
     final existing = await ref.read(
         lessonForEnrollmentProvider((widget.studentId, widget.enrollmentId))
             .future);
     if (existing != null) return existing;
+    final instrument = await _lessonInstrument();
+    if (instrument == null) return null;
     final uid = JamJotBackend.client.auth.currentUser!.id;
     final lesson = await JamJotBackend.client
         .from('lessons')
@@ -48,6 +85,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
           'student_id': widget.studentId,
           'created_by': uid,
           'title': 'This week',
+          'instrument': instrument,
           if (widget.enrollmentId != null) 'enrollment_id': widget.enrollmentId,
         })
         .select()
@@ -60,6 +98,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
 
   Future<void> _editGoals() async {
     final lesson = await _ensureLesson();
+    if (lesson == null) return;
     final days = TextEditingController(
         text: '${(lesson['goal_days'] as num?)?.toInt() ?? 4}');
     final minutes = TextEditingController(
@@ -220,6 +259,7 @@ class _LessonBuilderScreenState extends ConsumerState<LessonBuilderScreen> {
     setState(() => _busy = true);
     try {
       final lesson = await _ensureLesson();
+      if (lesson == null) return;
       final count = (lesson['assignments'] as List? ?? []).length;
       await JamJotBackend.client.from('assignments').insert({
         'lesson_id': lesson['id'],

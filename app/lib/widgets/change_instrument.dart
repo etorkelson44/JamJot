@@ -5,7 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../state/app_state.dart';
 import '../theme/jamjot_theme.dart';
+import '../services/student_instruments.dart';
 import 'instrument_picker.dart';
+import 'who_teaches_dialog.dart';
 
 /// Adults can fix a kid's instrument after the profile is made (JJ-036-C).
 /// The database decides who may: the primary guardian changes the kid's
@@ -153,6 +155,94 @@ Future<void> changeEnrollmentInstrument(
     if (context.mounted) {
       _toast(context,
           'Could not save just now. Only the primary caregiver or the teacher can change this.');
+    }
+  }
+}
+
+/// Caregiver adds one more instrument for a kid, then says who teaches it
+/// (JJ-043-C). Uses the same instrument search as everywhere else.
+Future<void> addInstrumentFlow(
+    BuildContext context, WidgetRef ref, Map<String, dynamic> kid) async {
+  final studentId = kid['id'] as String;
+  final name = kid['display_name'] as String? ?? 'your student';
+  final have = ((kid['instruments'] as List?) ?? const [])
+      .whereType<String>()
+      .map((s) => s.toLowerCase())
+      .toSet();
+  final picked = await _pickDialog(context,
+      title: 'Add an instrument for $name',
+      start: const [],
+      multiple: false,
+      check: (v) => have.contains(v.first.toLowerCase())
+          ? '$name already plays ${v.first}.'
+          : null);
+  if (picked == null || !context.mounted) return;
+  try {
+    final item = await addStudentInstrument(studentId, picked.first);
+    ref.invalidate(myStudentsProvider);
+    ref.invalidate(studentInstrumentsProvider(studentId));
+    final active = ref.read(activeStudentProvider);
+    if (active != null && active['id'] == studentId) {
+      ref.read(activeStudentProvider.notifier).state = {
+        ...active,
+        'instruments': [...((kid['instruments'] as List?) ?? const []), picked.first],
+      };
+    }
+    if (!context.mounted) return;
+    await showWhoTeachesDialog(context, ref,
+        studentId: studentId, studentName: name, item: item);
+  } catch (_) {
+    if (context.mounted) {
+      _toast(context,
+          'Could not add that just now. Only a caregiver can change this.');
+    }
+  }
+}
+
+/// Take an instrument off a kid's list. Lessons already made for it stay.
+Future<void> removeInstrumentFlow(BuildContext context, WidgetRef ref,
+    Map<String, dynamic> kid, StudentInstrument item) async {
+  final studentId = kid['id'] as String;
+  final name = kid['display_name'] as String? ?? 'This student';
+  if (((kid['instruments'] as List?) ?? const []).length <= 1) {
+    _toast(context, '$name needs at least one instrument.');
+    return;
+  }
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Remove ${item.instrument}?'),
+      content: Text(
+          '${item.instrument} will come off $name\'s list. Lessons already made for it are kept.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel')),
+        FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove')),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  try {
+    await removeStudentInstrument(item.id);
+    ref.invalidate(myStudentsProvider);
+    ref.invalidate(studentInstrumentsProvider(studentId));
+    final active = ref.read(activeStudentProvider);
+    if (active != null && active['id'] == studentId) {
+      ref.read(activeStudentProvider.notifier).state = {
+        ...active,
+        'instruments': [
+          for (final i in (active['instruments'] as List? ?? const []))
+            if ((i as String).toLowerCase() != item.instrument.toLowerCase()) i
+        ],
+      };
+    }
+    if (context.mounted) _toast(context, '${item.instrument} removed.');
+  } catch (_) {
+    if (context.mounted) {
+      _toast(context, 'Could not remove that just now. Please try again.');
     }
   }
 }

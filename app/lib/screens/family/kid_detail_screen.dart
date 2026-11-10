@@ -20,6 +20,8 @@ import 'scan_sheet.dart';
 import '../../widgets/maestro_loader.dart';
 import '../../widgets/instrument_icon.dart';
 import '../../widgets/change_instrument.dart';
+import '../../widgets/who_teaches_dialog.dart';
+import '../../services/student_instruments.dart';
 
 /// One kid's world in the grown-up view, organized into tabs:
 /// Overview • Teachers • Practices • Caregivers.
@@ -128,19 +130,13 @@ class _OverviewTab extends ConsumerWidget {
                       iconSize: 24,
                       style: text.bodyMedium
                           ?.copyWith(color: JamJotColors.inkSoft)),
-                  if (kid['is_primary'] == true)
-                    TextButton(
-                      style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(0, 36)),
-                      onPressed: () => changeKidInstruments(context, ref, kid),
-                      child: const Text('Change instruments'),
-                    ),
                 ],
               ),
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        _InstrumentsCard(kid: kid),
         const SizedBox(height: 14),
         Wrap(
           spacing: 8,
@@ -1087,6 +1083,101 @@ class _SoundSettingsDialogState extends ConsumerState<_SoundSettingsDialog> {
         TextButton(
             onPressed: () => Navigator.pop(context), child: const Text('Done'))
       ],
+    );
+  }
+}
+
+/// Each instrument the kid plays and who teaches it. Primary caregivers can
+/// change or remove a teacher at any time, add an instrument, or remove one
+/// (JJ-043-C).
+class _InstrumentsCard extends ConsumerWidget {
+  const _InstrumentsCard({required this.kid});
+  final Map<String, dynamic> kid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+    final studentId = kid['id'] as String;
+    final name = kid['display_name'] as String? ?? 'this student';
+    final canEdit = kid['is_primary'] == true;
+    final items = ref.watch(studentInstrumentsProvider(studentId)).valueOrNull ??
+        const <StudentInstrument>[];
+    final enrollments =
+        ref.watch(kidEnrollmentsProvider(studentId)).valueOrNull ?? const [];
+    String? linkedName(StudentInstrument i) {
+      for (final e in enrollments) {
+        if (e['id'] == i.enrollmentId) {
+          return (e['teachers'] as Map?)?['display_name'] as String?;
+        }
+      }
+      return null;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
+        border: Border.all(
+            color: JamJotShape.border.color, width: JamJotShape.border.width),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Instruments & teachers',
+              style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          if (items.isEmpty)
+            InstrumentList((kid['instruments'] as List?) ?? const [],
+                iconSize: 24,
+                style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft)),
+          for (final i in items)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  instrumentIcon(i.instrument, size: 28),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(i.instrument,
+                            style: text.bodyLarge
+                                ?.copyWith(fontWeight: FontWeight.w600)),
+                        Text(i.whoTeaches(linkedTeacherName: linkedName(i)),
+                            style: text.bodySmall
+                                ?.copyWith(color: JamJotColors.inkSoft)),
+                      ],
+                    ),
+                  ),
+                  if (canEdit) ...[
+                    TextButton(
+                      onPressed: () => showWhoTeachesDialog(context, ref,
+                          studentId: studentId, studentName: name, item: i),
+                      child: const Text('Change teacher'),
+                    ),
+                    IconButton(
+                      tooltip: 'Remove ${i.instrument}',
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () =>
+                          removeInstrumentFlow(context, ref, kid, i),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          if (canEdit)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => addInstrumentFlow(context, ref, kid),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add an instrument'),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -1,1 +1,1 @@
-{"private":true,"type":"module","scripts":{"test":"node practice-integrity.test.mjs"},"devDependencies":{"@electric-sql/pglite":"0.5.14"}}
+{"private":true,"type":"module","scripts":{"test":"node practice-integrity.test.mjs && node multi-instrument.test.mjs"},"devDependencies":{"@electric-sql/pglite":"0.5.14"}}
