@@ -106,7 +106,13 @@ void main() {
                         now: () => today,
                         detailBuilder: (_, entry) =>
                             Text('Detail: ${entry.title}')))))));
-    await tester.pumpAndSettle();
+    // The empty state shows an endlessly animating Maestro, which never
+    // "settles", so give it a fixed moment instead.
+    if (entries != null && entries.isEmpty) {
+      await tester.pump(const Duration(milliseconds: 500));
+    } else {
+      await tester.pumpAndSettle();
+    }
   }
 
   Future<void> choose(WidgetTester tester, String mode) async {
