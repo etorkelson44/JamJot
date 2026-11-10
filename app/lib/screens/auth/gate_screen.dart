@@ -66,6 +66,7 @@ class _GateScreenState extends ConsumerState<GateScreen> {
         }
         if (kid != null) {
           ref.read(activeStudentProvider.notifier).state = kid;
+          ref.read(activeInstrumentProvider.notifier).state = null;
           touchActiveSession();
           context.go(target ?? '/home');
           return;

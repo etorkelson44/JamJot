@@ -56,6 +56,12 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   late final AudioRecorder _recorder;
   bool _busy = false;
   bool _deciding = false;
+
+  /// The instrument this practice page is on (JJ-043-C), fixed for the life
+  /// of this screen: switching tabs rebuilds it.
+  String? _instrument;
+  String? get _firstInstrument =>
+      instrumentsOf(ref.read(activeStudentProvider)).firstOrNull;
   late final PracticeExitGuard _exitGuard;
   late final Future<bool> Function() _exitHandler;
   bool _dialogOpen = false;
@@ -76,6 +82,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
 
   /// Is the mic actively recording right now (record button pressed)?
   bool _live = false;
+  late final StateController<bool> _liveFlag;
 
   /// Uploaded clips not yet attached to a saved song summary,
   /// keyed by song id ('_freeplay' for no-song recording).
@@ -214,6 +221,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   void initState() {
     super.initState();
     _recorder = ref.read(practiceRecorderProvider);
+    _liveFlag = ref.read(practiceLiveProvider.notifier);
     WidgetsBinding.instance.addObserver(this);
     _exitGuard = ref.read(practiceExitGuardProvider);
     _exitHandler = _confirmLeavePractice;
@@ -241,14 +249,19 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         if (mounted) setState(() => _phase = _Phase.closed);
         return;
       }
-      final lesson =
-          await ref.read(currentLessonProvider(student['id'] as String).future);
+      _instrument = practiceInstrumentFor(
+          student, ref.read(activeInstrumentProvider));
+      final lesson = await ref.read(currentInstrumentLessonProvider(
+              (student['id'] as String, _instrument))
+          .future);
       _lesson = lesson;
       _songs =
           (lesson?['assignments'] as List?)?.cast<Map<String, dynamic>>() ?? [];
       // Coming back on the same day? Reopen today's session and keep adding.
       final session = await latestResumablePracticeSession(
-          JamJotBackend.client, student['id'] as String, DateTime.now());
+          JamJotBackend.client, student['id'] as String, DateTime.now(),
+          where: (row) => belongsToInstrument(
+              row['instrument'] as String?, _instrument, _firstInstrument));
       if (!mounted) return;
       if (session != null) {
         // A session from earlier today: show its progress; recording
@@ -331,7 +344,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     if (_sessionId == null) {
       final row = await JamJotBackend.client
           .from('sessions')
-          .insert({'student_id': student['id']})
+          .insert({
+            'student_id': student['id'],
+            if (_instrument != null) 'instrument': _instrument,
+          })
           .select()
           .single();
       _sessionId = row['id'] as String;
@@ -450,6 +466,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             _live = true;
             _notice = null;
           });
+          ref.read(practiceLiveProvider.notifier).state = true;
         }
       }
     } catch (_) {
@@ -488,6 +505,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       });
     }
     if (mounted) {
+      ref.read(practiceLiveProvider.notifier).state = false;
       setState(() {
         _live = false;
         _soundNow = false;
@@ -999,6 +1017,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     final sid = ref.read(activeStudentProvider)?['id'] as String?;
     if (sid != null) {
       ref.invalidate(weeklyProgressProvider(sid));
+      ref.invalidate(weeklyInstrumentProgressProvider((sid, _instrument)));
       ref.invalidate(practiceHistoryProvider(sid));
       ref.invalidate(sheetLessonsProvider(sid));
       ref.invalidate(berryBalanceProvider(sid));
@@ -1080,6 +1099,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       _exitGuard.beforeLeave = null;
     }
     setUnloadGuard(false);
+    if (_live) Future.microtask(() => _liveFlag.state = false);
     _sampler?.cancel();
     SmartListen.stop();
     _recorder.dispose();
@@ -1178,7 +1198,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     final progress = student == null
         ? null
         : ref
-            .watch(weeklyProgressProvider(student['id'] as String))
+            .watch(weeklyInstrumentProgressProvider(
+                (student['id'] as String, _instrument)))
             .valueOrNull;
     final days = progress?['days'] ?? 0;
     final baseToday = progress?['today_minutes'] ?? 0;
@@ -2169,6 +2190,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
 
   Widget _buildCelebrate(TextTheme text) {
     final goal = (_lesson?['goal_minutes'] as num?)?.toInt() ?? 15;
+    final sid = ref.watch(activeStudentProvider)?['id'] as String?;
+    final nextInstrument = sid == null
+        ? null
+        : ref.watch(nextInstrumentProvider((sid, _instrument))).valueOrNull;
     return Column(
       children: [
         const Spacer(),
@@ -2226,6 +2251,15 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           ),
         ],
         const Spacer(),
+        if (nextInstrument != null) ...[
+          FilledButton.icon(
+            onPressed: () =>
+                ref.read(activeInstrumentProvider.notifier).state = nextInstrument,
+            icon: instrumentIcon(nextInstrument, size: 22),
+            label: Text('Next up: $nextInstrument'),
+          ),
+          const SizedBox(height: 8),
+        ],
         FilledButton(
           onPressed: () => context.go('/home'),
           child: const Text('Back to my stage'),

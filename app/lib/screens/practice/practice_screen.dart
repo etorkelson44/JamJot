@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/instrument_icon.dart';
 import 'practice_session_screen.dart';
 
 /// The Practice tab. For kids it IS the practice home: lessons, goals,
@@ -49,7 +50,54 @@ class PracticeScreen extends ConsumerWidget {
       );
     }
 
-    // The kid's practice home, keyed so switching kids resets it fully.
-    return PracticeSessionScreen(key: ValueKey(active['id']));
+    // The kid's practice home, keyed so switching kids (or instrument tabs)
+    // resets it fully. Kids with several instruments get a tab per
+    // instrument (JJ-043-C); each tab has its own lessons, goals and progress.
+    final instruments = instrumentsOf(active);
+    final chosen =
+        practiceInstrumentFor(active, ref.watch(activeInstrumentProvider));
+    final session = PracticeSessionScreen(
+        key: ValueKey('${active['id']}/${chosen ?? ''}'));
+    if (instruments.length < 2) return session;
+    final live = ref.watch(practiceLiveProvider);
+    return Column(
+      children: [
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final i in instruments)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        key: ValueKey('instrument-tab-$i'),
+                        selected: i == chosen,
+                        onSelected: live
+                            ? null
+                            : (_) => ref
+                                .read(activeInstrumentProvider.notifier)
+                                .state = i,
+                        avatar: instrumentIcon(i, size: 22),
+                        label: Text(i),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (live)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text('Stop recording to switch instruments.',
+                style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+          ),
+        Expanded(child: session),
+      ],
+    );
   }
 }

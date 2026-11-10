@@ -56,6 +56,40 @@ final myTeacherProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
 final activeStudentProvider =
     StateProvider<Map<String, dynamic>?>((ref) => null);
 
+/// Which instrument tab the practice page is on (JJ-043-C). Null = the
+/// kid's first instrument. Reset whenever a different kid takes over.
+final activeInstrumentProvider = StateProvider<String?>((ref) => null);
+
+/// True while a practice recording is running, so the instrument tabs
+/// can't be switched out from under it.
+final practiceLiveProvider = StateProvider<bool>((ref) => false);
+
+/// The instruments a student plays, in order.
+List<String> instrumentsOf(Map<String, dynamic>? student) =>
+    ((student?['instruments'] as List?) ?? const []).whereType<String>().toList();
+
+/// The instrument the practice page shows for [student]: the chosen tab if
+/// they still play it, otherwise their first one (null if they have none).
+String? practiceInstrumentFor(Map<String, dynamic>? student, String? chosen) {
+  final all = instrumentsOf(student);
+  if (all.isEmpty) return null;
+  if (chosen != null) {
+    for (final i in all) {
+      if (i.toLowerCase() == chosen.toLowerCase()) return i;
+    }
+  }
+  return all.first;
+}
+
+/// Does a lesson/session row (instrument may be null from an older app
+/// version) belong to [instrument]? Rows without one count as the first.
+bool belongsToInstrument(
+    String? rowInstrument, String? instrument, String? firstInstrument) {
+  if (instrument == null) return true;
+  final r = (rowInstrument ?? firstInstrument)?.toLowerCase();
+  return r == instrument.toLowerCase();
+}
+
 /// A student's berry balance (sum of their ledger).
 final berryBalanceProvider =
     FutureProvider.family<int, String>((ref, studentId) async {
@@ -129,7 +163,19 @@ final lessonForEnrollmentProvider = FutureProvider.autoDispose
 /// EACH connection (every teacher, plus family-run), merged into one list.
 /// Goals use the highest asked of the kid; assignments carry their source.
 final currentLessonProvider = FutureProvider.autoDispose
-    .family<Map<String, dynamic>?, String>((ref, studentId) async {
+    .family<Map<String, dynamic>?, String>(
+        (ref, studentId) => _loadCurrentLesson(ref, studentId, null, null));
+
+/// The same combined practice, for one instrument only (the practice page's
+/// instrument tabs). Key: (student id, instrument).
+final currentInstrumentLessonProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>?, (String, String?)>((ref, key) {
+  final first = instrumentsOf(ref.read(activeStudentProvider)).firstOrNull;
+  return _loadCurrentLesson(ref, key.$1, key.$2, first);
+});
+
+Future<Map<String, dynamic>?> _loadCurrentLesson(Ref ref, String studentId,
+    String? instrument, String? firstInstrument) async {
   final rows = await JamJotBackend.client
       .from('lessons')
       .select('*, assignments(*)')
@@ -142,6 +188,10 @@ final currentLessonProvider = FutureProvider.autoDispose
   for (final r in rows) {
     final ws = r['week_start'] as String?;
     if (ws != null && DateTime.parse(ws).isAfter(today)) continue;
+    if (!belongsToInstrument(
+        r['instrument'] as String?, instrument, firstInstrument)) {
+      continue;
+    }
     final key = (r['enrollment_id'] as String?) ?? 'family';
     newestPerConnection.putIfAbsent(key, () => Map<String, dynamic>.from(r));
   }
@@ -184,6 +234,28 @@ final currentLessonProvider = FutureProvider.autoDispose
     'goal_minutes': goalMinutes == 0 ? 15 : goalMinutes,
     'lesson_note': notes.join(' • '),
   };
+}
+
+/// After finishing practice on [key.$2], the next of the kid's instruments
+/// (in order, wrapping around) that has a lesson and whose daily minutes
+/// goal isn't met yet. Null when there's nothing to nudge toward.
+final nextInstrumentProvider = FutureProvider.autoDispose
+    .family<String?, (String, String?)>((ref, key) async {
+  final (sid, current) = key;
+  final all = instrumentsOf(ref.read(activeStudentProvider));
+  if (all.length < 2) return null;
+  final start =
+      all.indexWhere((i) => i.toLowerCase() == (current ?? '').toLowerCase());
+  for (var k = 1; k < all.length; k++) {
+    final inst = all[((start < 0 ? 0 : start) + k) % all.length];
+    final lesson = await ref.read(currentInstrumentLessonProvider((sid, inst)).future);
+    if (lesson == null) continue;
+    final goal = (lesson['goal_minutes'] as num?)?.toInt() ?? 15;
+    final progress =
+        await ref.read(weeklyInstrumentProgressProvider((sid, inst)).future);
+    if ((progress['today_minutes'] ?? 0) < goal) return inst;
+  }
+  return null;
 });
 
 /// A student's last and next scheduled lessons (from the calendar).
@@ -218,14 +290,24 @@ final lessonScheduleProvider = FutureProvider.autoDispose
 });
 
 /// Practice progress this week: {'days': n, 'today_minutes': m}.
-final weeklyProgressProvider =
-    FutureProvider.family<Map<String, int>, String>((ref, studentId) async {
+final weeklyProgressProvider = FutureProvider.family<Map<String, int>, String>(
+    (ref, studentId) => _weeklyProgress(studentId, null, null));
+
+/// This week's progress on one instrument only. Key: (student id, instrument).
+final weeklyInstrumentProgressProvider =
+    FutureProvider.family<Map<String, int>, (String, String?)>((ref, key) {
+  final first = instrumentsOf(ref.read(activeStudentProvider)).firstOrNull;
+  return _weeklyProgress(key.$1, key.$2, first);
+});
+
+Future<Map<String, int>> _weeklyProgress(
+    String studentId, String? instrument, String? firstInstrument) async {
   final now = DateTime.now();
   final monday = DateTime(now.year, now.month, now.day)
       .subtract(Duration(days: now.weekday - 1));
   final rows = await JamJotBackend.client
       .from('sessions')
-      .select('id, started_at, total_seconds')
+      .select('id, started_at, total_seconds, instrument')
       .eq('student_id', studentId)
       .gte('started_at', monday.toUtc().toIso8601String());
   final days = <String>{};
@@ -235,6 +317,10 @@ final weeklyProgressProvider =
   for (final r in rows) {
     final secs = (r['total_seconds'] as num?)?.toInt() ?? 0;
     if (secs <= 0) continue;
+    if (!belongsToInstrument(
+        r['instrument'] as String?, instrument, firstInstrument)) {
+      continue;
+    }
     final dt = DateTime.parse(r['started_at'] as String).toLocal();
     final key = '${dt.year}-${dt.month}-${dt.day}';
     days.add(key);
@@ -249,7 +335,7 @@ final weeklyProgressProvider =
     'today_seconds': todaySeconds,
     ...sessionSeconds
   };
-});
+}
 
 /// Everyone caring for one kid, with their permission grants.
 final kidGuardianshipsProvider = FutureProvider.autoDispose
