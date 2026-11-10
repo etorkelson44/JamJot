@@ -38,8 +38,9 @@ flutter:
   assets:
     - assets/mascot/
     - assets/art/
-    - assets/art/piano/
     - assets/art/avatar_instrument/
+    - assets/art/avatar_instrument/jalapeno_violin/
+    - assets/art/avatar_instrument/jalapeno_piano/
     - assets/instruments/
     - assets/art/jar/
     - assets/art/stoplight/
