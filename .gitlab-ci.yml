@@ -1,0 +1,29 @@
+# JamJot build + deploy on GitLab Pages (mirrors .github/workflows).
+# Builds the Flutter web app and publishes it at https://<user>.gitlab.io/<project>/
+image: ghcr.io/cirruslabs/flutter:stable
+
+stages: [build, deploy]
+
+build-web:
+  stage: build
+  script:
+    - cd app
+    # Generate platform folders that aren't kept in the repo
+    - flutter create . --project-name jamjot --org app.jamjot --platforms web,ios,android
+    - flutter pub get
+    - flutter analyze --no-fatal-infos --no-fatal-warnings
+    - flutter build web --release --base-href "/$CI_PROJECT_NAME/"
+  artifacts:
+    paths: [app/build/web]
+    expire_in: 1 week
+
+pages:
+  stage: deploy
+  needs: [build-web]
+  script:
+    - mkdir -p public
+    - cp -r app/build/web/. public/
+  artifacts:
+    paths: [public]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

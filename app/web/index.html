@@ -222,6 +222,45 @@
       setInterval(jjCheck, 30 * 60 * 1000);
     }
   </script>
+  <!-- "Jammed up" fallback: plain HTML twin of the in-app page, for when the
+       app itself can't load (so there'd otherwise be a blank screen). It
+       only appears if Flutter's own scripts fail, or if nothing has shown up
+       after 25 seconds; it never appears once the app is on screen. -->
+  <div id="jj-jam" role="alert" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#F8F3E9;color:#2E2A26;align-items:center;justify-content:center;text-align:center;padding:24px;overflow:auto;font-family:'Nunito Sans','Segoe UI',system-ui,sans-serif;">
+    <div style="max-width:460px;">
+      <img src="assets/assets/mascot/maestro_jammed.png" alt="Maestro Marmalade, a slice of toast with marmalade, looking worried" style="width:min(62vw,300px);height:auto;max-height:42vh;object-fit:contain;">
+      <h1 style="font-size:24px;line-height:1.2;margin:20px 0 12px;font-weight:800;">Berries and Cream! Looks like we're jammed up.</h1>
+      <p style="font-size:16px;line-height:1.4;margin:0 0 22px;color:#6B6257;">Tap Try again. Still stuck? Tap Back to start.</p>
+      <button type="button" onclick="location.reload()" style="font:inherit;font-weight:800;min-width:168px;min-height:52px;border:0;border-radius:999px;background:#E8A23D;color:#2E2A26;margin:6px;cursor:pointer;">Try again</button>
+      <button type="button" onclick="location.href=document.baseURI" style="font:inherit;font-weight:800;min-width:168px;min-height:52px;border:2px solid #B98A5A;border-radius:999px;background:transparent;color:#2E2A26;margin:6px;cursor:pointer;">Back to start</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var el = document.getElementById('jj-jam');
+      function appIsUp() {
+        return !!document.querySelector('flutter-view, flt-glass-pane');
+      }
+      function show() {
+        if (!appIsUp()) el.style.display = 'flex';
+      }
+      // The app drew its first frame: it's fine, make sure we're hidden.
+      window.addEventListener('flutter-first-frame', function () {
+        el.style.display = 'none';
+      });
+      // Flutter's own scripts failed to load. (Only those: a missing
+      // optional file such as a sound helper must never trigger this.)
+      window.addEventListener('error', function (e) {
+        var t = e.target;
+        if (t && t.tagName === 'SCRIPT' && t.src &&
+            /flutter|main\.dart|canvaskit|skwasm/i.test(t.src)) {
+          show();
+        }
+      }, true);
+      // Nothing on screen after 25 s: stuck, not just slow.
+      setTimeout(show, 25000);
+    })();
+  </script>
   <script src="coin_drop.js"></script>
   <!-- "Smart ears" bridge (beta): a few KB. The sound-classifier model it
        drives only downloads when a recording starts with smart ears on. -->

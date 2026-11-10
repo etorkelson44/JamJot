@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:jamjot/services/sound_gate.dart';
 import 'package:jamjot/state/app_state.dart';
 import 'package:jamjot/state/coin_rewards.dart';
 import 'package:jamjot/widgets/coin_reward_host.dart';
@@ -9,7 +9,7 @@ import 'package:jamjot/widgets/coin_pouch.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  tearDown(() => soundGate.apply(null));
 
   test('earnings exclude initial loads, spending, retries and other profiles',
       () {
@@ -32,7 +32,9 @@ void main() {
   var failRead = false;
   late ProviderContainer container;
   Future<void> open(WidgetTester tester,
-      {bool reduced = false, double scale = 1}) async {
+      {bool reduced = false,
+      double scale = 1,
+      Map<String, dynamic>? soundPrefs}) async {
     balance = 75;
     plays = 0;
     failRead = false;
@@ -41,7 +43,8 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     container = ProviderContainer(overrides: [
-      activeStudentProvider.overrideWith((ref) => {'id': 'a'}),
+      activeStudentProvider.overrideWith(
+          (ref) => {'id': 'a', if (soundPrefs != null) 'sound_prefs': soundPrefs}),
       berryBalanceProvider('a').overrideWith((ref) async {
         if (failRead) throw StateError('Temporary read error');
         return balance;
@@ -144,8 +147,8 @@ void main() {
 
   testWidgets('muted reduced-motion reward is still readable at 2x text',
       (tester) async {
-    SharedPreferences.setMockInitialValues({CoinSounds.preferenceKey: false});
-    await open(tester, reduced: true, scale: 2);
+    await open(tester,
+        reduced: true, scale: 2, soundPrefs: {'coins': false});
     await update(tester, 85);
     expect(plays, 0);
     expect(find.text('+10 coins!'), findsOneWidget);
@@ -155,24 +158,47 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('coin pot opens a persistent sound switch and uses supplied art',
+  testWidgets('the caregiver can silence every sound for a profile',
+      (tester) async {
+    await open(tester, soundPrefs: {'enabled': false});
+    await update(tester, 80);
+    expect(plays, 0);
+    expect(find.text('+5 coins!'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the jam jar is display-only and uses the supplied art',
       (tester) async {
     await open(tester);
-    await tester.tap(find.byType(InkWell).first);
+    await tester.tap(find.byType(JamJar).first);
     await tester.pumpAndSettle();
-    expect(find.text('Your Jam Jar'), findsOneWidget);
-    await tester.tap(find.byType(Switch));
-    await tester.pumpAndSettle();
-    expect(container.read(coinSoundsProvider), false);
-    expect(
-        (await SharedPreferences.getInstance())
-            .getBool(CoinSounds.preferenceKey),
-        false);
+    expect(find.text('Your Jam Jar'), findsNothing);
+    expect(find.byType(Switch), findsNothing);
     expect(
         tester.widgetList<Image>(find.byType(Image)).any((w) =>
             w.image is AssetImage &&
             (w.image as AssetImage).assetName == 'assets/art/jar/closed.webp'),
         true);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  test('sound gate: missing keys are on; master and per-effect switches win',
+      () {
+    final gate = SoundGate();
+    expect(gate.allows('coins'), true);
+    expect(gate.allows('cheer'), true);
+    gate.apply({'cheer': false});
+    expect(gate.allows('cheer'), false);
+    expect(gate.allows('coins'), true);
+    expect(gate.allows('coin'), true); // synthesized blip follows "coins"
+    gate.apply({'coins': false});
+    expect(gate.allows('coin'), false);
+    gate.apply({'enabled': false, 'pop': true});
+    expect(gate.masterOn, false);
+    expect(gate.allows('pop'), false);
+    gate.apply(null);
+    expect(gate.allows('fanfare'), true);
+    expect(soundEffectOptions.map((o) => o.key),
+        containsAll(['coins', 'cheer', 'fanfare', 'pop']));
   });
 }

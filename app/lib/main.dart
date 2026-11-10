@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,9 +27,11 @@ import 'screens/practice/practice_session_screen.dart';
 import 'screens/profile/my_profile_screen.dart';
 import 'screens/profile/profile_picker_screen.dart';
 import 'screens/shell.dart';
+import 'services/page_nav.dart';
 import 'services/session_flags.dart';
 import 'state/app_state.dart';
 import 'widgets/coin_reward_host.dart';
+import 'widgets/jammed_up.dart';
 import 'services/supabase_service.dart';
 import 'theme/jamjot_theme.dart';
 
@@ -50,6 +53,27 @@ String _confirmationLanding() => _cameFromPasswordRecovery
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // If any screen crashes while drawing, show Maestro instead of a blank or
+  // grey box. (Debug builds keep Flutter's own red error screen for
+  // developers.)
+  if (kReleaseMode) {
+    ErrorWidget.builder =
+        (_) => const JammedUp(onRetry: reloadPage, onHome: goToStartPage);
+  }
+  try {
+    await _startUp();
+  } catch (e, st) {
+    // The app couldn't even start (say the backend couldn't be reached):
+    // show the jammed-up page instead of a blank one.
+    debugPrint('JamJot could not start: $e\n$st');
+    runApp(const JammedApp());
+    return;
+  }
+  runApp(const ProviderScope(child: JamJotApp()));
+}
+
+/// Everything that has to happen before the first screen can draw.
+Future<void> _startUp() async {
   // Peek at the launch URL before Supabase consumes it.
   final launch = Uri.base.toString();
   _cameFromEmailConfirmation = launch.contains('type=signup');
@@ -77,7 +101,22 @@ Future<void> main() async {
       await JamJotBackend.client.auth.signOut();
     } catch (_) {/* fine — they simply were not signed in */}
   }
-  runApp(const ProviderScope(child: JamJotApp()));
+}
+
+/// Shown instead of the app when it can't start at all. Needs no backend,
+/// router or providers, so nothing in it can be the thing that's broken.
+class JammedApp extends StatelessWidget {
+  const JammedApp({super.key});
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'JamJot',
+        debugShowCheckedModeBanner: false,
+        // A plain theme on purpose: the app's own theme fetches web fonts.
+        theme: ThemeData(useMaterial3: true),
+        home: const Scaffold(
+            body: JammedUp(onRetry: reloadPage, onHome: goToStartPage)),
+      );
 }
 
 /// Whether the launch-time routing decision has been made.
@@ -101,9 +140,21 @@ final _router = GoRouter(
   refreshListenable: _AuthRefresh(),
   // The confirmation link arrives carrying security tokens as a strange
   // address the router does not know — land those on the sign-in page
-  // instead of a broken screen.
-  onException: (_, state, router) =>
-      router.go(_confirmationLanding()),
+  // instead of a broken screen. Any other address that doesn't exist gets
+  // the friendly "jammed up" page.
+  onException: (_, state, router) {
+    final address = state.uri.toString();
+    final isEmailLanding = address.contains('access_token') ||
+        address.contains('refresh_token') ||
+        address.contains('error_code') ||
+        address.contains('otp_expired') ||
+        address.contains('access_denied') ||
+        address.contains('type=signup') ||
+        address.contains('type=recovery');
+    router.go(isEmailLanding ? _confirmationLanding() : '/jammed');
+  },
+  errorBuilder: (context, state) =>
+      JammedUp(onHome: () => context.go('/')),
   redirect: (context, state) {
     final loc = state.matchedLocation;
     // On every fresh app launch, land on the profile picker — even when the
@@ -132,13 +183,18 @@ final _router = GoRouter(
       return _confirmationLanding();
     }
     final signedIn = JamJotBackend.signedIn;
-    const public = {'/', '/signin', '/invite'};
+    const public = {'/', '/signin', '/invite', '/jammed'};
     if (!signedIn && !public.contains(loc)) return '/';
     if (signedIn && (loc == '/' || loc == '/signin')) return '/gate';
     return null;
   },
   routes: [
     GoRoute(path: '/', builder: (_, __) => const TitleScreen()),
+    // Where an address that doesn't exist lands (see onException above).
+    GoRoute(
+      path: '/jammed',
+      builder: (context, __) => JammedUp(onHome: () => context.go('/')),
+    ),
     GoRoute(
       path: '/signin',
       builder: (_, state) => SignInScreen(
