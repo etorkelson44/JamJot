@@ -64,6 +64,15 @@ final activeInstrumentProvider = StateProvider<String?>((ref) => null);
 /// can't be switched out from under it.
 final practiceLiveProvider = StateProvider<bool>((ref) => false);
 
+/// A student's first instrument, looked up by id (works in caregiver view,
+/// where no kid is "active").
+String? firstInstrumentOf(Ref ref, String studentId) {
+  for (final k in ref.read(myStudentsProvider).valueOrNull ?? const []) {
+    if (k['id'] == studentId) return instrumentsOf(k).firstOrNull;
+  }
+  return instrumentsOf(ref.read(activeStudentProvider)).firstOrNull;
+}
+
 /// The instruments a student plays, in order.
 List<String> instrumentsOf(Map<String, dynamic>? student) =>
     ((student?['instruments'] as List?) ?? const []).whereType<String>().toList();
@@ -170,7 +179,7 @@ final currentLessonProvider = FutureProvider.autoDispose
 /// instrument tabs). Key: (student id, instrument).
 final currentInstrumentLessonProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>?, (String, String?)>((ref, key) {
-  final first = instrumentsOf(ref.read(activeStudentProvider)).firstOrNull;
+  final first = firstInstrumentOf(ref, key.$1);
   return _loadCurrentLesson(ref, key.$1, key.$2, first);
 });
 
@@ -290,13 +299,97 @@ final lessonScheduleProvider = FutureProvider.autoDispose
 });
 
 /// Practice progress this week: {'days': n, 'today_minutes': m}.
-final weeklyProgressProvider = FutureProvider.family<Map<String, int>, String>(
-    (ref, studentId) => _weeklyProgress(studentId, null, null));
+final weeklyProgressProvider =
+    FutureProvider.family<Map<String, int>, String>((ref, studentId) async {
+  final base = await _weeklyProgress(studentId, null, null);
+  // Several instruments: the shared "days this week" follows the caregiver's
+  // rule (students.streak_rule) instead of counting any practice at all.
+  Map<String, dynamic>? kid;
+  for (final k in await ref.watch(myStudentsProvider.future)) {
+    if (k['id'] == studentId) kid = k;
+  }
+  final instruments = instrumentsOf(kid);
+  if (kid == null || instruments.length < 2) return base;
+  final goals = <String, int>{};
+  for (final i in instruments) {
+    final lesson =
+        await ref.watch(currentInstrumentLessonProvider((studentId, i)).future);
+    if (lesson != null) {
+      goals[i.toLowerCase()] = (lesson['goal_minutes'] as num?)?.toInt() ?? 15;
+    }
+  }
+  if (goals.isEmpty) return base;
+  final days = await _sharedPracticeDays(studentId, goals,
+      all: kid['streak_rule'] == 'all', first: instruments.first);
+  return {...base, 'days': days};
+});
+
+/// Days this week that count under the shared rule: 'any' = some instrument
+/// with a lesson met its daily minutes goal that day; 'all' = every one did.
+Future<int> _sharedPracticeDays(String studentId, Map<String, int> goalsByInstrument,
+    {required bool all, required String first}) async {
+  final now = DateTime.now();
+  final monday = DateTime(now.year, now.month, now.day)
+      .subtract(Duration(days: now.weekday - 1));
+  final rows = await JamJotBackend.client
+      .from('sessions')
+      .select('started_at, total_seconds, instrument')
+      .eq('student_id', studentId)
+      .gte('started_at', monday.toUtc().toIso8601String());
+  final secs = <String, Map<String, int>>{}; // day -> instrument -> seconds
+  for (final r in rows) {
+    final dt = DateTime.parse(r['started_at'] as String).toLocal();
+    final day = '${dt.year}-${dt.month}-${dt.day}';
+    final inst = ((r['instrument'] as String?) ?? first).toLowerCase();
+    final m = secs.putIfAbsent(day, () => {});
+    m[inst] = (m[inst] ?? 0) + ((r['total_seconds'] as num?)?.toInt() ?? 0);
+  }
+  return sharedDaysCount(secs, goalsByInstrument, all: all);
+}
+
+/// The counting rule on its own (kept separate so it can be tested).
+int sharedDaysCount(Map<String, Map<String, int>> secondsByDay,
+    Map<String, int> goalsByInstrument,
+    {required bool all}) {
+  var count = 0;
+  for (final perInstrument in secondsByDay.values) {
+    final met = [
+      for (final e in goalsByInstrument.entries)
+        (perInstrument[e.key] ?? 0) ~/ 60 >= e.value
+    ];
+    if (met.isEmpty) continue;
+    if (all ? met.every((m) => m) : met.any((m) => m)) count++;
+  }
+  return count;
+}
+
+/// True when a kid with 2+ instruments has met every instrument's daily
+/// minutes goal today (the "Full Band" badge).
+final fullBandTodayProvider =
+    FutureProvider.autoDispose.family<bool, String>((ref, studentId) async {
+  Map<String, dynamic>? kid;
+  for (final k in await ref.watch(myStudentsProvider.future)) {
+    if (k['id'] == studentId) kid = k;
+  }
+  final instruments = instrumentsOf(kid);
+  if (instruments.length < 2) return false;
+  var withLesson = 0;
+  for (final i in instruments) {
+    final lesson =
+        await ref.watch(currentInstrumentLessonProvider((studentId, i)).future);
+    if (lesson == null) continue;
+    withLesson++;
+    final goal = (lesson['goal_minutes'] as num?)?.toInt() ?? 15;
+    final p = await ref.watch(weeklyInstrumentProgressProvider((studentId, i)).future);
+    if ((p['today_minutes'] ?? 0) < goal) return false;
+  }
+  return withLesson >= 2;
+});
 
 /// This week's progress on one instrument only. Key: (student id, instrument).
 final weeklyInstrumentProgressProvider =
     FutureProvider.family<Map<String, int>, (String, String?)>((ref, key) {
-  final first = instrumentsOf(ref.read(activeStudentProvider)).firstOrNull;
+  final first = firstInstrumentOf(ref, key.$1);
   return _weeklyProgress(key.$1, key.$2, first);
 });
 

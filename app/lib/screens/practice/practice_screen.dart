@@ -90,6 +90,21 @@ class PracticeScreen extends ConsumerWidget {
             ),
           ),
         ),
+        if (ref.watch(fullBandTodayProvider(active['id'] as String)).valueOrNull ==
+            true)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: JamJotColors.marigoldTint,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: JamJotColors.ink, width: 1.5),
+              ),
+              child: Text('🎶 Full Band today! Every instrument hit its goal.',
+                  style: text.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+            ),
+          ),
         if (live)
           Padding(
             padding: const EdgeInsets.only(top: 4),

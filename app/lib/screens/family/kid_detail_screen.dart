@@ -1159,10 +1159,16 @@ class _InstrumentsCard extends ConsumerWidget {
                         Text(i.whoTeaches(linkedTeacherName: linkedName(i)),
                             style: text.bodySmall
                                 ?.copyWith(color: JamJotColors.inkSoft)),
+                        _GoalsLine(studentId: studentId, instrument: i.instrument),
                       ],
                     ),
                   ),
                   if (canEdit) ...[
+                    if (!i.taughtByTeacher)
+                      TextButton(
+                        onPressed: () => _editGoals(context, ref, studentId, i.instrument),
+                        child: const Text('Goals'),
+                      ),
                     TextButton(
                       onPressed: () => showWhoTeachesDialog(context, ref,
                           studentId: studentId, studentName: name, item: i),
@@ -1212,11 +1218,168 @@ class _EditInstrumentsDialog extends ConsumerWidget {
       title: Text('Edit ${kid['display_name']}\'s instruments'),
       content: SizedBox(
           width: 460,
-          child: SingleChildScrollView(child: _InstrumentsCard(kid: current))),
+          child: SingleChildScrollView(
+              child: Column(children: [
+            _InstrumentsCard(kid: current),
+            if (instrumentsOf(current).length >= 2) ...[
+              const SizedBox(height: 12),
+              _StreakRulePicker(kid: current),
+            ],
+          ]))),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Done')),
+      ],
+    );
+  }
+}
+
+class _GoalsLine extends ConsumerWidget {
+  const _GoalsLine({required this.studentId, required this.instrument});
+  final String studentId;
+  final String instrument;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lesson = ref
+        .watch(currentInstrumentLessonProvider((studentId, instrument)))
+        .valueOrNull;
+    final days = (lesson?['goal_days'] as num?)?.toInt();
+    final minutes = (lesson?['goal_minutes'] as num?)?.toInt();
+    final label = lesson == null
+        ? 'No goals yet'
+        : '${days ?? 4} days a week · ${minutes ?? 15} min a day';
+    return Text(label,
+        style: Theme.of(context)
+            .textTheme
+            .bodySmall
+            ?.copyWith(color: JamJotColors.inkSoft));
+  }
+}
+
+/// Caregiver sets the weekly days and daily minutes for a caregiver-run instrument.
+Future<void> _editGoals(BuildContext context, WidgetRef ref, String studentId,
+    String instrument) async {
+  final lesson = ref
+      .read(currentInstrumentLessonProvider((studentId, instrument)))
+      .valueOrNull;
+  final days = TextEditingController(
+      text: '${(lesson?['goal_days'] as num?)?.toInt() ?? 4}');
+  final minutes = TextEditingController(
+      text: '${(lesson?['goal_minutes'] as num?)?.toInt() ?? 15}');
+  String? error;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: Text('$instrument goals'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: days,
+              keyboardType: TextInputType.number,
+              decoration:
+                  const InputDecoration(labelText: 'Days a week (1–7)'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: minutes,
+              keyboardType: TextInputType.number,
+              decoration:
+                  const InputDecoration(labelText: 'Minutes a day (1–240)'),
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 8),
+              Text(error!,
+                  style: const TextStyle(color: JamJotColors.recording)),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              final d = int.tryParse(days.text.trim());
+              final m = int.tryParse(minutes.text.trim());
+              if (d == null || d < 1 || d > 7 || m == null || m < 1 || m > 240) {
+                setState(() => error = 'Choose 1–7 days and 1–240 minutes.');
+                return;
+              }
+              Navigator.pop(context, true);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (ok != true) return;
+  try {
+    await saveFamilyGoals(
+        studentId: studentId,
+        instrument: instrument,
+        days: int.parse(days.text.trim()),
+        minutes: int.parse(minutes.text.trim()));
+    ref.invalidate(currentInstrumentLessonProvider((studentId, instrument)));
+    ref.invalidate(currentLessonProvider(studentId));
+    ref.invalidate(weeklyProgressProvider(studentId));
+    ref.invalidate(lessonForEnrollmentProvider((studentId, null)));
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not save the goals just now. Please try again.')));
+    }
+  }
+}
+
+/// What counts as a shared practice day when a kid plays several instruments.
+class _StreakRulePicker extends ConsumerWidget {
+  const _StreakRulePicker({required this.kid});
+  final Map<String, dynamic> kid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+    final rule = kid['streak_rule'] == 'all' ? 'all' : 'any';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('A shared practice day counts when…',
+            style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+        RadioGroup<String>(
+          groupValue: rule,
+          onChanged: (v) async {
+            if (v == null || v == rule) return;
+            try {
+              await saveStreakRule(kid['id'] as String, v);
+              ref.invalidate(myStudentsProvider);
+              ref.invalidate(weeklyProgressProvider(kid['id'] as String));
+            } catch (_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Could not save that just now.')));
+              }
+            }
+          },
+          child: const Column(
+            children: [
+              RadioListTile<String>(
+                dense: true,
+                value: 'any',
+                title: Text("any instrument's daily goal is met"),
+              ),
+              RadioListTile<String>(
+                dense: true,
+                value: 'all',
+                title: Text("every instrument's daily goal is met"),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

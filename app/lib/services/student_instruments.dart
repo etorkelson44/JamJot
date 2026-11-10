@@ -128,3 +128,56 @@ Future<void> removeStudentInstrument(String rowId) async {
       .delete()
       .eq('id', rowId);
 }
+
+/// Saves the daily/weekly goals for a caregiver-run instrument: updates the
+/// newest family-run lesson for it, or starts one if there is none yet.
+Future<void> saveFamilyGoals(
+    {required String studentId,
+    required String instrument,
+    required int days,
+    required int minutes}) async {
+  final rows = await JamJotBackend.client
+      .from('lessons')
+      .select('id, week_start')
+      .eq('student_id', studentId)
+      .isFilter('enrollment_id', null)
+      .ilike('instrument', instrument)
+      .order('week_start', ascending: false, nullsFirst: false)
+      .order('created_at', ascending: false);
+  final today = DateTime.now();
+  String? lessonId;
+  for (final r in rows) {
+    final ws = r['week_start'] as String?;
+    if (ws == null || !DateTime.parse(ws).isAfter(today)) {
+      lessonId = r['id'] as String;
+      break;
+    }
+  }
+  if (lessonId != null) {
+    final updated = await JamJotBackend.client
+        .from('lessons')
+        .update({'goal_days': days, 'goal_minutes': minutes})
+        .eq('id', lessonId)
+        .select('id');
+    if (updated.isEmpty) throw StateError('not allowed');
+  } else {
+    await JamJotBackend.client.from('lessons').insert({
+      'student_id': studentId,
+      'created_by': JamJotBackend.client.auth.currentUser!.id,
+      'title': 'This week',
+      'instrument': instrument,
+      'goal_days': days,
+      'goal_minutes': minutes,
+    });
+  }
+}
+
+/// Caregiver's rule for the shared "days this week" count.
+Future<void> saveStreakRule(String studentId, String rule) async {
+  final rows = await JamJotBackend.client
+      .from('students')
+      .update({'streak_rule': rule})
+      .eq('id', studentId)
+      .select('id');
+  if (rows.isEmpty) throw StateError('not allowed');
+}
