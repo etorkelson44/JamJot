@@ -181,3 +181,74 @@ Future<void> saveStreakRule(String studentId, String rule) async {
       .select('id');
   if (rows.isEmpty) throw StateError('not allowed');
 }
+
+/// Result of entering a teacher's permanent code.
+class ConnectResult {
+  const ConnectResult.ok(this.teacherName) : error = null;
+  const ConnectResult.failed(this.error) : teacherName = null;
+  final String? teacherName;
+  final String? error;
+  bool get ok => error == null;
+}
+
+Future<ConnectResult> connectTeacherByCode(
+    {required String code,
+    required String studentId,
+    required String instrument}) async {
+  final res = await JamJotBackend.client.rpc('connect_teacher_by_code', params: {
+    'p_code': code,
+    'p_student_id': studentId,
+    'p_instrument': instrument,
+  });
+  final m = Map<String, dynamic>.from(res as Map);
+  return m['ok'] == true
+      ? ConnectResult.ok(m['teacher_name'] as String?)
+      : ConnectResult.failed(m['error'] as String? ?? 'Could not connect.');
+}
+
+/// Creates an invitation for a teacher who isn't on JamJot yet; returns the
+/// link to send them.
+Future<String> createTeacherInvite(
+    {required String studentId,
+    required String instrument,
+    String? teacherName,
+    String? knownAs,
+    String? studentLastInitial}) async {
+  final token = await JamJotBackend.client.rpc('create_teacher_invite', params: {
+    'p_student_id': studentId,
+    'p_instrument': instrument,
+    'p_teacher_name': teacherName ?? '',
+    'p_known_as': knownAs ?? '',
+    'p_last_initial': studentLastInitial ?? '',
+  });
+  return 'https://jamjot.app/invite?token=$token';
+}
+
+/// A teacher's permanent code. Only the teacher and caregivers of their
+/// active students can read it.
+final teacherCodeProvider = FutureProvider.autoDispose
+    .family<String?, String>((ref, teacherId) async {
+  final rows = await JamJotBackend.client
+      .from('teacher_codes')
+      .select('code')
+      .eq('teacher_id', teacherId);
+  return rows.isEmpty ? null : rows.first['code'] as String?;
+});
+
+/// What a teacher sees on an invite link before accepting (works signed out).
+/// Null = not a teacher invite. {status: ok|used|expired, student, instrument}.
+Future<Map<String, dynamic>?> teacherInvitePreview(String token) async {
+  try {
+    final res = await JamJotBackend.client
+        .rpc('teacher_invite_preview', params: {'p_token': token});
+    return res == null ? null : Map<String, dynamic>.from(res as Map);
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<Map<String, dynamic>> acceptTeacherInvite(String token) async {
+  final res = await JamJotBackend.client
+      .rpc('accept_teacher_invite', params: {'p_token': token});
+  return Map<String, dynamic>.from(res as Map);
+}

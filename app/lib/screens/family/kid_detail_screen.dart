@@ -1160,6 +1160,7 @@ class _InstrumentsCard extends ConsumerWidget {
                             style: text.bodySmall
                                 ?.copyWith(color: JamJotColors.inkSoft)),
                         _GoalsLine(studentId: studentId, instrument: i.instrument),
+                        _TeacherCodeLine(enrollments: enrollments, item: i),
                       ],
                     ),
                   ),
@@ -1382,5 +1383,31 @@ class _StreakRulePicker extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+/// A linked teacher's permanent code, for caregivers (they can pass it on
+/// when asked; the teacher still decides who they give it to).
+class _TeacherCodeLine extends ConsumerWidget {
+  const _TeacherCodeLine({required this.enrollments, required this.item});
+  final List<Map<String, dynamic>> enrollments;
+  final StudentInstrument item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    String? teacherId;
+    for (final e in enrollments) {
+      if (e['id'] == item.enrollmentId) {
+        teacherId = (e['teachers'] as Map?)?['id'] as String?;
+      }
+    }
+    if (teacherId == null) return const SizedBox.shrink();
+    final code = ref.watch(teacherCodeProvider(teacherId)).valueOrNull;
+    if (code == null) return const SizedBox.shrink();
+    return Text('Teacher code: $code',
+        style: Theme.of(context)
+            .textTheme
+            .bodySmall
+            ?.copyWith(color: JamJotColors.inkSoft));
   }
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../services/student_instruments.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
@@ -446,6 +447,38 @@ class TeachingScreen extends ConsumerWidget {
                     icon: const Icon(Icons.qr_code_2),
                     label: const Text('My teacher code (QR & link)'),
                   ),
+                  Consumer(builder: (context, ref, _) {
+                    final code = ref
+                        .watch(teacherCodeProvider(teacher['id'] as String))
+                        .valueOrNull;
+                    if (code == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(JamJotShape.chipRadius),
+                          side: JamJotShape.border,
+                        ),
+                        title: Text('Your family code: $code',
+                            style: text.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700)),
+                        subtitle: const Text(
+                            'Permanent. Give it to a family when you choose; they enter it to connect to you.'),
+                        trailing: IconButton(
+                          tooltip: 'Copy code',
+                          icon: const Icon(Icons.copy, size: 18),
+                          onPressed: () async {
+                            await Clipboard.setData(ClipboardData(text: code));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Code copied!')));
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  }),
                   Consumer(builder: (context, ref, _) {
                     final requests =
                         ref.watch(changeRequestsProvider).valueOrNull ?? [];

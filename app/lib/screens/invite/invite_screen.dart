@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../services/student_instruments.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
@@ -21,6 +22,10 @@ class InviteScreen extends ConsumerStatefulWidget {
 
 class _InviteScreenState extends ConsumerState<InviteScreen> {
   Map<String, dynamic>? _info;
+
+  /// Set when this link is a caregiver's invitation to a teacher.
+  Map<String, dynamic>? _teacherInvite;
+  bool _previewDone = false;
   String? _error;
   bool _busy = false;
   String? _pickedStudentId;
@@ -30,7 +35,58 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
   void initState() {
     super.initState();
     pendingInviteToken = widget.token;
-    if (JamJotBackend.signedIn) _loadInfo();
+    _checkTeacherInvite();
+  }
+
+  /// Teacher invites are looked up first (works signed out); anything else
+  /// falls through to the family/caregiver invite flow.
+  Future<void> _checkTeacherInvite() async {
+    final preview = await teacherInvitePreview(widget.token);
+    if (!mounted) return;
+    setState(() {
+      _teacherInvite = preview;
+      _previewDone = true;
+    });
+    if (preview == null && JamJotBackend.signedIn) _loadInfo();
+  }
+
+  Future<void> _acceptTeacher() async {
+    setState(() => _busy = true);
+    try {
+      final res = await acceptTeacherInvite(widget.token);
+      if (res['ok'] == true) {
+        pendingInviteToken = null;
+        ref.invalidate(myTeacherProvider);
+        if (!mounted) return;
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Connected! 🎉'),
+            content: Text(
+                "You're now ${res['student']}'s ${res['instrument']} teacher on JamJot."),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text("Let's go"),
+              ),
+            ],
+          ),
+        );
+        if (mounted) context.go('/gate');
+      } else if (res['error'] == 'needs_teacher_profile') {
+        if (mounted) context.go('/teacher-setup');
+      } else {
+        setState(() {
+          _error = (res['error'] as String?) ?? 'Something went wrong.';
+          _busy = false;
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _error = 'Something went wrong. Try again?';
+        _busy = false;
+      });
+    }
   }
 
   @override
@@ -173,7 +229,76 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         : <Map<String, dynamic>>[];
 
     Widget body;
-    if (!signedIn) {
+    final ti = _teacherInvite;
+    if (!_previewDone) {
+      body = const Center(child: MaestroLoader());
+    } else if (ti != null && ti['status'] != 'ok') {
+      body = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('😕', style: TextStyle(fontSize: 44)),
+          const SizedBox(height: 10),
+          Text(
+              ti['status'] == 'used'
+                  ? 'This invite was already used.'
+                  : 'This invite has expired. Ask the family to send a new one.',
+              textAlign: TextAlign.center,
+              style: text.titleMedium),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: () => context.go('/home'),
+            child: const Text('Go home'),
+          ),
+        ],
+      );
+    } else if (ti != null) {
+      body = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Center(child: DancingMaestro(size: 130)),
+          const SizedBox(height: 12),
+          Center(child: InstrumentIcon(ti['instrument'] as String?, size: 56)),
+          const SizedBox(height: 8),
+          Text(
+            "You're invited to teach ${ti['student']} ${ti['instrument']} on JamJot! 🎉",
+            textAlign: TextAlign.center,
+            style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            signedIn
+                ? "Accept and you're connected, with lessons, assignments and practice flowing between you."
+                : 'Create your free teacher account (or sign in) and the connection finishes automatically.',
+            textAlign: TextAlign.center,
+            style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(_error!,
+                textAlign: TextAlign.center,
+                style: text.bodyMedium?.copyWith(color: JamJotColors.recording)),
+          ],
+          const SizedBox(height: 20),
+          if (signedIn)
+            FilledButton(
+              onPressed: _busy ? null : _acceptTeacher,
+              child: Text(_busy ? 'Connecting…' : 'Accept and connect'),
+            )
+          else ...[
+            FilledButton(
+              onPressed: () => context.go('/signin?create=1&role=teacher'),
+              child: const Text('Create my teacher account'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: () => context.go('/signin'),
+              child: const Text('I already have an account'),
+            ),
+          ],
+        ],
+      );
+    } else if (!signedIn) {
       body = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,

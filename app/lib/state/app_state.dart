@@ -132,7 +132,7 @@ final kidEnrollmentsProvider = FutureProvider.autoDispose
     .family<List<Map<String, dynamic>>, String>((ref, studentId) async {
   final rows = await JamJotBackend.client
       .from('enrollments')
-      .select('id, instrument, teachers(display_name, profile_id)')
+      .select('id, instrument, teachers(id, display_name, profile_id)')
       .eq('student_id', studentId)
       .eq('status', 'active');
   return rows.cast<Map<String, dynamic>>();

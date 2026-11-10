@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/student_instruments.dart';
@@ -50,6 +51,11 @@ class _WhoTeachesDialogState extends State<_WhoTeachesDialog> {
   late String _choice;
   late final TextEditingController _name;
   late final TextEditingController _knownAs;
+  final _code = TextEditingController();
+  final _lastInitial = TextEditingController();
+  // For "a different teacher": are they already on JamJot?
+  bool _onJamJot = false;
+  bool _sendInvite = true;
   bool _busy = false;
   String? _error;
 
@@ -73,11 +79,19 @@ class _WhoTeachesDialogState extends State<_WhoTeachesDialog> {
   void dispose() {
     _name.dispose();
     _knownAs.dispose();
+    _code.dispose();
+    _lastInitial.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    if (_choice == 'new' && _name.text.trim().isEmpty) {
+    final it = widget.item;
+    final isNew = _choice == 'new';
+    if (isNew && _onJamJot && _code.text.trim().isEmpty) {
+      setState(() => _error = "Please enter the teacher's code.");
+      return;
+    }
+    if (isNew && !_onJamJot && _name.text.trim().isEmpty) {
       setState(() => _error = "Please enter the teacher's name.");
       return;
     }
@@ -86,15 +100,44 @@ class _WhoTeachesDialogState extends State<_WhoTeachesDialog> {
       _error = null;
     });
     try {
-      await saveWhoTeaches(
-        widget.item.id,
-        whoTeachesFields(
-          teacherInstructs: _choice != 'me',
-          enrollmentId: (_choice == 'me' || _choice == 'new') ? null : _choice,
-          teacherName: _choice == 'new' ? _name.text : null,
-          teacherKnownAs: _choice == 'me' ? null : _knownAs.text,
-        ),
-      );
+      if (isNew && _onJamJot) {
+        final res = await connectTeacherByCode(
+            code: _code.text, studentId: it.studentId, instrument: it.instrument);
+        if (!res.ok) {
+          setState(() {
+            _busy = false;
+            _error = res.error;
+          });
+          return;
+        }
+        if (_knownAs.text.trim().isNotEmpty) {
+          await saveWhoTeaches(
+              it.id,
+              {
+                'instruction': 'teacher',
+                'teacher_known_as': _knownAs.text.trim(),
+              });
+        }
+      } else {
+        await saveWhoTeaches(
+          it.id,
+          whoTeachesFields(
+            teacherInstructs: _choice != 'me',
+            enrollmentId: (_choice == 'me' || isNew) ? null : _choice,
+            teacherName: isNew ? _name.text : null,
+            teacherKnownAs: _choice == 'me' ? null : _knownAs.text,
+          ),
+        );
+        if (isNew && _sendInvite) {
+          final link = await createTeacherInvite(
+              studentId: it.studentId,
+              instrument: it.instrument,
+              teacherName: _name.text,
+              knownAs: _knownAs.text,
+              studentLastInitial: _lastInitial.text);
+          if (mounted) await _showInvite(link);
+        }
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
       if (mounted) {
@@ -105,6 +148,35 @@ class _WhoTeachesDialogState extends State<_WhoTeachesDialog> {
       }
     }
   }
+
+  Future<void> _showInvite(String link) => showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Invite link ready'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                  'Send this to your teacher. When they join JamJot and accept, they are connected automatically. The link works for 30 days.'),
+              const SizedBox(height: 10),
+              SelectableText(link, style: const TextStyle(fontSize: 12)),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close')),
+            FilledButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: link));
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Copy link'),
+            ),
+          ],
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -139,12 +211,51 @@ class _WhoTeachesDialogState extends State<_WhoTeachesDialog> {
                   title: Text('A different teacher instructs'),
                 ),
                 if (_choice == 'new') ...[
-                  TextField(
-                    controller: _name,
-                    textCapitalization: TextCapitalization.words,
-                    decoration:
-                        const InputDecoration(labelText: "Teacher's name"),
+                  SwitchListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    value: _onJamJot,
+                    onChanged: (v) => setState(() => _onJamJot = v),
+                    title: const Text('My teacher is already on JamJot'),
                   ),
+                  if (_onJamJot)
+                    TextField(
+                      controller: _code,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                          labelText: "Teacher's code",
+                          hintText: 'The code your teacher gave you'),
+                    )
+                  else ...[
+                    TextField(
+                      controller: _name,
+                      textCapitalization: TextCapitalization.words,
+                      decoration:
+                          const InputDecoration(labelText: "Teacher's name"),
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      value: _sendInvite,
+                      onChanged: (v) => setState(() => _sendInvite = v ?? true),
+                      title: const Text('Get an invitation link for them'),
+                      subtitle: const Text(
+                          'They join JamJot and this instrument fills in automatically.'),
+                    ),
+                    if (_sendInvite)
+                      TextField(
+                        controller: _lastInitial,
+                        maxLength: 1,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: InputDecoration(
+                            labelText: "${widget.studentName}'s last initial (optional)",
+                            counterText: '',
+                            helperText:
+                                'Shown to the teacher with their first name before they accept.'),
+                      ),
+                  ],
                   const SizedBox(height: 8),
                 ],
                 if (_choice != 'me')
