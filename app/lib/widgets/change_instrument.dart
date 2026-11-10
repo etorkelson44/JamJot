@@ -125,7 +125,7 @@ Future<void> changeEnrollmentInstrument(
   String? studentName,
 }) async {
   final picked = await _pickDialog(context,
-      title: 'Change instrument',
+      title: 'Edit instrument',
       start: [if (current != null && current.isNotEmpty) current],
       multiple: false);
   if (picked == null || !context.mounted) return;

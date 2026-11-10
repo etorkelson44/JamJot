@@ -130,6 +130,17 @@ class _OverviewTab extends ConsumerWidget {
                       iconSize: 24,
                       style: text.bodyMedium
                           ?.copyWith(color: JamJotColors.inkSoft)),
+                  if (kid['is_primary'] == true)
+                    TextButton(
+                      style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 36)),
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) => _EditInstrumentsDialog(kid: kid),
+                      ),
+                      child: const Text('Edit instruments'),
+                    ),
                 ],
               ),
             ),
@@ -246,7 +257,7 @@ class _TeachersTab extends ConsumerWidget {
                           studentId: studentId,
                           current: e['instrument'] as String?,
                           studentName: name),
-                      child: const Text('Change'),
+                      child: const Text('Edit'),
                     )
                   : null),
           _SectionCards(
@@ -1155,7 +1166,7 @@ class _InstrumentsCard extends ConsumerWidget {
                     TextButton(
                       onPressed: () => showWhoTeachesDialog(context, ref,
                           studentId: studentId, studentName: name, item: i),
-                      child: const Text('Change teacher'),
+                      child: const Text('Edit'),
                     ),
                     IconButton(
                       tooltip: 'Remove ${i.instrument}',
@@ -1178,6 +1189,35 @@ class _InstrumentsCard extends ConsumerWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// The "Edit instruments" link opens this: swap, add or remove instruments
+/// and change who teaches each one. It re-reads the kid after every change.
+class _EditInstrumentsDialog extends ConsumerWidget {
+  const _EditInstrumentsDialog({required this.kid});
+  final Map<String, dynamic> kid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final latest = [
+      for (final k in ref.watch(myStudentsProvider).valueOrNull ?? const [])
+        if (k['id'] == kid['id']) k
+    ];
+    final Map<String, dynamic> current = latest.isEmpty
+        ? kid
+        : <String, dynamic>{...kid, ...Map<String, dynamic>.from(latest.first)};
+    return AlertDialog(
+      title: Text('Edit ${kid['display_name']}\'s instruments'),
+      content: SizedBox(
+          width: 460,
+          child: SingleChildScrollView(child: _InstrumentsCard(kid: current))),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Done')),
+      ],
     );
   }
 }
