@@ -15,11 +15,16 @@ class PoseManifest {
       {required this.folder,
       required this.layers,
       required this.slots,
-      this.displayBox});
+      this.displayBox,
+      this.dressedDisplayBox});
 
   /// Optional square [x, y, size] on the layer canvas that frames the figure
   /// for avatar tiles (layers themselves are never trimmed).
   final List<double>? displayBox;
+
+  /// Wider square used instead of [displayBox] when accessories are worn
+  /// (crowns and tall boots reach past the plain figure's frame).
+  final List<double>? dressedDisplayBox;
 
   /// Asset folder, no trailing slash.
   final String folder;
@@ -46,11 +51,16 @@ class PoseManifest {
       }
     });
     final box = (m['display_box'] as List?)?.map((e) => (e as num).toDouble()).toList();
+    final dressed = (m['dressed_display_box'] as List?)
+        ?.map((e) => (e as num).toDouble())
+        .toList();
     return PoseManifest(
         folder: folder,
         layers: layers,
         slots: slots,
-        displayBox: box != null && box.length == 3 ? box : null);
+        displayBox: box != null && box.length == 3 ? box : null,
+        dressedDisplayBox:
+            dressed != null && dressed.length == 3 ? dressed : null);
   }
 }
 

@@ -47,7 +47,9 @@ class StandingPose extends StatelessWidget {
       builder: (context, snap) {
         final pose = snap.data;
         if (pose == null) return SizedBox(width: size, height: size);
-        final box = pose.displayBox ?? const [0, 0, 1000];
+        final box = (accessories.isNotEmpty ? pose.dressedDisplayBox : null) ??
+            pose.displayBox ??
+            const [0, 0, 1000];
         final k = size / box[2];
         return SizedBox(
           width: size,

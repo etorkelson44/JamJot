@@ -6,6 +6,7 @@ import 'package:jamjot/widgets/accessory_catalog.dart';
 import 'package:jamjot/widgets/pose_stack.dart';
 
 void main() {
+  dressedFrameTests();
   final json = File('assets/art/accessories/catalog.json').readAsStringSync();
   final catalog = parseAccessoryCatalog(json);
   List<AccessoryItem> released() => [
@@ -74,5 +75,16 @@ void main() {
 
   test('catalog json parses with the expected keys', () {
     expect(jsonDecode(json)['items'], hasLength(4));
+  });
+}
+
+void dressedFrameTests() {
+  test('strawberry dressed frame holds every outfit piece', () {
+    final m = jsonDecode(File('assets/art/avatar_pose/strawberry_standing/manifest.json').readAsStringSync());
+    final b = (m['dressed_display_box'] as List).cast<num>();
+    expect(b.length, 3);
+    // crown top (y 71) and boot bottoms (y 933) on the 1000px canvas
+    expect(b[1] <= 71 && b[1] + b[2] >= 933, isTrue);
+    expect(b[0] >= 0 && b[0] + b[2] <= 1000, isTrue);
   });
 }
