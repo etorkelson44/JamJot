@@ -21,6 +21,7 @@ import '../../widgets/maestro_loader.dart';
 import '../../widgets/instrument_icon.dart';
 import '../../widgets/change_instrument.dart';
 import '../../widgets/who_teaches_dialog.dart';
+import '../../widgets/send_email.dart';
 import '../../services/student_instruments.dart';
 
 /// One kid's world in the grown-up view, organized into tabs:
@@ -300,7 +301,7 @@ class _TeachersTab extends ConsumerWidget {
             subtitle:
                 'Not on JamJot yet? Send a ready-written email explaining the app.',
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _emailTeacherInvite(name),
+            onTap: () => _emailTeacherInvite(context, name),
           ),
         ],
       ],
@@ -381,11 +382,10 @@ class _TeachersTab extends ConsumerWidget {
     );
   }
 
-  Future<void> _emailTeacherInvite(String kidName) async {
+  Future<void> _emailTeacherInvite(BuildContext context, String kidName) async {
     const appLink = 'https://jamjot.app/';
-    final subject = Uri.encodeComponent(
-        'Would you try JamJot for $kidName\'s music practice?');
-    final body = Uri.encodeComponent('''Hi!
+    final subject = 'Would you try JamJot for $kidName\'s music practice?';
+    final body = '''Hi!
 
 We've started using JamJot, an app that makes $kidName's home practice really count: it listens while they play, so only real playing time is counted, records their practice so you can hear exactly how the week went, and keeps them motivated with little rewards for finishing their assigned songs.
 
@@ -397,8 +397,9 @@ Creating a teacher account is free and takes about two minutes:
 3. Open "My teaching" → "My teacher code" and send us the code or QR — we'll connect $kidName right away
 
 Hope you'll give it a try!
-''');
-    await launchUrl(Uri.parse('mailto:?subject=$subject&body=$body'));
+''';
+    if (!context.mounted) return;
+    await sendByEmail(context, subject: subject, body: body);
   }
 }
 
@@ -882,8 +883,10 @@ $link
                 const SizedBox(height: 8),
               if (email.text.trim().isNotEmpty)
                 FilledButton.icon(
-                  onPressed: () => launchUrl(Uri.parse(
-                      'mailto:${email.text.trim()}?subject=${Uri.encodeComponent("You're invited to $kidName's JamJot!")}&body=${Uri.encodeComponent(message)}')),
+                  onPressed: () => sendByEmail(context,
+                      to: email.text.trim(),
+                      subject: "You're invited to $kidName's JamJot!",
+                      body: message),
                   icon: const Icon(Icons.email_outlined),
                   label: const Text('Send as email'),
                 ),
