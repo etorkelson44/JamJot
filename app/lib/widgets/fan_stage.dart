@@ -333,9 +333,17 @@ class FanStage extends ConsumerWidget {
 /// stays easy to read.
 class VenueBackdrop extends ConsumerWidget {
   const VenueBackdrop(
-      {super.key, required this.studentId, required this.child});
+      {super.key,
+      required this.studentId,
+      required this.child,
+      this.showAvatar = true});
   final String studentId;
   final Widget child;
+
+  /// The small dressed avatar standing at the front of the stage. The practice
+  /// pages turn it off because their own musician, playing the instrument, is
+  /// the only performer on stage.
+  final bool showAvatar;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -374,17 +382,18 @@ class VenueBackdrop extends ConsumerWidget {
         ),
       ),
       // The kid's own avatar and their crowd sit crisp ABOVE the wash.
-      Positioned(
-        bottom: 34,
-        left: 0,
-        right: 0,
-        child: IgnorePointer(
-          child: Center(
-            child: DressedAvatar(
-                avatarKey: wornKey, outfit: outfit, size: 64),
+      if (showAvatar)
+        Positioned(
+          bottom: 34,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: Center(
+              child: DressedAvatar(
+                  avatarKey: wornKey, outfit: outfit, size: 64),
+            ),
           ),
         ),
-      ),
       // Their crowd, gathered at the stage in true scale.
       if (crowdCount > 0)
         Positioned(

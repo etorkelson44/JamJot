@@ -1787,7 +1787,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         // Just the kid's musician resting at their instrument — stoplight,
         // timer and the playing animation live only in the expanded song
         // view now (founder-directed 2026-11-05).
-        const Center(child: PerformingAvatar(size: 96)),
+        const Center(child: PerformingAvatar(size: 128)),
         const SizedBox(height: 10),
         _songs.isEmpty
             ? Center(
@@ -1911,7 +1911,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     );
     return student == null
         ? list
-        : VenueBackdrop(studentId: student['id'] as String, child: list);
+        : VenueBackdrop(
+            studentId: student['id'] as String, showAvatar: false, child: list);
   }
 
   /// This song's practice-minutes suggestion: the teacher's number if set,
