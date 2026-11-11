@@ -27,6 +27,7 @@ import 'screens/practice/practice_session_screen.dart';
 import 'screens/profile/my_profile_screen.dart';
 import 'screens/profile/profile_picker_screen.dart';
 import 'screens/shell.dart';
+import 'services/app_update.dart';
 import 'services/page_nav.dart';
 import 'services/session_flags.dart';
 import 'state/app_state.dart';
@@ -360,7 +361,8 @@ class _JamJotAppState extends ConsumerState<JamJotApp>
           ? JamJotSkin.grownup
           : JamJotSkin.kid),
       routerConfig: _router,
-      builder: (context, child) => CoinRewardHost(child: child!),
+      builder: (context, child) =>
+          AppUpdateHost(child: CoinRewardHost(child: child!)),
     );
   }
 }
