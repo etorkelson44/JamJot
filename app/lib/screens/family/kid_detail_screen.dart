@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/caregiver_invite_message.dart';
 import '../../models/caregiver_label.dart';
 import '../../services/sound_gate.dart';
 import '../../services/supabase_service.dart';
@@ -520,6 +521,7 @@ class _CaregiversTab extends ConsumerWidget {
           .from('guardianships')
           .update({field: value}).eq('id', row['id']);
       ref.invalidate(kidGuardianshipsProvider(studentId));
+      ref.invalidate(kidCaregiverInvitesProvider(studentId));
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -632,6 +634,7 @@ class _CaregiversTab extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _inviteCaregiver(context, ref),
           ),
+        if (iAmPrimary) _InvitesSent(studentId: studentId),
       ],
     );
   }
@@ -853,23 +856,12 @@ class _CaregiversTab extends ConsumerWidget {
       if (!context.mounted) return;
       final link =
           'https://jamjot.app/#/invite?token=${invite['token']}';
-      final allowed = [
-        for (final key in grants.keys)
-          if (grants[key] == true) labels[key]!.toLowerCase(),
-      ];
-      final permissionLine = fullAccess
-          ? 'do everything a parent can — full partner access'
-          : (allowed.isEmpty
-              ? 'follow along with their practice'
-              : 'follow along with their practice, plus: ${allowed.join(', ')}');
-      final message = '''Hi ${name.text.trim()}!
-
-I set you up as $kidName's $relationFinal on JamJot — the app we use for music practice. You'll be able to $permissionLine.
-
-Tap this link, create your free account, and you're in:
-$link
-
-(The link is just for you. It works once and expires in 30 days.)''';
+      final message = caregiverInviteMessage(
+          name: name.text.trim(),
+          kidName: kidName,
+          relation: relationFinal,
+          grants: {...grants, 'full_access': fullAccess},
+          link: link);
 
       await showInviteMessageDialog(context,
           link: link,
@@ -877,6 +869,7 @@ $link
           subject: "You're invited to $kidName's JamJot!",
           message: message,
           initialEmail: email.text.trim());
+      ref.invalidate(kidCaregiverInvitesProvider(studentId));
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -1403,5 +1396,113 @@ class _TeacherCodeLine extends ConsumerWidget {
             .textTheme
             .bodySmall
             ?.copyWith(color: JamJotColors.inkSoft));
+  }
+}
+
+/// "Invites sent": who I have invited to care for this kid, when, and where each
+/// invite stands, with a Resend button for the ones still waiting or expired.
+class _InvitesSent extends ConsumerWidget {
+  const _InvitesSent({required this.studentId});
+  final String studentId;
+
+  Future<void> _resend(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> inv) async {
+    final g = Map<String, dynamic>.from(
+        (inv['preset_grants'] as Map?) ?? const <String, dynamic>{});
+    final kidName = (ref.read(myStudentsProvider).valueOrNull ?? [])
+            .where((s) => s['id'] == studentId)
+            .firstOrNull?['display_name'] as String? ??
+        'our kid';
+    try {
+      if (inviteStatus(inv) == InviteStatus.expired) {
+        // A fresh 30 days, same link, so nothing has to be re-entered.
+        final fresh = DateTime.now().add(const Duration(days: 30));
+        await JamJotBackend.client
+            .from('invitations')
+            .update({'expires_at': fresh.toUtc().toIso8601String()}).eq(
+                'id', inv['id'] as String);
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not renew that invite just now.')));
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    final name = ((g['caregiver_name'] as String?) ?? '').trim();
+    final relation = ((g['relationship'] as String?) ?? '').trim();
+    final link = 'https://jamjot.app/#/invite?token=${inv['token']}';
+    await showInviteMessageDialog(context,
+        link: link,
+        recipientName: name.isEmpty ? 'them' : name,
+        subject: "You're invited to $kidName's JamJot!",
+        message: caregiverInviteMessage(
+            name: name.isEmpty ? 'there' : name,
+            kidName: kidName,
+            relation: relation.isEmpty ? 'Caregiver' : relation,
+            grants: g,
+            link: link),
+        initialEmail: (inv['invitee_email'] as String?) ?? '');
+    ref.invalidate(kidCaregiverInvitesProvider(studentId));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final invites =
+        ref.watch(kidCaregiverInvitesProvider(studentId)).valueOrNull ??
+            const <Map<String, dynamic>>[];
+    if (invites.isEmpty) return const SizedBox.shrink();
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Invites sent',
+              style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          for (final inv in invites) ...[
+            Builder(builder: (context) {
+              final g = (inv['preset_grants'] as Map?) ?? const {};
+              final name = ((g['caregiver_name'] as String?) ?? '').trim();
+              final rel = ((g['relationship'] as String?) ?? '').trim();
+              final email = ((inv['invitee_email'] as String?) ?? '').trim();
+              final status = inviteStatus(inv);
+              final sent = shortDate(inv['email_sent_at']);
+              final created = shortDate(inv['created_at']);
+              final statusText = switch (status) {
+                InviteStatus.accepted =>
+                  '✅ Accepted ${shortDate(inv['used_at'])}',
+                InviteStatus.expired =>
+                  '⌛ Expired ${shortDate(inv['expires_at'])}',
+                InviteStatus.waiting =>
+                  '⏳ Waiting · expires ${shortDate(inv['expires_at'])}',
+              };
+              final title = name.isEmpty ? 'Caregiver' : name;
+              return JamJotCard(
+                emoji: '✉️',
+                tint: JamJotColors.blueberryTint,
+                title: rel.isEmpty ? title : '$title • $rel',
+                subtitle: [
+                  if (email.isNotEmpty) email else 'No email sent yet',
+                  sent.isNotEmpty
+                      ? 'Emailed $sent'
+                      : 'Created $created',
+                  statusText,
+                ].join('\n'),
+                trailing: status == InviteStatus.accepted
+                    ? null
+                    : TextButton(
+                        onPressed: () => _resend(context, ref, inv),
+                        child: Text(email.isEmpty ? 'Send' : 'Resend'),
+                      ),
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
   }
 }

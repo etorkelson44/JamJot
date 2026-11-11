@@ -462,6 +462,20 @@ final kidGuardianshipsProvider = FutureProvider.autoDispose
   return rows.cast<Map<String, dynamic>>();
 });
 
+/// Caregiver invites I have sent for one kid, newest first (the "Invites sent"
+/// list). RLS already limits invitations to the ones I created.
+final kidCaregiverInvitesProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, String>((ref, studentId) async {
+  final rows = await JamJotBackend.client
+      .from('invitations')
+      .select(
+          'id, token, preset_grants, invitee_email, email_sent_at, created_at, expires_at, used_at')
+      .eq('kind', 'caregiver')
+      .eq('student_id', studentId)
+      .order('created_at', ascending: false);
+  return rows.cast<Map<String, dynamic>>();
+});
+
 /// Chats I belong to: one per enrollment (teacher + student + permitted
 /// caregivers). Caregivers without messaging permission see nothing.
 final myChatsProvider =
