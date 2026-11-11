@@ -15,3 +15,4 @@ flutter pub get
 BUILD_ID="${CF_PAGES_COMMIT_SHA:-$(git rev-parse HEAD 2>/dev/null || echo local)}"
 flutter build web --release --base-href / --dart-define=BUILD_ID="$BUILD_ID"
 printf '%s' "$BUILD_ID" > build/web/build-id.txt
+# Note: build-id.txt must stay no-store (app/web/_headers); the in-app update bar reads it.
