@@ -40,7 +40,7 @@ Future<String?> fetchLatestBuildId() async {
 
 /// Wraps the whole app. While someone has JamJot open, it checks every few
 /// minutes (and whenever they come back to the tab) whether a newer version has
-/// been published, and shows a small "tap to update" bar. It never reloads on
+/// been published, and shows a small "tap to update" bar (JJ-058-C). It never reloads on
 /// its own, so nobody loses something they are in the middle of typing.
 class AppUpdateHost extends StatefulWidget {
   const AppUpdateHost({super.key, required this.child, this.runningBuildId = kBuildId});
