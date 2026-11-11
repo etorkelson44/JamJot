@@ -24,6 +24,7 @@ import '../../widgets/change_instrument.dart';
 import '../../widgets/who_teaches_dialog.dart';
 import '../../widgets/send_email.dart';
 import '../../widgets/invite_message_dialog.dart';
+import '../../widgets/manage_caregivers.dart';
 import '../../services/student_instruments.dart';
 
 /// One kid's world in the grown-up view, organized into tabs:
@@ -609,9 +610,18 @@ class _CaregiversTab extends ConsumerWidget {
                   if (iAmPrimary)
                     Align(
                       alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => _transferPrimary(context, ref, r),
-                        child: const Text('Make primary caregiver…'),
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => _removeCaregiver(context, ref, r),
+                            child: const Text('Remove…'),
+                          ),
+                          TextButton(
+                            onPressed: () => _transferPrimary(context, ref, r),
+                            child: const Text('Make primary caregiver…'),
+                          ),
+                        ],
                       ),
                     ),
                 ] else
@@ -637,6 +647,33 @@ class _CaregiversTab extends ConsumerWidget {
         if (iAmPrimary) _InvitesSent(studentId: studentId),
       ],
     );
+  }
+
+  Future<void> _removeCaregiver(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> target) async {
+    final kidName = (ref.read(myStudentsProvider).valueOrNull ?? [])
+            .where((s) => s['id'] == studentId)
+            .firstOrNull?['display_name'] as String? ??
+        'this kid';
+    final shown = ((target['display_name'] as String?) ?? '').trim();
+    final who = shown.isEmpty ? 'this caregiver' : shown;
+    final ok = await confirmCaregiverAction(
+      context,
+      title: 'Remove $who?',
+      message:
+          '$who will lose access to $kidName\'s practice, calendar and chats, and we\'ll email them to let them know. Past messages and practice history stay. You can invite them again any time.',
+      confirmLabel: 'Remove',
+    );
+    if (ok != true || !context.mounted) return;
+    final r = await manageCaregivers(
+        {'action': 'remove_caregiver', 'guardianship_id': target['id']});
+    ref.invalidate(kidGuardianshipsProvider(studentId));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(r.error ??
+            (r.notified
+                ? '$who was removed and emailed.'
+                : '$who was removed.'))));
   }
 
   Future<void> _inviteCaregiver(BuildContext context, WidgetRef ref) async {
@@ -1447,6 +1484,31 @@ class _InvitesSent extends ConsumerWidget {
     ref.invalidate(kidCaregiverInvitesProvider(studentId));
   }
 
+  Future<void> _cancel(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> inv) async {
+    final g = (inv['preset_grants'] as Map?) ?? const {};
+    final name = ((g['caregiver_name'] as String?) ?? '').trim();
+    final who = name.isEmpty ? 'this invite' : "$name's invite";
+    final hasEmail = ((inv['invitee_email'] as String?) ?? '').trim().isNotEmpty;
+    final ok = await confirmCaregiverAction(
+      context,
+      title: 'Cancel $who?',
+      message: hasEmail
+          ? 'The link will stop working, and we\'ll email them to say it was cancelled. You can send a new invite any time.'
+          : 'The link will stop working. You can send a new invite any time.',
+      confirmLabel: 'Cancel invite',
+      cancelLabel: 'Keep it',
+    );
+    if (ok != true || !context.mounted) return;
+    final r = await manageCaregivers(
+        {'action': 'cancel_invite', 'invite_id': inv['id']});
+    ref.invalidate(kidCaregiverInvitesProvider(studentId));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(r.error ??
+            (r.notified ? 'Invite cancelled and they were emailed.' : 'Invite cancelled.'))));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final invites =
@@ -1493,9 +1555,19 @@ class _InvitesSent extends ConsumerWidget {
                 ].join('\n'),
                 trailing: status == InviteStatus.accepted
                     ? null
-                    : TextButton(
-                        onPressed: () => _resend(context, ref, inv),
-                        child: Text(email.isEmpty ? 'Send' : 'Resend'),
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => _resend(context, ref, inv),
+                            child: Text(email.isEmpty ? 'Send' : 'Resend'),
+                          ),
+                          TextButton(
+                            onPressed: () => _cancel(context, ref, inv),
+                            child: const Text('Cancel invite'),
+                          ),
+                        ],
                       ),
               );
             }),
