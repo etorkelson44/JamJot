@@ -215,7 +215,7 @@ Future<void> removeInstrumentFlow(BuildContext context, WidgetRef ref,
     builder: (context) => AlertDialog(
       title: Text('Delete ${item.instrument}?'),
       content: Text(
-          'Deleting takes ${item.instrument} off $name\'s list for good, so it won\'t show up anywhere.\n\nJust taking a break? Choose "Hide for now" instead. Everything stays saved and comes back when you show it again.'),
+          'Deleting takes ${item.instrument} off $name\'s list for good, along with $name\'s ${item.instrument} lessons, assignments and goals.\n\nJust taking a break? Choose "Hide for now" instead. Everything stays saved and comes back when you show it again.'),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -227,8 +227,27 @@ Future<void> removeInstrumentFlow(BuildContext context, WidgetRef ref,
     ),
   );
   if (ok != true || !context.mounted) return;
+  final sure = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Are you sure?'),
+      content: Text(
+          'This permanently deletes ${item.instrument} and every ${item.instrument} lesson, assignment and goal saved for $name. It cannot be undone and the data cannot be brought back.\n\nScores in your library are not affected, and coins and rewards already earned are kept.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No, go back')),
+        FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: JamJotColors.recording),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, delete')),
+      ],
+    ),
+  );
+  if (sure != true || !context.mounted) return;
   try {
-    await removeStudentInstrument(item.id);
+    await deleteInstrumentRpc(studentId, item.instrument);
     ref.invalidate(myStudentsProvider);
     ref.invalidate(studentInstrumentsProvider(studentId));
     final active = ref.read(activeStudentProvider);

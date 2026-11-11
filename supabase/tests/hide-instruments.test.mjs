@@ -16,7 +16,7 @@ create table teachers(id uuid primary key,profile_id uuid,studio_id uuid,display
 create table enrollments(id uuid primary key default gen_random_uuid(),student_id uuid,teacher_id uuid,studio_id uuid,instrument text,status text,billing_owner text);
 create table invitations(id uuid primary key default gen_random_uuid(), token text not null unique default md5(gen_random_uuid()::text), kind text not null check (kind in ('caregiver','enrollment','studio_code')), created_by uuid, student_id uuid, teacher_id uuid, studio_id uuid, instrument text, preset_grants jsonb not null default '{}', single_use boolean not null default true, expires_at timestamptz, used_at timestamptz, used_by uuid, created_at timestamptz default now());
 create table lessons(instrument text, id uuid primary key default gen_random_uuid(),student_id uuid,enrollment_id uuid,goal_minutes integer,created_by uuid,title text,lesson_note text,goal_days integer,event_id uuid,week_start date,created_at timestamptz default now(),assignment_request uuid);
-create table assignments(kind text, written_verified_at timestamptz, id uuid primary key default gen_random_uuid(),lesson_id uuid references lessons(id),title text,song_note text,score_id uuid,order_idx integer,suggested_minutes integer);
+create table assignments(kind text, written_verified_at timestamptz, id uuid primary key default gen_random_uuid(),lesson_id uuid references lessons(id) on delete cascade,title text,song_note text,score_id uuid,order_idx integer,suggested_minutes integer);
 create table sessions(id uuid primary key default gen_random_uuid(),student_id uuid references students(id),started_at timestamptz default now(),ended_at timestamptz,total_seconds integer default 0,goal_met boolean default false,source text default 'app',entered_by uuid,entry_note text,audio_path text);
 create table session_segments(id uuid primary key default gen_random_uuid(),session_id uuid references sessions(id) on delete cascade,assignment_id uuid references assignments(id),seconds integer default 0,wall_seconds integer default 0,completed boolean default false,goal_results jsonb default '{}',audio_paths text[] default '{}',audio_clips jsonb default '[]');
 create table berry_ledger(assignment_id uuid, id uuid primary key default gen_random_uuid(),student_id uuid,session_id uuid references sessions(id) on delete set null,amount integer not null,reason text not null);
@@ -32,7 +32,7 @@ grant usage on schema public,auth to authenticated;
 grant select,insert,update,delete on all tables in schema public to authenticated;
 alter default privileges in schema public grant all on tables to authenticated;
 `);
-for (const m of ['20261103200554_practice_integrity','20261110180000_multi_instrument_students','20261110190000_student_instruments_sync','20261110200000_per_instrument_practice','20261110220000_teacher_codes_and_invites','20261110230000_hide_instruments_rotate_code_expiry','20261110231000_guard_hidden_instruments'])
+for (const m of ['20261103200554_practice_integrity','20261110180000_multi_instrument_students','20261110190000_student_instruments_sync','20261110200000_per_instrument_practice','20261110220000_teacher_codes_and_invites','20261110230000_hide_instruments_rotate_code_expiry','20261110231000_guard_hidden_instruments','20261110240000_delete_instrument'])
   await db.exec(await readFile(new URL(`../migrations/${m}.sql`,import.meta.url),'utf8'));
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const [kid,parent,other,tprof,teacher] = [id(1),id(2),id(3),id(4),id(5)];
@@ -91,9 +91,18 @@ await assert.rejects(asUser(other,'select unhide_instrument($1,$2)',[kid,'Violin
 assert.equal(await scalar("select count(*)::int from lessons where student_id=$1",[kid]),2);
 await settle();
 assert.equal(await coins(),40);        // re-settling after unhide leaves earlier payouts alone
-// deleting a hidden instrument clears the hidden state
+// delete for good: removes the instrument, its lessons and assignments; the other instrument is untouched
+await db.query("insert into assignments(id,lesson_id,title) values($1,$2,'Song A')",[id(30),id(11)]);
+await assert.rejects(asUser(other,'select delete_instrument($1,$2)',[kid,'Violin']));                 // not the primary caregiver
+await assert.rejects(asUser(parent,'select delete_instrument($1,$2)',[kid,'Cello']));
 await asUser(parent,'select hide_instrument($1,$2)',[kid,'Violin']);
-await db.query("delete from student_instruments where student_id=$1 and lower(instrument)='violin'",[kid]);
+await assert.rejects(asUser(parent,'select delete_instrument($1,$2)',[kid,'Piano']));                 // would leave nothing showing
+await asUser(parent,'select delete_instrument($1,$2)',[kid,'Violin']);
+assert.equal(await scalar("select count(*)::int from student_instruments where student_id=$1 and lower(instrument)='violin'",[kid]),0);
+assert.equal(await scalar("select count(*)::int from lessons where student_id=$1 and instrument='Violin'",[kid]),0);
+assert.equal(await scalar("select count(*)::int from assignments where id=$1",[id(30)]),0);
+assert.equal(await scalar("select count(*)::int from lessons where student_id=$1 and instrument='Piano'",[kid]),1);
+assert.equal(await coins(),40);                                                                         // earned coins stay
 assert.deepEqual((await db.query('select hidden_instruments h from students where id=$1',[kid])).rows[0].h,[]);
 
 // --- teacher code rotation -------------------------------------------------------------

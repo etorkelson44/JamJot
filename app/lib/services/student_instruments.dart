@@ -129,6 +129,13 @@ Future<void> removeStudentInstrument(String rowId) async {
       .eq('id', rowId);
 }
 
+/// Delete an instrument for good, with that student's own lessons, assignments and goals for it.
+/// Library items (scores) are never touched. Primary caregiver only.
+Future<void> deleteInstrumentRpc(String studentId, String instrument) async {
+  await JamJotBackend.client.rpc('delete_instrument',
+      params: {'p_student_id': studentId, 'p_instrument': instrument});
+}
+
 /// Hide an instrument for now (a break). Nothing is deleted; [showInstrumentAgain] brings it back.
 Future<void> hideInstrumentRpc(String studentId, String instrument) async {
   await JamJotBackend.client.rpc('hide_instrument',
