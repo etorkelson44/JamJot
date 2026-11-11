@@ -42,4 +42,26 @@ void main() {
       }
     }
   });
+
+  test('standing poses of the three free characters have all layers and a frame', () {
+    for (final key in ['kiwi', 'strawberry', 'jalapeno']) {
+      final dir = 'assets/art/avatar_pose/${key}_standing';
+      final m = PoseManifest.parse(
+          dir, File('$dir/manifest.json').readAsStringSync());
+      expect(m.layers.length, greaterThanOrEqualTo(6), reason: key);
+      for (final layer in m.layers) {
+        expect(File(m.layerAsset(layer)).existsSync(), isTrue,
+            reason: '$key/$layer');
+      }
+      expect(m.displayBox, isNotNull, reason: key);
+      // Every accessory slot points at a real layer.
+      expect(m.slots.keys,
+          containsAll(['behind_body', 'clothing_torso', 'shoes', 'face', 'hat']),
+          reason: key);
+      final order = poseDrawOrder(m, const [
+        PoseAccessory(slot: 'hat', asset: 'fictional/test_hat.png')
+      ]);
+      expect(order.last, 'fictional/test_hat.png');
+    }
+  });
 }

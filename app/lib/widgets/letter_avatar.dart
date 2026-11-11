@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/jamjot_theme.dart';
+import 'standing_pose.dart';
 
 /// Pieces of final artwork delivered as PNG (they replace the drawn SVG
 /// placeholders one file at a time — add each new drop here).
@@ -10,9 +11,6 @@ const finalPngArt = <String>{};
 /// Founder-supplied photo bodies with drawn faces (JJ-012), pending the
 /// final art pass.
 const placeholderPngArt = <String>{
-  'avatar_strawberry',
-  'avatar_jalapeno',
-  'avatar_kiwi',
   'brand_tisdale', // Tisdale Applications imprint
   'crowd_color', // fan crowd silhouettes (founder reference style)
   'crowd_black',
@@ -58,10 +56,11 @@ bool isWearableAvatar(String? key) =>
 String studentAvatarKey(String? key) =>
     isWearableAvatar(key) ? key! : defaultAvatarKey;
 
-/// The drawn character for a berry key (null if unknown).
+/// The drawn character for a berry key (null if unknown): Erika's layered
+/// standing pose (2026-11-11), which replaced the flat avatar_<key>.png.
 Widget? berryArt(String? key, double size) {
   if (key == null || !berryAvatars.containsKey(key)) return null;
-  return artAsset('avatar_$key', width: size, height: size);
+  return StandingPose(avatarKey: key, size: size);
 }
 
 /// Avatar tile: a bought berry character when one is worn, otherwise the

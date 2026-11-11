@@ -106,8 +106,8 @@ void main() {
     expect(
         assets,
         containsAll([
-          'assets/art/avatar_jalapeno.png',
-          'assets/art/avatar_strawberry.png'
+          'assets/art/avatar_pose/jalapeno_standing/1_body.png',
+          'assets/art/avatar_pose/strawberry_standing/1_body.png'
         ]));
   }, skip: _jamStandClosed);
   testWidgets('purchase spends once, fills the shelf and wears the character',
@@ -183,7 +183,7 @@ void main() {
         find.byWidgetPredicate((w) =>
             w is Image &&
             w.image is AssetImage &&
-            (w.image as AssetImage).assetName == 'assets/art/avatar_strawberry.png'),
+            (w.image as AssetImage).assetName == 'assets/art/avatar_pose/strawberry_standing/1_body.png'),
         findsAtLeastNWidgets(1));
   });
 }

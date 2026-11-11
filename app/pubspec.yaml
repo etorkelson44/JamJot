@@ -42,6 +42,9 @@ flutter:
     - assets/art/avatar_instrument/jalapeno_violin/
     - assets/art/avatar_instrument/jalapeno_piano/
     - assets/art/avatar_instrument/jalapeno_viola/
+    - assets/art/avatar_pose/kiwi_standing/
+    - assets/art/avatar_pose/strawberry_standing/
+    - assets/art/avatar_pose/jalapeno_standing/
     - assets/instruments/
     - assets/art/jar/
     - assets/art/stoplight/

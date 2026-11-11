@@ -1,0 +1,51 @@
+{
+  "character": "senor_jalapresto",
+  "pose": "standing",
+  "canvas": [
+    1000,
+    1000
+  ],
+  "format": "png-rgba",
+  "note": "Layers are square transparent PNGs on one shared canvas (authored at 2000x2000, shipped at 1000x1000), so they stack with no offsets. Draw in list order, first = bottom. An accessory layer must be a square transparent PNG drawn on the same canvas; it is inserted at a slot: 'after' = directly above the named layer, 'before' = directly below it. Do not trim layers. Source: Erika's layered Canva PDF, 2026-11-11. display_box = [x, y, size] square on the 1000px canvas that frames the figure for the app's avatar tiles (the layers are not trimmed).",
+  "layers": [
+    "1_body",
+    "2_mustache",
+    "3_teeth",
+    "4_eyes_brows",
+    "5_legs_feet",
+    "6_arm_viewer_right",
+    "7_arm_viewer_left"
+  ],
+  "accessory_slots": {
+    "behind_body": {
+      "before": "1_body",
+      "note": "capes, wings, backpacks"
+    },
+    "clothing_torso": {
+      "after": "1_body",
+      "note": "shirts, scarves, bow ties; stays under the face and arms"
+    },
+    "shoes": {
+      "after": "5_legs_feet"
+    },
+    "face": {
+      "after": "4_eyes_brows",
+      "note": "glasses, masks"
+    },
+    "sleeves_arm_viewer_left": {
+      "after": "7_arm_viewer_left"
+    },
+    "sleeves_arm_viewer_right": {
+      "after": "6_arm_viewer_right"
+    },
+    "hat": {
+      "after": "7_arm_viewer_left",
+      "note": "top of stack"
+    }
+  },
+  "display_box": [
+    10,
+    17,
+    948
+  ]
+}

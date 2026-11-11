@@ -12,7 +12,14 @@ import 'package:flutter/material.dart';
 /// `jalapeno_violin/manifest.json`.
 class PoseManifest {
   const PoseManifest(
-      {required this.folder, required this.layers, required this.slots});
+      {required this.folder,
+      required this.layers,
+      required this.slots,
+      this.displayBox});
+
+  /// Optional square [x, y, size] on the layer canvas that frames the figure
+  /// for avatar tiles (layers themselves are never trimmed).
+  final List<double>? displayBox;
 
   /// Asset folder, no trailing slash.
   final String folder;
@@ -38,7 +45,12 @@ class PoseManifest {
         slots[k] = PoseSlot(after: false, layer: s['before'] as String);
       }
     });
-    return PoseManifest(folder: folder, layers: layers, slots: slots);
+    final box = (m['display_box'] as List?)?.map((e) => (e as num).toDouble()).toList();
+    return PoseManifest(
+        folder: folder,
+        layers: layers,
+        slots: slots,
+        displayBox: box != null && box.length == 3 ? box : null);
   }
 }
 
