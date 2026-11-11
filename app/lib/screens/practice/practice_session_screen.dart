@@ -1629,7 +1629,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       children: [
         // The kid's own avatar performs on their instrument while the
         // timer listens (JJ-012/JJ-014).
-        PerformingAvatar(size: avatarSize),
+        PerformingAvatar(size: avatarSize, instrument: _instrument),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -1787,7 +1787,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         // Just the kid's musician resting at their instrument — stoplight,
         // timer and the playing animation live only in the expanded song
         // view now (founder-directed 2026-11-05).
-        const Center(child: PerformingAvatar(size: 128)),
+        Center(child: PerformingAvatar(size: 128, instrument: _instrument)),
         const SizedBox(height: 10),
         _songs.isEmpty
             ? Center(
