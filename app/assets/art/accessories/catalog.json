@@ -1,9 +1,9 @@
 {
-  "note": "Market accessories. Each accessory is drawn once per avatar and pose (folder <item>/<avatar>_<pose>/), as square transparent PNG layers on that pose's 1000px canvas. The app pairs the chosen item with the avatar and pose being drawn (JJ-059-C). If an item has no art for that avatar and pose it is hidden there, never drawn wrong. released:false = wired in but NOT wearable yet; flip to true when the item goes on sale in the Market. Item names are working names until Erika names them. display.png in each item folder is the single shelf image used in the Market and dressing room (from Erika's accessories PDF, 2026-11-11).",
+  "note": "Market accessories. Each accessory is drawn once per avatar and pose (folder <item>/<avatar>_<pose>/), as square transparent PNG layers on that pose's 1000px canvas. The app pairs the chosen item with the avatar and pose being drawn (JJ-059-C). If an item has no art for that avatar and pose it is hidden there, never drawn wrong. released:false = wired in but NOT wearable yet; flip to true when the item goes on sale in the Market. Item names chosen by Erika 2026-11-11 (JJ-059-C). display.png in each item folder is the single shelf image used in the Market and dressing room (from Erika's accessories PDF, 2026-11-11).",
   "items": [
     {
       "id": "purple_glitter_crown",
-      "name": "Purple glitter crown",
+      "name": "Queen of Tarts Tiara",
       "released": false,
       "art": {
         "strawberry_standing": [
@@ -17,7 +17,7 @@
     },
     {
       "id": "cat_eye_sunglasses",
-      "name": "Purple cat-eye sunglasses",
+      "name": "Shady Sharps",
       "released": false,
       "art": {
         "strawberry_standing": [
@@ -31,7 +31,7 @@
     },
     {
       "id": "pink_ruffle_dress",
-      "name": "Pink ruffle dress (strapless top, ruffle skirt, sash with bow)",
+      "name": "Tutti Frutti Frock",
       "released": false,
       "art": {
         "strawberry_standing": [
@@ -53,7 +53,7 @@
     },
     {
       "id": "lilac_platform_boots",
-      "name": "Lilac platform boots",
+      "name": "Staccato Stompers",
       "released": false,
       "art": {
         "strawberry_standing": [
