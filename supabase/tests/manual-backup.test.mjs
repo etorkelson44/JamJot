@@ -5,6 +5,7 @@ const {PGlite}=await import(process.env.PGLITE_MODULE??'@electric-sql/pglite');
 const db=new PGlite();
 await db.exec(await readFile(new URL('backup-schema-fixture.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../migrations/20261104172909_manual_data_backup.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../migrations/20261111150000_manual_backup_instruments.sql',import.meta.url),'utf8'));
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const parent=id(1),limited=id(2),teacher=id(3),studio=id(4),kid=id(5),stranger=id(6),familyB=id(7),teacherB=id(8),a=id(11),b=id(12);
 await db.query("insert into profiles(id,full_name,app_pin_hash,phone) values($1,'Fictional Adult','never-export-pin','555-0100')",[parent]);
@@ -41,10 +42,36 @@ assert.equal((await snapshot(parent)).tables.private_notes[0].body,'My note');
 assert.equal((await snapshot(teacher)).tables.private_notes[0].body,'Teacher private note');
 assert.deepEqual((await snapshot(familyB)).student_ids,[b]);
 assert.equal(await fingerprint(),before,'exports must not mutate practices, students or rewards');
+// ---- multi-instrument data (second backup version) ----
+await db.query("update students set hidden_instruments=array['violin'] where id=$1",[a]);
+await db.query("update lessons set instrument='Piano' where id=$1",[id(50)]);
+await db.query("update sessions set instrument='Piano' where id=$1",[id(70)]);
+await db.query("insert into student_instruments(id,student_id,instrument,instruction,teacher_name,teacher_known_as) values($1,$2,'Piano','teacher','Fictional Teacher','Ms. F'),($3,$4,'Violin','caregiver',null,null)",[id(120),a,id(121),b]);
+await db.query("insert into instrument_hidden_periods(id,student_id,instrument_key,hidden_from,hidden_until) values($1,$2,'violin','2026-10-01',null),($3,$4,'piano','2026-09-01','2026-09-15')",[id(130),a,id(131),b]);
+await db.query("insert into teacher_codes(teacher_id,code) values($1,'FICT-CODE-1'),($2,'OTHER-CODE-2')",[id(31),id(32)]);
+{
+ const p=await snapshot(parent);
+ assert.deepEqual(p.tables.students[0].hidden_instruments,['violin'],'caregiver backup includes the hidden instruments');
+ assert.equal(p.tables.student_instruments.length,1);assert.equal(p.tables.student_instruments[0].instrument,'Piano');assert.equal(p.tables.student_instruments[0].teacher_known_as,'Ms. F');
+ assert.equal(p.tables.instrument_hidden_periods.length,1);assert.equal(p.tables.instrument_hidden_periods[0].instrument_key,'violin');
+ assert.equal(p.tables.lessons[0].instrument,'Piano');assert.equal(p.tables.practices.find(r=>r.id===id(70)).instrument,'Piano');
+ assert.equal(p.tables.teacher_codes,undefined,'a caregiver backup never includes a teacher code');
+ const limitedSnap=await snapshot(limited);assert.equal(limitedSnap.tables.student_instruments.length,1);
+ const t=await snapshot(teacher);
+ assert.equal(t.tables.students[0].hidden_instruments,null,'a teacher backup does not include the family hide setting');
+ assert.equal(t.tables.instrument_hidden_periods,undefined,'a teacher backup does not include hide history');
+ assert.equal(t.tables.student_instruments.length,1);
+ assert.deepEqual(t.tables.teacher_codes.map(c=>c.code),['FICT-CODE-1'],'a teacher gets only their own code');
+ const s=await snapshot(studio);assert.equal(s.tables.teacher_codes,undefined);assert.equal(s.tables.instrument_hidden_periods,undefined);
+ const fb=await snapshot(familyB);assert.equal(fb.tables.student_instruments.length,1);assert.equal(fb.tables.student_instruments[0].instrument,'Violin');
+ assert.equal(fb.tables.instrument_hidden_periods.length,1);assert.equal(fb.tables.instrument_hidden_periods[0].instrument_key,'piano');
+ assert.equal(JSON.stringify(p).includes('OTHER-CODE'),false);assert.equal(JSON.stringify(p).includes('FICT-CODE'),false);
+}
 const first=await snapshot(parent);const again=await snapshot(parent);assert.deepEqual(first.tables,again.tables);
 await db.query("update sessions set total_seconds=240,manual_override_seconds=240 where id=$1",[id(70)]);
 const edited=await snapshot(parent);assert.equal(edited.tables.practices.find(r=>r.id===id(70)).total_seconds,240);assert.equal(first.tables.practices.find(r=>r.id===id(70)).total_seconds,300);
 await db.query('delete from sessions where id=$1',[id(71)]);assert.equal((await snapshot(parent)).tables.practices.length,1);
 await db.query("update enrollments set status='inactive' where id=$1",[id(40)]);assert.deepEqual((await snapshot(teacher)).student_ids,[]);assert.deepEqual((await snapshot(studio)).student_ids,[]);
-console.log('PASS service-only RPC; child/unrelated denial; family isolation; caregiver, teacher and studio scope; messaging grants; private notes; no secrets; corrections/manual entries; repeated/edited/deleted snapshots; revoked enrollment; unchanged source records and rewards');
+
+console.log('PASS service-only RPC; child/unrelated denial; family isolation; caregiver, teacher and studio scope; messaging grants; private notes; no secrets; corrections/manual entries; repeated/edited/deleted snapshots; revoked enrollment; unchanged source records and rewards; instruments, hide history and teacher codes included only for the right people');
 await db.close();

@@ -1,1 +1,1 @@
-{"private":true,"type":"module","scripts":{"test":"node practice-integrity.test.mjs && node multi-instrument.test.mjs && node per-instrument.test.mjs && node teacher-connect.test.mjs && node hide-instruments.test.mjs"},"devDependencies":{"@electric-sql/pglite":"0.5.14"}}
+{"private":true,"type":"module","scripts":{"test":"node practice-integrity.test.mjs && node multi-instrument.test.mjs && node per-instrument.test.mjs && node teacher-connect.test.mjs && node hide-instruments.test.mjs && node manual-backup.test.mjs"},"devDependencies":{"@electric-sql/pglite":"0.5.14"}}

@@ -1,19 +1,19 @@
 -- Fictional tests: column definitions inspected November 4, 2026; no live data.
 create role anon; create role authenticated; create role service_role bypassrls;
 create table public.profiles("id" uuid primary key,"full_name" text,"avatar_key" text,"app_pin_hash" text,"created_at" timestamptz,"last_active_student" uuid,"phone" text);
-create table public.students("id" uuid primary key,"display_name" text,"instruments" text[],"avatar_key" text,"pin_hash" text,"auth_user_id" uuid,"created_by" uuid,"offline_contact" jsonb,"created_at" timestamptz);
+create table public.students("id" uuid primary key,"display_name" text,"instruments" text[],"avatar_key" text,"pin_hash" text,"auth_user_id" uuid,"created_by" uuid,"offline_contact" jsonb,"created_at" timestamptz,"hidden_instruments" text[] not null default '{}');
 create table public.guardianships("id" uuid primary key,"student_id" uuid,"profile_id" uuid,"is_primary" bool,"can_message" bool,"can_view_calendar" bool,"family_event_level" text,"can_stock_rewards" bool,"can_adjust_practice" bool,"created_at" timestamptz,"can_pay" bool,"nickname" text,"relationship" text,"display_name" text,"grants_updated_at" timestamptz);
 create table public.studios("id" uuid primary key,"owner_id" uuid,"name" text,"created_at" timestamptz,"stripe_account_id" text,"fee_mode" text);
 create table public.teachers("id" uuid primary key,"profile_id" uuid,"studio_id" uuid,"display_name" text,"instruments" text[],"accepting_students" bool,"self_managed" bool,"created_at" timestamptz,"stripe_account_id" text,"fee_mode" text,"finalize_hour" int4);
 create table public.enrollments("id" uuid primary key,"student_id" uuid,"teacher_id" uuid,"studio_id" uuid,"instrument" text,"status" text,"created_at" timestamptz,"billing_owner" text);
 create table public.invitations("id" uuid primary key,"token" text,"kind" text,"created_by" uuid,"student_id" uuid,"teacher_id" uuid,"studio_id" uuid,"instrument" text,"preset_grants" jsonb,"single_use" bool,"pre_approved" bool,"expires_at" timestamptz,"used_at" timestamptz,"used_by" uuid,"created_at" timestamptz);
 create table public.scores("id" uuid primary key,"owner_id" uuid,"title" text,"source" text,"license_scope" text,"musicxml_path" text,"original_path" text,"meta" jsonb,"created_at" timestamptz,"folder_path" text,"folder" text);
-create table public.lessons("id" uuid primary key,"student_id" uuid,"enrollment_id" uuid,"created_by" uuid,"title" text,"lesson_note" text,"goal_days" int4,"goal_minutes" int4,"week_start" date,"created_at" timestamptz,"event_id" uuid);
+create table public.lessons("id" uuid primary key,"student_id" uuid,"enrollment_id" uuid,"created_by" uuid,"title" text,"lesson_note" text,"goal_days" int4,"goal_minutes" int4,"week_start" date,"created_at" timestamptz,"event_id" uuid,"instrument" text);
 create table public.assignments("id" uuid primary key,"lesson_id" uuid,"title" text,"song_note" text,"suggested_minutes" int4,"order_idx" int4,"score_id" uuid,"is_performance" bool,"created_at" timestamptz);
 create table public.verifiable_goals("id" uuid primary key,"assignment_id" uuid,"kind" text,"params" jsonb,"created_at" timestamptz);
 create table public.saved_assignments("id" uuid primary key,"owner_id" uuid,"payload" jsonb,"created_at" timestamptz);
 create table public.saved_lessons("id" uuid primary key,"owner_id" uuid,"payload" jsonb,"created_at" timestamptz);
-create table public.sessions("id" uuid primary key,"student_id" uuid,"started_at" timestamptz,"ended_at" timestamptz,"total_seconds" int4,"goal_met" bool,"audio_path" text,"created_at" timestamptz,"entered_by" uuid,"entry_note" text,"source" text);
+create table public.sessions("id" uuid primary key,"student_id" uuid,"started_at" timestamptz,"ended_at" timestamptz,"total_seconds" int4,"goal_met" bool,"audio_path" text,"created_at" timestamptz,"entered_by" uuid,"entry_note" text,"source" text,"instrument" text);
 create table public.session_segments("id" uuid primary key,"session_id" uuid,"assignment_id" uuid,"kind" text,"seconds" int4,"goal_results" jsonb,"completed" bool,"flagged" bool,"audio_paths" text[],"wall_seconds" int4,"audio_clips" jsonb);
 create table public.messages("id" uuid primary key,"enrollment_id" uuid,"sender_id" uuid,"body" text,"created_at" timestamptz,"deleted_at" timestamptz,"deleted_by" uuid);
 create table public.message_reads("message_id" uuid,"reader_id" uuid,"read_at" timestamptz);
@@ -29,6 +29,9 @@ create table public.payment_requests("id" uuid primary key,"enrollment_id" uuid,
 create table public.payments("id" uuid primary key,"request_id" uuid,"payer_id" uuid,"method" text,"state" text,"amount_cents" int4,"stripe_ref" text,"completed_at" timestamptz,"created_at" timestamptz);
 create table public.lesson_schedules("id" uuid primary key,"student_id" uuid,"enrollment_id" uuid,"weekday" int4,"at_minutes" int4,"duration_minutes" int4,"created_by" uuid,"created_at" timestamptz);
 create table public.calendar_feeds("id" uuid primary key,"profile_id" uuid,"token" uuid,"created_at" timestamptz);
+create table public.student_instruments("id" uuid primary key,"student_id" uuid,"instrument" text,"instruction" text,"enrollment_id" uuid,"teacher_name" text,"teacher_known_as" text,"invitation_id" uuid,"created_by" uuid,"created_at" timestamptz);
+create table public.instrument_hidden_periods("id" uuid primary key,"student_id" uuid,"instrument_key" text,"hidden_from" date,"hidden_until" date);
+create table public.teacher_codes("teacher_id" uuid primary key,"code" text,"created_at" timestamptz,"rotated_at" timestamptz);
 alter table sessions add column manual_override_seconds integer;
 alter table sessions add column recorded_seconds integer;
 grant usage on schema public to service_role, authenticated, anon;
