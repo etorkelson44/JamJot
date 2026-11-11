@@ -1,17 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show FunctionException;
 
 import '../../services/student_instruments.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/dancing_maestro.dart';
+import '../../widgets/invite_message_dialog.dart' show notifyInviteAccepted;
 import '../../widgets/instrument_icon.dart';
 import '../../widgets/maestro_loader.dart';
 
 /// Where a teacher's invite link lands. Signed out: a warm hello and the
 /// account buttons. Signed in: pick (or add) the kid and connect.
+const _expiredInviteMessage =
+    'This invite has expired. Please reach out to the person who invited you and ask them to send you a new one.';
+const _usedInviteMessage =
+    'This invite was already used. If you still need to join, please ask the person who invited you to send a new one.';
+
+/// Turns a server message about a bad invite into something a person can act on.
+String friendlyInviteError(String? message) {
+  final m = (message ?? '').toLowerCase();
+  if (m.contains('expired')) return _expiredInviteMessage;
+  if (m.contains('already used')) return _usedInviteMessage;
+  if (m.contains('not found')) {
+    return 'We could not find this invite. It may have been replaced. Please ask the person who invited you to send a new one.';
+  }
+  return message ?? 'Something went wrong. Try again?';
+}
+
+/// A failed call to the invite function (the server answers 410 for an expired or used invite).
+String inviteErrorMessage(Object e, {bool loading = false}) {
+  if (e is FunctionException) {
+    final d = e.details;
+    final msg = d is Map ? d['error'] as String? : (d is String ? d : null);
+    if (msg != null) return friendlyInviteError(msg);
+    if (e.status == 410) return _expiredInviteMessage;
+    if (e.status == 404) return friendlyInviteError('not found');
+  }
+  return loading
+      ? 'Could not load this invite. Try again?'
+      : 'Something went wrong. Try again?';
+}
+
 class InviteScreen extends ConsumerStatefulWidget {
   const InviteScreen({super.key, required this.token});
   final String token;
@@ -56,6 +88,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       final res = await acceptTeacherInvite(widget.token);
       if (res['ok'] == true) {
         pendingInviteToken = null;
+        notifyInviteAccepted(widget.token);   // lets the inviter know by email (best effort)
         ref.invalidate(myTeacherProvider);
         if (!mounted) return;
         await showDialog<void>(
@@ -77,13 +110,13 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         if (mounted) context.go('/teacher-setup');
       } else {
         setState(() {
-          _error = (res['error'] as String?) ?? 'Something went wrong.';
+          _error = friendlyInviteError(res['error'] as String?);
           _busy = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
       setState(() {
-        _error = 'Something went wrong. Try again?';
+        _error = inviteErrorMessage(e);
         _busy = false;
       });
     }
@@ -102,13 +135,13 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       final data = res.data as Map<String, dynamic>? ?? {};
       setState(() {
         if (data['error'] != null) {
-          _error = data['error'] as String;
+          _error = friendlyInviteError(data['error'] as String?);
         } else {
           _info = data;
         }
       });
-    } catch (_) {
-      setState(() => _error = 'Could not load this invite. Try again?');
+    } catch (e) {
+      setState(() => _error = inviteErrorMessage(e, loading: true));
     }
   }
 
@@ -121,6 +154,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       final data = res.data as Map<String, dynamic>? ?? {};
       if (data['mode'] == 'redeemed') {
         pendingInviteToken = null;
+        notifyInviteAccepted(widget.token);   // lets the inviter know by email (best effort)
         ref.invalidate(myStudentsProvider);
         if (mounted) {
           await showDialog<void>(
@@ -147,13 +181,13 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         }
       } else {
         setState(() {
-          _error = (data['error'] as String?) ?? 'Something went wrong.';
+          _error = friendlyInviteError(data['error'] as String?);
           _busy = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
       setState(() {
-        _error = 'Something went wrong. Try again?';
+        _error = inviteErrorMessage(e);
         _busy = false;
       });
     }
@@ -182,6 +216,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       final data = res.data as Map<String, dynamic>? ?? {};
       if (data['mode'] == 'redeemed') {
         pendingInviteToken = null;
+        notifyInviteAccepted(widget.token);   // lets the inviter know by email (best effort)
         ref.invalidate(myStudentsProvider);
         if (mounted) {
           await showDialog<void>(
@@ -208,13 +243,13 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         }
       } else {
         setState(() {
-          _error = (data['error'] as String?) ?? 'Something went wrong.';
+          _error = friendlyInviteError(data['error'] as String?);
           _busy = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
       setState(() {
-        _error = 'Something went wrong. Try again?';
+        _error = inviteErrorMessage(e);
         _busy = false;
       });
     }
@@ -240,8 +275,8 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           const SizedBox(height: 10),
           Text(
               ti['status'] == 'used'
-                  ? 'This invite was already used.'
-                  : 'This invite has expired. Ask the family to send a new one.',
+                  ? friendlyInviteError('This invite was already used')
+                  : friendlyInviteError('This invite has expired'),
               textAlign: TextAlign.center,
               style: text.titleMedium),
           const SizedBox(height: 16),

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../services/student_instruments.dart';
+import '../../widgets/invite_message_dialog.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
@@ -107,49 +108,23 @@ class TeachingScreen extends ConsumerWidget {
     if (created == null || !context.mounted) return;
     final link =
         'https://jamjot.app/#/invite?token=${created['token']}';
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
-          side: JamJotShape.border,
-        ),
-        title: const Text('Invite ready! 🎉'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-                'Send this link to the family any way you like — text, email, carrier pigeon. It works whether or not they have JamJot yet.'),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: JamJotColors.blueberryTint,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: SelectableText(link,
-                  style: const TextStyle(fontSize: 12)),
-            ),
-          ],
-        ),
-        actions: [
-          FilledButton.icon(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: link));
-              if (context.mounted) {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Link copied!')));
-              }
-            },
-            icon: const Icon(Icons.copy),
-            label: const Text('Copy link'),
-            style: FilledButton.styleFrom(minimumSize: const Size(140, 44)),
-          ),
-        ],
-      ),
-    );
+    final student = name.text.trim();
+    final who = student.isEmpty ? 'your student' : student;
+    final teacherName = (teacher['display_name'] as String?) ?? 'Your teacher';
+    await showInviteMessageDialog(context,
+        link: link,
+        recipientName: student.isEmpty ? 'the family' : '$student\'s family',
+        subject: 'Join $who on JamJot',
+        message: '''Hi!
+
+I\'m using JamJot for my music lessons. It helps $who\'s home practice really count: it listens while they play, so only real playing time is counted, and it keeps them motivated with little rewards for finishing assigned songs. Each week you\'ll see what was assigned, and I\'ll be able to see (and hear!) what was practiced before each lesson.
+
+Tap this link to join. It works whether or not you already have JamJot:
+$link
+
+(The link is just for you. It works once and expires in 30 days.)
+
+— $teacherName''');
   }
 
   /// Each teacher has one standing code families can use anytime —
@@ -464,17 +439,58 @@ class TeachingScreen extends ConsumerWidget {
                             style: text.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w700)),
                         subtitle: const Text(
-                            'Permanent. Give it to a family when you choose; they enter it to connect to you.'),
-                        trailing: IconButton(
-                          tooltip: 'Copy code',
-                          icon: const Icon(Icons.copy, size: 18),
-                          onPressed: () async {
-                            await Clipboard.setData(ClipboardData(text: code));
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Code copied!')));
-                            }
-                          },
+                            'Give it to a family when you choose; they enter it to connect to you. You can change it any time, and families already connected stay connected.'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Copy code',
+                              icon: const Icon(Icons.copy, size: 18),
+                              onPressed: () async {
+                                await Clipboard.setData(ClipboardData(text: code));
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Code copied!')));
+                                }
+                              },
+                            ),
+                            IconButton(
+                              tooltip: 'Change my code',
+                              icon: const Icon(Icons.autorenew, size: 20),
+                              onPressed: () async {
+                                final ok = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Change your family code?'),
+                                    content: const Text(
+                                        'You\'ll get a brand-new code. Families already connected to you stay connected and don\'t need to do anything.\n\nThe old code stops working, so anyone who hasn\'t entered it yet will need the new one.'),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () => Navigator.pop(context, false),
+                                          child: const Text('Cancel')),
+                                      FilledButton(
+                                          onPressed: () => Navigator.pop(context, true),
+                                          child: const Text('Change code')),
+                                    ],
+                                  ),
+                                );
+                                if (ok != true || !context.mounted) return;
+                                try {
+                                  final fresh = await rotateTeacherCode(teacher['id'] as String);
+                                  ref.invalidate(teacherCodeProvider(teacher['id'] as String));
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Your new code is $fresh')));
+                                  }
+                                } catch (_) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                        content: Text('Could not change the code just now. Please try again.')));
+                                  }
+                                }
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     );

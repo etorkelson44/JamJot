@@ -65,11 +65,13 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             JamJotCard(
               leading: instrumentIcon(
-                  (active['instruments'] as List?)?.firstOrNull as String?,
+                  instrumentsOf(active).firstOrNull,
                   size: 34),
-              title: (active['instruments'] as List?)?.join(' · ') ?? 'Music',
-              titleWidget: ((active['instruments'] as List?)?.length ?? 0) > 1
-                  ? InstrumentList(active['instruments'] as List,
+              title: instrumentsOf(active).isEmpty
+                  ? 'Music'
+                  : instrumentsOf(active).join(' · '),
+              titleWidget: instrumentsOf(active).length > 1
+                  ? InstrumentList(instrumentsOf(active),
                       iconSize: 22,
                       style: Theme.of(context)
                           .textTheme
@@ -195,7 +197,7 @@ class HomeScreen extends ConsumerWidget {
                       tint: JamJotColors.neutral,
                       title: kid['display_name'] as String,
                       extra: InstrumentList(
-                          (kid['instruments'] as List?) ?? const [],
+                          instrumentsOf(kid),
                           iconSize: 20,
                           style: Theme.of(context).textTheme.bodySmall),
                       subtitle: 'Practice list, lessons, history & chat',

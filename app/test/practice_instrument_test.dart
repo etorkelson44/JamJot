@@ -4,6 +4,7 @@ import 'package:jamjot/state/app_state.dart';
 // Fictional data only.
 void main() {
   sharedDaysTests();
+  hiddenInstrumentTests();
   final kid = {'instruments': ['Piano', 'Violin']};
 
   test('practiceInstrumentFor: chosen tab, else first, else null', () {
@@ -35,5 +36,26 @@ void sharedDaysTests() {
     expect(sharedDaysCount(secs, goals, all: true), 1);
     expect(sharedDaysCount({}, goals, all: true), 0);
     expect(sharedDaysCount(secs, {}, all: false), 0);
+  });
+}
+
+void hiddenInstrumentTests() {
+  group('hidden instruments', () {
+    final kid = {
+      'instruments': ['Piano', 'Violin', 'Flute'],
+      'hidden_instruments': ['violin'],
+    };
+    test('instrumentsOf leaves out hidden ones, allInstrumentsOf keeps them', () {
+      expect(instrumentsOf(kid), ['Piano', 'Flute']);
+      expect(allInstrumentsOf(kid), ['Piano', 'Violin', 'Flute']);
+      expect(isInstrumentHidden(kid, 'Violin'), isTrue);
+      expect(isInstrumentHidden(kid, 'Piano'), isFalse);
+    });
+    test('a kid with nothing hidden is unchanged', () {
+      expect(instrumentsOf({'instruments': ['Piano']}), ['Piano']);
+    });
+    test('the practice tab falls back to a showing instrument', () {
+      expect(practiceInstrumentFor(kid, 'Violin'), 'Piano');
+    });
   });
 }

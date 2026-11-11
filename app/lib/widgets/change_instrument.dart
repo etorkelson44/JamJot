@@ -204,23 +204,25 @@ Future<void> removeInstrumentFlow(BuildContext context, WidgetRef ref,
     Map<String, dynamic> kid, StudentInstrument item) async {
   final studentId = kid['id'] as String;
   final name = kid['display_name'] as String? ?? 'This student';
-  if (((kid['instruments'] as List?) ?? const []).length <= 1) {
-    _toast(context, '$name needs at least one instrument.');
+  if (!isInstrumentHidden(kid, item.instrument) &&
+      instrumentsOf(kid).length <= 1) {
+    _toast(context,
+        '$name needs at least one instrument showing. Add another one first.');
     return;
   }
   final ok = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text('Remove ${item.instrument}?'),
+      title: Text('Delete ${item.instrument}?'),
       content: Text(
-          '${item.instrument} will come off $name\'s list. Lessons already made for it are kept.'),
+          'Deleting takes ${item.instrument} off $name\'s list for good, so it won\'t show up anywhere.\n\nJust taking a break? Choose "Hide for now" instead. Everything stays saved and comes back when you show it again.'),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel')),
         FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove')),
+            child: const Text('Delete')),
       ],
     ),
   );
@@ -245,4 +247,76 @@ Future<void> removeInstrumentFlow(BuildContext context, WidgetRef ref,
       _toast(context, 'Could not remove that just now. Please try again.');
     }
   }
+}
+
+/// Hide an instrument for now (e.g. a break). Explains the difference from deleting.
+Future<void> hideInstrumentFlow(BuildContext context, WidgetRef ref,
+    Map<String, dynamic> kid, StudentInstrument item) async {
+  final studentId = kid['id'] as String;
+  final name = kid['display_name'] as String? ?? 'This student';
+  if (instrumentsOf(kid).length <= 1) {
+    _toast(context,
+        '$name needs at least one instrument showing. Add another one first.');
+    return;
+  }
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Hide ${item.instrument} for now?'),
+      content: Text(
+          'While it\'s hidden, ${item.instrument} and its lessons, assignments and goals disappear from $name\'s profile, and it doesn\'t count toward rewards.\n\n'
+          'Nothing is deleted. Tap "Show again" later and everything comes back just as it was.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel')),
+        FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hide for now')),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  try {
+    await hideInstrumentRpc(studentId, item.instrument);
+    await _refreshAfterHide(ref, studentId);
+  } catch (_) {
+    if (context.mounted) {
+      _toast(context, 'Could not hide that just now. Only a caregiver can change this.');
+    }
+  }
+}
+
+Future<void> showInstrumentAgainFlow(BuildContext context, WidgetRef ref,
+    Map<String, dynamic> kid, StudentInstrument item) async {
+  final studentId = kid['id'] as String;
+  try {
+    await showInstrumentAgainRpc(studentId, item.instrument);
+    await _refreshAfterHide(ref, studentId);
+    if (context.mounted) {
+      _toast(context, '${item.instrument} is back, with everything saved from before.');
+    }
+  } catch (_) {
+    if (context.mounted) {
+      _toast(context, 'Could not show that just now. Please try again.');
+    }
+  }
+}
+
+Future<void> _refreshAfterHide(WidgetRef ref, String studentId) async {
+  ref.invalidate(myStudentsProvider);
+  ref.invalidate(studentInstrumentsProvider(studentId));
+  ref.invalidate(weeklyProgressProvider(studentId));
+  ref.invalidate(currentLessonProvider(studentId));
+  try {
+    final fresh = await ref.read(myStudentsProvider.future);
+    final active = ref.read(activeStudentProvider);
+    if (active != null && active['id'] == studentId) {
+      for (final k in fresh) {
+        if (k['id'] == studentId) {
+          ref.read(activeStudentProvider.notifier).state = {...active, ...k};
+        }
+      }
+    }
+  } catch (_) {}
 }

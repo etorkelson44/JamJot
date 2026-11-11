@@ -129,6 +129,24 @@ Future<void> removeStudentInstrument(String rowId) async {
       .eq('id', rowId);
 }
 
+/// Hide an instrument for now (a break). Nothing is deleted; [showInstrumentAgain] brings it back.
+Future<void> hideInstrumentRpc(String studentId, String instrument) async {
+  await JamJotBackend.client.rpc('hide_instrument',
+      params: {'p_student_id': studentId, 'p_instrument': instrument});
+}
+
+Future<void> showInstrumentAgainRpc(String studentId, String instrument) async {
+  await JamJotBackend.client.rpc('unhide_instrument',
+      params: {'p_student_id': studentId, 'p_instrument': instrument});
+}
+
+/// A teacher changes their permanent code. Families already connected stay connected.
+Future<String> rotateTeacherCode(String teacherId) async {
+  final code = await JamJotBackend.client
+      .rpc('rotate_teacher_code', params: {'p_teacher_id': teacherId});
+  return code as String;
+}
+
 /// Saves the daily/weekly goals for a caregiver-run instrument: updates the
 /// newest family-run lesson for it, or starts one if there is none yet.
 Future<void> saveFamilyGoals(

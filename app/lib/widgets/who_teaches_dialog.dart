@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'invite_message_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/student_instruments.dart';
@@ -149,34 +149,23 @@ class _WhoTeachesDialogState extends State<_WhoTeachesDialog> {
     }
   }
 
-  Future<void> _showInvite(String link) => showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Invite link ready'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                  'Send this to your teacher. When they join JamJot and accept, they are connected automatically. The link works for 30 days.'),
-              const SizedBox(height: 10),
-              SelectableText(link, style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close')),
-            FilledButton(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: link));
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('Copy link'),
-            ),
-          ],
-        ),
-      );
+  Future<void> _showInvite(String link) {
+    final teacher = _name.text.trim().isEmpty ? 'there' : _name.text.trim();
+    final kid = widget.studentName;
+    final instrument = widget.item.instrument;
+    return showInviteMessageDialog(context,
+        link: link,
+        recipientName: teacher == 'there' ? 'your teacher' : teacher,
+        subject: 'Join $kid\'s $instrument lessons on JamJot',
+        message: '''Hi $teacher!
+
+$kid and I have started using JamJot, an app that makes home practice really count: it listens while they play, so only real playing time is counted, and it keeps them motivated with little rewards for finishing their assigned songs.
+
+I\'d love to connect you as $kid\'s $instrument teacher. You can assign each week\'s songs and see (and hear!) what was practiced before each lesson. A teacher account is free and takes about two minutes. Tap this link to join and you\'ll be connected right away:
+$link
+
+(The link is just for you. It works once and expires in 30 days.)''');
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -73,9 +73,30 @@ String? firstInstrumentOf(Ref ref, String studentId) {
   return instrumentsOf(ref.read(activeStudentProvider)).firstOrNull;
 }
 
-/// The instruments a student plays, in order.
-List<String> instrumentsOf(Map<String, dynamic>? student) =>
+/// Every instrument on a student's list, including hidden ones, in order.
+List<String> allInstrumentsOf(Map<String, dynamic>? student) =>
     ((student?['instruments'] as List?) ?? const []).whereType<String>().toList();
+
+/// Instruments a caregiver has hidden for now (lower case). Hidden is not deleted:
+/// the lessons, goals and history are kept, and they come back when shown again.
+List<String> hiddenInstrumentsOf(Map<String, dynamic>? student) =>
+    ((student?['hidden_instruments'] as List?) ?? const [])
+        .whereType<String>()
+        .map((s) => s.toLowerCase())
+        .toList();
+
+bool isInstrumentHidden(Map<String, dynamic>? student, String instrument) =>
+    hiddenInstrumentsOf(student).contains(instrument.toLowerCase());
+
+/// The instruments a student is playing right now, in order. Hidden ones are
+/// left out everywhere a kid or caregiver sees practice, lessons, goals and rewards.
+List<String> instrumentsOf(Map<String, dynamic>? student) {
+  final hidden = hiddenInstrumentsOf(student);
+  return [
+    for (final i in allInstrumentsOf(student))
+      if (!hidden.contains(i.toLowerCase())) i
+  ];
+}
 
 /// The instrument the practice page shows for [student]: the chosen tab if
 /// they still play it, otherwise their first one (null if they have none).

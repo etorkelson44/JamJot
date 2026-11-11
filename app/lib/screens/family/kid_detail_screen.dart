@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/sound_gate.dart';
 import '../../services/supabase_service.dart';
@@ -22,6 +21,7 @@ import '../../widgets/instrument_icon.dart';
 import '../../widgets/change_instrument.dart';
 import '../../widgets/who_teaches_dialog.dart';
 import '../../widgets/send_email.dart';
+import '../../widgets/invite_message_dialog.dart';
 import '../../services/student_instruments.dart';
 
 /// One kid's world in the grown-up view, organized into tabs:
@@ -127,7 +127,7 @@ class _OverviewTab extends ConsumerWidget {
                       style: text.titleLarge
                           ?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  InstrumentList((kid['instruments'] as List?) ?? const [],
+                  InstrumentList(instrumentsOf(kid),
                       iconSize: 24,
                       style: text.bodyMedium
                           ?.copyWith(color: JamJotColors.inkSoft)),
@@ -642,7 +642,6 @@ class _CaregiversTab extends ConsumerWidget {
         'our kid';
     final name = TextEditingController();
     final customRelation = TextEditingController();
-    final phone = TextEditingController();
     final email = TextEditingController();
     const relations = [
       'Mom', 'Dad', 'Stepmom', 'Stepdad', 'Grandma', 'Grandpa',
@@ -775,21 +774,14 @@ class _CaregiversTab extends ConsumerWidget {
                         onChanged: (v) => setState(() => grants[key] = v),
                       ),
                   const SizedBox(height: 6),
-                  const Text('How should the invite reach them?',
+                  const Text('Where should we send the invite?',
                       style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
-                  TextField(
-                    controller: phone,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                        labelText: 'Phone number (for a text)'),
-                  ),
-                  const SizedBox(height: 8),
                   TextField(
                     controller: email,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
-                        labelText: 'Email address (for an email)'),
+                        labelText: 'Their email address'),
                   ),
                 ],
               ),
@@ -855,64 +847,14 @@ I set you up as $kidName's $relationFinal on JamJot — the app we use for music
 Tap this link, create your free account, and you're in:
 $link
 
-(The link is just for you and works once.)''';
+(The link is just for you. It works once and expires in 30 days.)''';
 
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
-            side: JamJotShape.border,
-          ),
-          title: const Text('Invite ready — send it! 🎉'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                  'A ready-written message for ${name.text.trim()} — send it however you like:'),
-              const SizedBox(height: 12),
-              if (phone.text.trim().isNotEmpty)
-                FilledButton.icon(
-                  onPressed: () => launchUrl(Uri.parse(
-                      'sms:${phone.text.trim()}?body=${Uri.encodeComponent(message)}')),
-                  icon: const Icon(Icons.sms_outlined),
-                  label: const Text('Send as text'),
-                ),
-              if (phone.text.trim().isNotEmpty)
-                const SizedBox(height: 8),
-              if (email.text.trim().isNotEmpty)
-                FilledButton.icon(
-                  onPressed: () => sendByEmail(context,
-                      to: email.text.trim(),
-                      subject: "You're invited to $kidName's JamJot!",
-                      body: message),
-                  icon: const Icon(Icons.email_outlined),
-                  label: const Text('Send as email'),
-                ),
-              if (email.text.trim().isNotEmpty)
-                const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: message));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Message copied!')));
-                  }
-                },
-                icon: const Icon(Icons.copy),
-                label: const Text('Copy the message'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
-            ),
-          ],
-        ),
-      );
+      await showInviteMessageDialog(context,
+          link: link,
+          recipientName: name.text.trim(),
+          subject: "You're invited to $kidName's JamJot!",
+          message: message,
+          initialEmail: email.text.trim());
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -1140,6 +1082,10 @@ class _InstrumentsCard extends ConsumerWidget {
         children: [
           Text('Instruments & teachers',
               style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 2),
+          Text(
+              'Taking a break? "Hide for now" tucks an instrument away and keeps everything saved. "Delete for good" removes it.',
+              style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
           const SizedBox(height: 6),
           if (items.isEmpty)
             InstrumentList((kid['instruments'] as List?) ?? const [],
@@ -1156,9 +1102,15 @@ class _InstrumentsCard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(i.instrument,
-                            style: text.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.w600)),
+                        Text(
+                            isInstrumentHidden(kid, i.instrument)
+                                ? '${i.instrument} · hidden for now'
+                                : i.instrument,
+                            style: text.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: isInstrumentHidden(kid, i.instrument)
+                                    ? JamJotColors.inkSoft
+                                    : null)),
                         Text(i.whoTeaches(linkedTeacherName: linkedName(i)),
                             style: text.bodySmall
                                 ?.copyWith(color: JamJotColors.inkSoft)),
@@ -1168,21 +1120,38 @@ class _InstrumentsCard extends ConsumerWidget {
                     ),
                   ),
                   if (canEdit) ...[
-                    if (!i.taughtByTeacher)
+                    if (isInstrumentHidden(kid, i.instrument))
                       TextButton(
-                        onPressed: () => _editGoals(context, ref, studentId, i.instrument),
-                        child: const Text('Goals'),
+                        onPressed: () =>
+                            showInstrumentAgainFlow(context, ref, kid, i),
+                        child: const Text('Show again'),
+                      )
+                    else ...[
+                      if (!i.taughtByTeacher)
+                        TextButton(
+                          onPressed: () => _editGoals(context, ref, studentId, i.instrument),
+                          child: const Text('Goals'),
+                        ),
+                      TextButton(
+                        onPressed: () => showWhoTeachesDialog(context, ref,
+                            studentId: studentId, studentName: name, item: i),
+                        child: const Text('Edit'),
                       ),
-                    TextButton(
-                      onPressed: () => showWhoTeachesDialog(context, ref,
-                          studentId: studentId, studentName: name, item: i),
-                      child: const Text('Edit'),
-                    ),
-                    IconButton(
-                      tooltip: 'Remove ${i.instrument}',
-                      icon: const Icon(Icons.close, size: 18),
-                      onPressed: () =>
-                          removeInstrumentFlow(context, ref, kid, i),
+                    ],
+                    PopupMenuButton<String>(
+                      tooltip: 'More for ${i.instrument}',
+                      icon: const Icon(Icons.more_vert, size: 20),
+                      onSelected: (v) {
+                        if (v == 'hide') hideInstrumentFlow(context, ref, kid, i);
+                        if (v == 'delete') removeInstrumentFlow(context, ref, kid, i);
+                      },
+                      itemBuilder: (_) => [
+                        if (!isInstrumentHidden(kid, i.instrument))
+                          const PopupMenuItem(
+                              value: 'hide', child: Text('Hide for now (taking a break)')),
+                        const PopupMenuItem(
+                            value: 'delete', child: Text('Delete for good')),
+                      ],
                     ),
                   ],
                 ],

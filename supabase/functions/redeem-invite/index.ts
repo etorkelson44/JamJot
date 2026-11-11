@@ -39,10 +39,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!invite) return json({ error: 'Invite not found' }, 404);
     if (invite.single_use && invite.used_at) {
-      return json({ error: 'This invite was already used' }, 410);
+      return json({ error: 'This invite was already used. Please ask the person who invited you to send a new one.' }, 410);
     }
     if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-      return json({ error: 'This invite has expired' }, 410);
+      return json({ error: 'This invite has expired. Please reach out to the person who invited you and ask them to send you a new one.' }, 410);
     }
 
     // ---------------------------------------------------------- caregiver

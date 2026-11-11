@@ -60,7 +60,7 @@ class PerformingAvatar extends ConsumerWidget {
     final active = ref.watch(activeStudentProvider);
     final wornKey = studentAvatarKey(active?['avatar_key'] as String?);
     final sid = active?['id'] as String?;
-    final instruments = (active?['instruments'] as List?)?.cast<String>();
+    final instruments = active == null ? null : instrumentsOf(active);
     final entry = resolveInstrument(instrument ??
         (instruments != null && instruments.isNotEmpty
             ? instruments.first
