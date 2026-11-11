@@ -1,0 +1,13 @@
+# Always check for a newer app before using a stored copy, so families get each
+# update right away instead of after up to 4 hours. The browser still reuses its
+# copy when nothing changed (it asks first and gets a quick "not modified").
+/main.dart.js
+  Cache-Control: public, max-age=0, must-revalidate
+/flutter_bootstrap.js
+  Cache-Control: public, max-age=0, must-revalidate
+/flutter_service_worker.js
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/version.json
+  Cache-Control: public, max-age=0, must-revalidate
