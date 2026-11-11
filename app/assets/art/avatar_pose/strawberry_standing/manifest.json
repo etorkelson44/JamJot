@@ -21,8 +21,8 @@
       "note": "capes, wings, backpacks"
     },
     "clothing_torso": {
-      "after": "1_body",
-      "note": "shirts, scarves, bow ties; stays under the face and arms"
+      "after": "3_legs_feet",
+      "note": "dresses, skirts, shirts; sits over the legs and under the arms and face (moved from after 1_body on 2026-11-11 so a skirt covers the legs)"
     },
     "shoes": {
       "after": "3_legs_feet"

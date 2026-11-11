@@ -1,0 +1,48 @@
+{
+  "note": "Market accessories. Each accessory is drawn once per avatar and pose (folder <item>/<avatar>_<pose>/), as square transparent PNG layers on that pose's 1000px canvas. The app pairs the chosen item with the avatar and pose being drawn (JJ-059-C). If an item has no art for that avatar and pose it is hidden there, never drawn wrong. released:false = wired in but NOT wearable yet; flip to true when the item goes on sale in the Market. Item names are working names until Erika names them.",
+  "items": [
+    {
+      "id": "purple_glitter_crown",
+      "name": "Purple glitter crown",
+      "released": false,
+      "art": {
+        "strawberry_standing": [
+          {"slot": "hat", "file": "crown.png"}
+        ]
+      }
+    },
+    {
+      "id": "cat_eye_sunglasses",
+      "name": "Purple cat-eye sunglasses",
+      "released": false,
+      "art": {
+        "strawberry_standing": [
+          {"slot": "face", "file": "sunglasses.png"}
+        ]
+      }
+    },
+    {
+      "id": "pink_ruffle_dress",
+      "name": "Pink ruffle dress (strapless top, ruffle skirt, sash with bow)",
+      "released": false,
+      "art": {
+        "strawberry_standing": [
+          {"slot": "clothing_torso", "file": "1_strapless_top.png"},
+          {"slot": "clothing_torso", "file": "2_ruffle_skirt.png"},
+          {"slot": "clothing_torso", "file": "3_sash_bow.png"}
+        ]
+      }
+    },
+    {
+      "id": "lilac_platform_boots",
+      "name": "Lilac platform boots",
+      "released": false,
+      "art": {
+        "strawberry_standing": [
+          {"slot": "shoes", "file": "1_boot_viewer_left.png"},
+          {"slot": "shoes", "file": "2_boot_viewer_right.png"}
+        ]
+      }
+    }
+  ]
+}
