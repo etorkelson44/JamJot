@@ -91,9 +91,7 @@ void main() {
     await open(tester, scale: 2);
     for (final name in [
       'Señor Jalapresto',
-      'Ms. Straw-ccato',
-      'Grape Arpeggio',
-      'Lemon Sharp'
+      'Ms. Straw-ccato'
     ]) {
       await tester.scrollUntilVisible(find.text(name), 250,
           scrollable: find.byType(Scrollable).first);
@@ -109,9 +107,7 @@ void main() {
         assets,
         containsAll([
           'assets/art/avatar_jalapeno.png',
-          'assets/art/avatar_strawberry.png',
-          'assets/art/avatar_grape.png',
-          'assets/art/avatar_lemon.png'
+          'assets/art/avatar_strawberry.png'
         ]));
   }, skip: _jamStandClosed);
   testWidgets('purchase spends once, fills the shelf and wears the character',
@@ -141,21 +137,6 @@ void main() {
     expect(fixture.student['avatar_key'], 'jalapeno');
     expect(fixture.coins, 50);
     expect(fixture.purchaseCalls, 2);
-    await buyFirst(tester); // Grape Arpeggio is next in the catalog.
-    expect(fixture.coins, 25);
-    expect(fixture.shelf.length, 3);
-    expect(fixture.student['avatar_key'], 'grape');
-    await tester.tap(find.text('🎉'));
-    await tester.pumpAndSettle();
-    expect(scope.read(activeStudentProvider)?['avatar_key'], 'grape');
-    await buyFirst(tester); // Lemon Sharp is the remaining unowned avatar.
-    expect(fixture.coins, 0);
-    expect(fixture.shelf.length, 4);
-    expect(fixture.purchaseCalls, 4);
-    expect(fixture.student['avatar_key'], 'lemon');
-    await tester.tap(find.text('🎉'));
-    await tester.pumpAndSettle();
-    expect(scope.read(activeStudentProvider)?['avatar_key'], 'lemon');
   }, skip: _jamStandClosed);
   testWidgets('insufficient coins leave ownership and balance unchanged',
       (tester) async {
@@ -190,19 +171,19 @@ void main() {
   });
   testWidgets('Home profile shows the purchased placeholder image',
       (tester) async {
-    fixture.student['avatar_key'] = 'lemon';
+    fixture.student['avatar_key'] = 'strawberry';
     await open(tester, home: true);
     // Home can show several characters; the worn one must be among them.
     expect(
         tester
             .widgetList<DressedAvatar>(find.byType(DressedAvatar))
-            .any((d) => d.avatarKey == 'lemon'),
+            .any((d) => d.avatarKey == 'strawberry'),
         isTrue);
     expect(
         find.byWidgetPredicate((w) =>
             w is Image &&
             w.image is AssetImage &&
-            (w.image as AssetImage).assetName == 'assets/art/avatar_lemon.png'),
+            (w.image as AssetImage).assetName == 'assets/art/avatar_strawberry.png'),
         findsAtLeastNWidgets(1));
   });
 }

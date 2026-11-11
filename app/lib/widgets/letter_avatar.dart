@@ -13,10 +13,6 @@ const placeholderPngArt = <String>{
   'avatar_strawberry',
   'avatar_jalapeno',
   'avatar_kiwi',
-  'avatar_grape',
-  'avatar_lemon',
-  'avatar_raspberry',
-  'avatar_blueberry',
   'brand_tisdale', // Tisdale Applications imprint
   'crowd_color', // fan crowd silhouettes (founder reference style)
   'crowd_black',
@@ -40,20 +36,13 @@ Widget artAsset(String base,
       width: width, height: height, fit: fit, alignment: alignment);
 }
 
-/// Berry characters bought at the market (JamJot-drawn placeholders — each
-/// key swaps to Erika's final artwork later, same file names).
+/// The three current characters (JamJot-drawn placeholders for now; each
+/// key swaps to Erika's final artwork later, same file names). The old berry
+/// set was retired 2026-11-11.
 const berryAvatars = {
-  'blueberry': '🫐',
   'strawberry': '🍓',
   'jalapeno': '🌶️',
   'kiwi': '🥝',
-  'grape': '🍇',
-  'lemon': '🍋',
-  'blackberry': '🥷',
-  'raspberry': '👑',
-  'melon': '🤖',
-  'dragonfruit': '🐉',
-  'golden': '⭐',
 };
 
 /// Every student's default band member: Keywi (JJ-040-C). A student never

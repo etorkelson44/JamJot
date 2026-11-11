@@ -8,14 +8,7 @@ import 'letter_avatar.dart' show berryArt;
 /// on that avatar's measured landmarks (eyes, mouth, chin, head, hands,
 /// shoes), so items land exactly right on every body (JJ-012/JJ-014 art
 /// pass, founder-directed 2026-11-04).
-const _tailoredAvatars = <String>{
-  'strawberry',
-  'jalapeno',
-  'grape',
-  'lemon',
-  'raspberry',
-  'blueberry',
-};
+const _tailoredAvatars = <String>{'strawberry', 'jalapeno'};
 
 /// Draw order, lowest first: capes and jackets wrap the body, boots and
 /// held pieces come next, then neckwear, then the face, then headwear.

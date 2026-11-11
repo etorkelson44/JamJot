@@ -102,7 +102,7 @@ Future<void> main() async {
     activeStudentProvider.overrideWith((ref) => {
           'id': sid,
           'display_name': 'Sample musician',
-          'avatar_key': 'blueberry'
+          'avatar_key': 'kiwi'
         }),
     practiceRecorderProvider.overrideWithValue(PreviewRecorder()),
     currentLessonProvider(sid).overrideWith((ref) async => lesson),
@@ -153,7 +153,7 @@ class _PreviewAppState extends State<PreviewApp> {
                   onPressed: () => setState(() => scale = scale == 1 ? 2 : 1),
                   child: Text('Text ${scale.toInt()}×')),
               const LetterAvatar(
-                  name: 'Sample', avatarKey: 'blueberry', size: 44),
+                  name: 'Sample', avatarKey: 'kiwi', size: 44),
             ])),
         const Text('Sample data · microphone disabled'),
         Expanded(

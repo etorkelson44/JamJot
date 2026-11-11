@@ -40,26 +40,6 @@ class MarketFixture {
       'price': 25,
       'emoji': '🍓'
     },
-    {
-      'id': '3c2e22f9-4fad-4694-9ca5-7a76dc27b88d',
-      'stand': 'jamjot',
-      'kind': 'avatar',
-      'asset_key': 'grape',
-      'title': 'Maestro Grape',
-      'description': 'Previous catalog description',
-      'price': 25,
-      'emoji': '🍇'
-    },
-    {
-      'id': '820d75aa-ff72-4b21-81e5-aa44d5795d4c',
-      'stand': 'jamjot',
-      'kind': 'avatar',
-      'asset_key': 'lemon',
-      'title': 'Previous lemon avatar',
-      'description': 'Previous catalog description',
-      'price': 25,
-      'emoji': '🍋'
-    },
   ];
   void reset() {
     coins = 75;
