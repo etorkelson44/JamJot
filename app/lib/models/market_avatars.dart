@@ -33,11 +33,6 @@ const musicalAvatars =
     description: 'One berry, a thousand notes.',
     emoji: '🫐'
   ),
-  'blueberry': (
-    name: 'Blueberry Bravura',
-    description: 'Bold. Brilliant. Blue.',
-    emoji: '🫐'
-  ),
 };
 
 Map<String, dynamic> presentMarketAvatar(Map<String, dynamic> item) {
