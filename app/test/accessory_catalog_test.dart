@@ -8,6 +8,7 @@ import 'package:jamjot/widgets/pose_stack.dart';
 void main() {
   dressedFrameTests();
   keywiOutfitTests();
+  jalapenoOutfitTests();
   final json = File('assets/art/accessories/catalog.json').readAsStringSync();
   final catalog = parseAccessoryCatalog(json);
   List<AccessoryItem> released() => [
@@ -26,8 +27,9 @@ void main() {
     for (final i in catalog) {
       expect(i.hasArtFor('strawberry', 'standing'), isTrue, reason: i.id);
       expect(i.hasArtFor('kiwi', 'standing'), isTrue, reason: i.id);
-      expect(i.hasArtFor('jalapeno', 'standing'), isFalse, reason: i.id);
-      for (final av in ['strawberry', 'kiwi']) {
+      expect(i.hasArtFor('jalapeno', 'standing'), isTrue, reason: i.id);
+      expect(i.hasArtFor('jalapeno', 'violin'), isFalse, reason: i.id);
+      for (final av in ['strawberry', 'kiwi', 'jalapeno']) {
         for (final p in i.art['${av}_standing']!) {
           expect(File('${i.assetFolder(av, 'standing')}/${p.file}').existsSync(),
               isTrue,
@@ -52,7 +54,7 @@ void main() {
 
   test('once released, an item is hidden for an avatar or pose it has no art for', () {
     final c = released();
-    expect(resolveAccessories(c, ['pink_ruffle_dress'], 'jalapeno', 'standing'), isEmpty);
+    expect(resolveAccessories(c, ['pink_ruffle_dress'], 'jalapeno', 'violin'), isEmpty);
     expect(resolveAccessories(c, ['pink_ruffle_dress'], 'strawberry', 'violin'), isEmpty);
     expect(resolveAccessories(c, ['no_such_item'], 'strawberry', 'standing'), isEmpty);
   });
@@ -114,6 +116,37 @@ void keywiOutfitTests() {
     final m = jsonDecode(File('assets/art/avatar_pose/kiwi_standing/manifest.json').readAsStringSync());
     final b = (m['dressed_display_box'] as List).cast<num>();
     expect(b[1] <= 25 && b[1] + b[2] >= 975, isTrue);
+  });
+}
+
+void jalapenoOutfitTests() {
+  final catalog = parseAccessoryCatalog(
+      File('assets/art/accessories/catalog.json').readAsStringSync());
+  test('Jalapresto outfit stacks like the layered PDF: dress over the arms, left boot over the skirt, glasses and crown on top', () {
+    final all = [
+      for (final i in catalog)
+        AccessoryItem(id: i.id, name: i.name, released: true, art: i.art, display: i.display)
+    ];
+    final manifest = PoseManifest.parse('assets/art/avatar_pose/jalapeno_standing',
+        File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());
+    final acc = resolveAccessories(all, all.map((i) => i.id), 'jalapeno', 'standing');
+    final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
+    int at(String f) => order.indexOf(f);
+    expect(at('5_legs_feet.png'), lessThan(at('2_boot_viewer_right.png')));
+    expect(at('2_boot_viewer_right.png'), lessThan(at('6_arm_viewer_right.png')));
+    expect(at('7_arm_viewer_left.png'), lessThan(at('2_ruffle_skirt.png')));
+    expect(at('2_ruffle_skirt.png'), lessThan(at('1_strapless_top.png')));
+    expect(at('1_strapless_top.png'), lessThan(at('3_sash_bow.png')));
+    expect(at('3_sash_bow.png'), lessThan(at('1_boot_viewer_left.png')));
+    expect(at('4_eyes_brows.png'), lessThan(at('sunglasses.png')));
+    expect(at('1_boot_viewer_left.png'), lessThan(at('crown.png')));
+    expect(order.length, manifest.layers.length + 7);
+  });
+  test('jalapeno dressed frame holds crown and boots', () {
+    final m = jsonDecode(File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());
+    final b = (m['dressed_display_box'] as List).cast<num>();
+    expect(b[1] <= 72 && b[1] + b[2] >= 969, isTrue);
+    expect(b[0] >= 0 && b[0] + b[2] <= 1000, isTrue);
   });
 }
 

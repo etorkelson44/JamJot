@@ -53,6 +53,7 @@ const List<String> accessorySlotRank = [
   'shoes',
   'clothing_torso',
   'clothing_lower',
+  'shoes_front',
   'sleeves_arm_viewer_right',
   'sleeves_arm_viewer_left',
   'face',

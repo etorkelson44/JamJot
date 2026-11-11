@@ -41,11 +41,24 @@
     "hat": {
       "after": "7_arm_viewer_left",
       "note": "top of stack"
+    },
+    "clothing_lower": {
+      "after": "7_arm_viewer_left",
+      "note": "dress skirt, top and sash: drawn over the arms, as in the dressed art"
+    },
+    "shoes_front": {
+      "after": "7_arm_viewer_left",
+      "note": "a boot drawn in front of the skirt hem"
     }
   },
   "display_box": [
     10,
     17,
     948
+  ],
+  "dressed_display_box": [
+    8,
+    14,
+    970
   ]
 }
