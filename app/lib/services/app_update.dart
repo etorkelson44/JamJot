@@ -116,11 +116,16 @@ class _AppUpdateHostState extends State<AppUpdateHost>
                       child: Text('✨ A new version of JamJot is ready.',
                           style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
+                    // The app theme gives buttons a wide minimum size, which would
+                    // squeeze the message; keep these two compact.
                     TextButton(
+                      style: TextButton.styleFrom(minimumSize: const Size(0, 44)),
                       onPressed: () => setState(() => _available = false),
                       child: const Text('Later'),
                     ),
+                    const SizedBox(width: 4),
                     FilledButton(
+                      style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
                       onPressed: reloadPage,
                       child: const Text('Update'),
                     ),
