@@ -22,11 +22,18 @@ class AccessoryItem {
       {required this.id,
       required this.name,
       required this.released,
-      required this.art});
+      required this.art,
+      this.display = 'display.png'});
 
   final String id;
   final String name;
   final bool released;
+
+  /// The one shelf image for the Market and dressing room (not the fitted art).
+  final String display;
+
+  /// Asset path of the shelf image.
+  String get displayAsset => 'assets/art/accessories/$id/$display';
 
   /// `<avatar>_<pose>` (e.g. `strawberry_standing`) -> pieces, bottom first.
   final Map<String, List<AccessoryPiece>> art;
@@ -60,6 +67,7 @@ List<AccessoryItem> parseAccessoryCatalog(String json) {
           id: raw['id'] as String,
           name: raw['name'] as String? ?? raw['id'] as String,
           released: raw['released'] == true,
+          display: raw['display'] as String? ?? 'display.png',
           art: {
             for (final e in (raw['art'] as Map<String, dynamic>? ?? const {})
                 .entries)

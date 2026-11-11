@@ -12,7 +12,7 @@ void main() {
   List<AccessoryItem> released() => [
         for (final i in catalog)
           AccessoryItem(
-              id: i.id, name: i.name, released: true, art: i.art)
+              id: i.id, name: i.name, released: true, art: i.art, display: i.display)
       ];
 
   test('catalog lists the four strawberry outfit items, all drawn for her standing pose', () {
@@ -30,6 +30,12 @@ void main() {
             isTrue,
             reason: '${i.id}/${p.file}');
       }
+    }
+  });
+
+  test('each item has one shelf image for the Market and dressing room', () {
+    for (final i in catalog) {
+      expect(File(i.displayAsset).existsSync(), isTrue, reason: i.id);
     }
   });
 
