@@ -48,12 +48,16 @@ flutter:
     - assets/art/accessories/
     - assets/art/accessories/purple_glitter_crown/
     - assets/art/accessories/purple_glitter_crown/strawberry_standing/
+    - assets/art/accessories/purple_glitter_crown/kiwi_standing/
     - assets/art/accessories/cat_eye_sunglasses/
     - assets/art/accessories/cat_eye_sunglasses/strawberry_standing/
+    - assets/art/accessories/cat_eye_sunglasses/kiwi_standing/
     - assets/art/accessories/pink_ruffle_dress/
     - assets/art/accessories/pink_ruffle_dress/strawberry_standing/
+    - assets/art/accessories/pink_ruffle_dress/kiwi_standing/
     - assets/art/accessories/lilac_platform_boots/
     - assets/art/accessories/lilac_platform_boots/strawberry_standing/
+    - assets/art/accessories/lilac_platform_boots/kiwi_standing/
     - assets/instruments/
     - assets/art/jar/
     - assets/art/stoplight/

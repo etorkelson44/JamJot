@@ -7,6 +7,7 @@ import 'package:jamjot/widgets/pose_stack.dart';
 
 void main() {
   dressedFrameTests();
+  keywiOutfitTests();
   final json = File('assets/art/accessories/catalog.json').readAsStringSync();
   final catalog = parseAccessoryCatalog(json);
   List<AccessoryItem> released() => [
@@ -15,7 +16,7 @@ void main() {
               id: i.id, name: i.name, released: true, art: i.art, display: i.display)
       ];
 
-  test('catalog lists the four strawberry outfit items, all drawn for her standing pose', () {
+  test('catalog lists the four outfit items, drawn for Ms. Straw-ccato and Keywi standing', () {
     expect(catalog.map((i) => i.id), [
       'purple_glitter_crown',
       'cat_eye_sunglasses',
@@ -24,11 +25,14 @@ void main() {
     ]);
     for (final i in catalog) {
       expect(i.hasArtFor('strawberry', 'standing'), isTrue, reason: i.id);
-      expect(i.hasArtFor('kiwi', 'standing'), isFalse, reason: i.id);
-      for (final p in i.art['strawberry_standing']!) {
-        expect(File('${i.assetFolder('strawberry', 'standing')}/${p.file}').existsSync(),
-            isTrue,
-            reason: '${i.id}/${p.file}');
+      expect(i.hasArtFor('kiwi', 'standing'), isTrue, reason: i.id);
+      expect(i.hasArtFor('jalapeno', 'standing'), isFalse, reason: i.id);
+      for (final av in ['strawberry', 'kiwi']) {
+        for (final p in i.art['${av}_standing']!) {
+          expect(File('${i.assetFolder(av, 'standing')}/${p.file}').existsSync(),
+              isTrue,
+              reason: '${i.id}/$av/${p.file}');
+        }
       }
     }
   });
@@ -48,7 +52,7 @@ void main() {
 
   test('once released, an item is hidden for an avatar or pose it has no art for', () {
     final c = released();
-    expect(resolveAccessories(c, ['pink_ruffle_dress'], 'kiwi', 'standing'), isEmpty);
+    expect(resolveAccessories(c, ['pink_ruffle_dress'], 'jalapeno', 'standing'), isEmpty);
     expect(resolveAccessories(c, ['pink_ruffle_dress'], 'strawberry', 'violin'), isEmpty);
     expect(resolveAccessories(c, ['no_such_item'], 'strawberry', 'standing'), isEmpty);
   });
@@ -81,6 +85,35 @@ void main() {
 
   test('catalog json parses with the expected keys', () {
     expect(jsonDecode(json)['items'], hasLength(4));
+  });
+}
+
+void keywiOutfitTests() {
+  final catalog = parseAccessoryCatalog(
+      File('assets/art/accessories/catalog.json').readAsStringSync());
+  test('Keywi outfit stacks like the layered PDF: top under the face, skirt over the arms', () {
+    final all = [
+      for (final i in catalog)
+        AccessoryItem(id: i.id, name: i.name, released: true, art: i.art, display: i.display)
+    ];
+    final manifest = PoseManifest.parse('assets/art/avatar_pose/kiwi_standing',
+        File('assets/art/avatar_pose/kiwi_standing/manifest.json').readAsStringSync());
+    final acc = resolveAccessories(all, all.map((i) => i.id), 'kiwi', 'standing');
+    final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
+    int at(String f) => order.indexOf(f);
+    expect(at('1_body.png'), lessThan(at('1_strapless_top.png')));
+    expect(at('1_strapless_top.png'), lessThan(at('2_eyes_brows.png')));
+    expect(at('3_mouth.png'), lessThan(at('sunglasses.png')));
+    expect(at('4_legs_feet.png'), lessThan(at('1_boot_viewer_left.png')));
+    expect(at('6_arm_viewer_right.png'), lessThan(at('2_ruffle_skirt.png')));
+    expect(at('2_ruffle_skirt.png'), lessThan(at('3_sash_bow.png')));
+    expect(at('3_sash_bow.png'), lessThan(at('crown.png')));
+    expect(order.length, manifest.layers.length + 7);
+  });
+  test('kiwi dressed frame holds crown and boots', () {
+    final m = jsonDecode(File('assets/art/avatar_pose/kiwi_standing/manifest.json').readAsStringSync());
+    final b = (m['dressed_display_box'] as List).cast<num>();
+    expect(b[1] <= 25 && b[1] + b[2] >= 975, isTrue);
   });
 }
 

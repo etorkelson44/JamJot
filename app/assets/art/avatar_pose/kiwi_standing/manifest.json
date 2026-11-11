@@ -40,11 +40,20 @@
     "hat": {
       "after": "6_arm_viewer_right",
       "note": "top of stack"
+    },
+    "clothing_lower": {
+      "after": "6_arm_viewer_right",
+      "note": "skirts and sashes; drawn over the legs and arms, as in Erika's Fabulous Keywi PDF (2026-11-11)"
     }
   },
   "display_box": [
     75,
     72,
     876
+  ],
+  "dressed_display_box": [
+    20,
+    20,
+    960
   ]
 }
