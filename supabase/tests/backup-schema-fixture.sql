@@ -1,7 +1,7 @@
 -- Fictional tests: column definitions inspected November 4, 2026; no live data.
 create role anon; create role authenticated; create role service_role bypassrls;
 create table public.profiles("id" uuid primary key,"full_name" text,"avatar_key" text,"app_pin_hash" text,"created_at" timestamptz,"last_active_student" uuid,"phone" text);
-create table public.students("id" uuid primary key,"display_name" text,"instruments" text[],"avatar_key" text,"pin_hash" text,"auth_user_id" uuid,"created_by" uuid,"offline_contact" jsonb,"created_at" timestamptz,"hidden_instruments" text[] not null default '{}');
+create table public.students("id" uuid primary key,"display_name" text,"instruments" text[],"avatar_key" text,"pin_hash" text,"auth_user_id" uuid,"created_by" uuid,"offline_contact" jsonb,"created_at" timestamptz,"hidden_instruments" text[] not null default '{}',"sound_prefs" jsonb,"streak_rule" text not null default 'any');
 create table public.guardianships("id" uuid primary key,"student_id" uuid,"profile_id" uuid,"is_primary" bool,"can_message" bool,"can_view_calendar" bool,"family_event_level" text,"can_stock_rewards" bool,"can_adjust_practice" bool,"created_at" timestamptz,"can_pay" bool,"nickname" text,"relationship" text,"display_name" text,"grants_updated_at" timestamptz);
 create table public.studios("id" uuid primary key,"owner_id" uuid,"name" text,"created_at" timestamptz,"stripe_account_id" text,"fee_mode" text);
 create table public.teachers("id" uuid primary key,"profile_id" uuid,"studio_id" uuid,"display_name" text,"instruments" text[],"accepting_students" bool,"self_managed" bool,"created_at" timestamptz,"stripe_account_id" text,"fee_mode" text,"finalize_hour" int4);

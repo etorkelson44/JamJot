@@ -6,6 +6,7 @@ const db=new PGlite();
 await db.exec(await readFile(new URL('backup-schema-fixture.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../migrations/20261104172909_manual_data_backup.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../migrations/20261111150000_manual_backup_instruments.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../migrations/20261111152500_manual_backup_settings.sql',import.meta.url),'utf8'));
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const parent=id(1),limited=id(2),teacher=id(3),studio=id(4),kid=id(5),stranger=id(6),familyB=id(7),teacherB=id(8),a=id(11),b=id(12);
 await db.query("insert into profiles(id,full_name,app_pin_hash,phone) values($1,'Fictional Adult','never-export-pin','555-0100')",[parent]);
@@ -51,6 +52,7 @@ await db.query("insert into instrument_hidden_periods(id,student_id,instrument_k
 await db.query("insert into teacher_codes(teacher_id,code) values($1,'FICT-CODE-1'),($2,'OTHER-CODE-2')",[id(31),id(32)]);
 {
  const p=await snapshot(parent);
+ assert.equal(p.tables.students[0].streak_rule,'any','caregiver backup includes the streak rule'); assert.ok('sound_prefs' in p.tables.students[0],'caregiver backup includes sound settings');
  assert.deepEqual(p.tables.students[0].hidden_instruments,['violin'],'caregiver backup includes the hidden instruments');
  assert.equal(p.tables.student_instruments.length,1);assert.equal(p.tables.student_instruments[0].instrument,'Piano');assert.equal(p.tables.student_instruments[0].teacher_known_as,'Ms. F');
  assert.equal(p.tables.instrument_hidden_periods.length,1);assert.equal(p.tables.instrument_hidden_periods[0].instrument_key,'violin');
