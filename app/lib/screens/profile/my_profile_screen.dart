@@ -109,6 +109,17 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   }
 
   Future<void> _save(List<Map<String, dynamic>> rows) async {
+    // "Known to (student) as" is required (JJ-054-C).
+    for (final r in rows) {
+      final id = r['id'] as String;
+      if ((_shownAs[id]?.text.trim() ?? '').isEmpty) {
+        final kid =
+            (r['students'] as Map?)?['display_name'] as String? ?? 'your student';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Please fill in how $kid knows you (Known to $kid as).')));
+        return;
+      }
+    }
     setState(() => _busy = true);
     try {
       final uid = JamJotBackend.client.auth.currentUser!.id;
@@ -522,7 +533,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
             controller: _shownAs[r['id']],
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
-                labelText: 'Shown to $kidName as (e.g. Grandma Jo)'),
+                labelText: 'Known to $kidName as',
+                helperText:
+                    'What $kidName calls you, like Dad, Grandma Jo or Auntie Em. Required.',
+                helperMaxLines: 2),
           ),
           const SizedBox(height: 8),
           TextField(

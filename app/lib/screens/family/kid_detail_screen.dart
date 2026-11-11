@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/caregiver_label.dart';
 import '../../services/sound_gate.dart';
 import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
@@ -568,8 +569,8 @@ class _CaregiversTab extends ConsumerWidget {
                       final label = r['profile_id'] == uid
                           ? (shown.isEmpty ? 'You' : '$shown (you)')
                           : (shown.isEmpty ? 'Caregiver' : shown);
-                      return Text(
-                          '🧑 $label${rel.isEmpty ? '' : ' • $rel'}',
+                      final suffix = caregiverRoleSuffix(shown, rel);
+                      return Text('🧑 $label$suffix',
                           overflow: TextOverflow.ellipsis,
                           style: text.titleSmall
                               ?.copyWith(fontWeight: FontWeight.w700));
@@ -642,6 +643,8 @@ class _CaregiversTab extends ConsumerWidget {
         'our kid';
     final name = TextEditingController();
     final customRelation = TextEditingController();
+    final knownAs = TextEditingController();
+    var knownAsTouched = false;
     final email = TextEditingController();
     const relations = [
       'Mom', 'Dad', 'Stepmom', 'Stepdad', 'Grandma', 'Grandpa',
@@ -687,6 +690,7 @@ class _CaregiversTab extends ConsumerWidget {
                     textCapitalization: TextCapitalization.words,
                     decoration:
                         const InputDecoration(labelText: 'Their name'),
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
                   Text('Relationship to $kidName',
@@ -705,6 +709,9 @@ class _CaregiversTab extends ConsumerWidget {
                           onSelected: (_) => setState(() {
                             relation = r;
                             customRelation.clear();
+                            if (!knownAsTouched) {
+                              knownAs.text = suggestKnownAs(r);
+                            }
                           }),
                         ),
                     ],
@@ -715,6 +722,19 @@ class _CaregiversTab extends ConsumerWidget {
                     decoration: const InputDecoration(
                         labelText: '…or something else'),
                     onChanged: (_) => setState(() => relation = ''),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: knownAs,
+                    textCapitalization: TextCapitalization.words,
+                    maxLength: 60,
+                    decoration: InputDecoration(
+                      labelText: 'Known to $kidName as',
+                      helperText:
+                          'What $kidName calls them, like Dad, Grandpa Joe or Auntie Em. Required.',
+                      helperMaxLines: 2,
+                    ),
+                    onChanged: (_) => setState(() => knownAsTouched = true),
                   ),
                   const SizedBox(height: 14),
                   const Text('What can they do?',
@@ -794,6 +814,7 @@ class _CaregiversTab extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: (name.text.trim().isEmpty ||
+                      knownAs.text.trim().isEmpty ||
                       (fullAccess && !fullAccessAcknowledged))
                   ? null
                   : () => Navigator.of(context).pop(true),
@@ -824,6 +845,7 @@ class _CaregiversTab extends ConsumerWidget {
               'full_access': fullAccess,
               'caregiver_name': name.text.trim(),
               'relationship': relationFinal,
+              'known_as': knownAs.text.trim(),
             },
           })
           .select()

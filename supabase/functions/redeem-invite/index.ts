@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
         student_name: student?.display_name ?? 'a young musician',
         caregiver_name: g.caregiver_name ?? null,
         relationship: g.relationship ?? null,
+        known_as: g.known_as ?? null,
         full_access: g.full_access === true,
       };
       if (!accept) return json({ mode: 'info', ...info });
@@ -77,7 +78,12 @@ Deno.serve(async (req) => {
         student_id: invite.student_id,
         profile_id: uid,
         is_primary: false, // an invite can never hand out primary
-        display_name: String(g.caregiver_name ?? '').slice(0, 60),
+        // "Known to (student) as" (JJ-054-C). Invites made before that change
+        // have no known_as, so they keep the old behavior (the caregiver's name).
+        display_name: String(
+          (g.known_as ?? '').toString().trim() ||
+            (g.caregiver_name ?? '').toString().trim(),
+        ).slice(0, 60),
         relationship: String(g.relationship ?? '').slice(0, 40),
         can_message: full || g.can_message === true,
         can_view_calendar: full || g.can_view_calendar !== false,
