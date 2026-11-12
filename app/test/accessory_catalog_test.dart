@@ -194,7 +194,7 @@ void jalapenoOutfitTests() {
       final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
       int at(String f) => order.indexOf(f);
       expect(at('jacket.png'), greaterThan(at('1_pepper_body.png')), reason: pose);
-      if (pose != 'acoustic_guitar' && pose != 'electric_guitar' && pose != 'ukulele') {
+      if (pose != 'electric_guitar' && pose != 'ukulele') {
         // legs and feet stay whole, layered behind the sneakers
         final legs = manifest.layers.firstWhere((l) => l.contains('legs_feet'));
         expect(at('$legs.png'), greaterThan(at('jacket.png')), reason: pose);
@@ -203,7 +203,8 @@ void jalapenoOutfitTests() {
         expect(at('legs_under_sneakers.png'), greaterThan(at('jacket.png')), reason: pose);
       }
       expect(at('monocle_lens.png'), greaterThan(at('jacket.png')), reason: pose);
-      expect(order.where((f) => f.endsWith('_sneaker.png')).length, 2, reason: pose);
+      // acoustic guitar: his crossed legs get Erika's pair of shoes as one piece
+      expect(order.where((f) => f.endsWith('_sneaker.png')).length, pose == 'acoustic_guitar' ? 1 : 2, reason: pose);
       expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
     }
   });
