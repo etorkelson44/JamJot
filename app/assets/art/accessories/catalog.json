@@ -739,19 +739,11 @@
           },
           {
             "replaces": "7_arm_viewer_left",
-            "file": "arm_7_arm_viewer_left.png"
-          },
-          {
-            "slot": "sleeves_arm_viewer_left",
-            "file": "sleeve_7_arm_viewer_left.png"
+            "file": "no_arm_7_arm_viewer_left.png"
           },
           {
             "replaces": "8_arm_viewer_right",
-            "file": "arm_8_arm_viewer_right.png"
-          },
-          {
-            "slot": "sleeves_arm_viewer_right",
-            "file": "sleeve_8_arm_viewer_right.png"
+            "file": "no_arm_8_arm_viewer_right.png"
           }
         ],
         "jalapeno_flute": [
