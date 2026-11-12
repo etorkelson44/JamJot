@@ -1,0 +1,56 @@
+{
+  "character": "senor_jalapresto",
+  "pose": "cello",
+  "canvas": [
+    1000,
+    1000
+  ],
+  "format": "png-rgba",
+  "note": "Cello hold from Erika's Jalapresto_Instruments_Compilation.pdf (page 5 cello photo, 2026-11-11): the cello leans against his chest with the neck by his left shoulder and the bow lies across the strings. The photo's white background was cut out. His left arm is drawn from two line segments plus the compilation's fork hand so it matches his other limbs: the shoulder-to-elbow part sits behind the cello, level with his right arm; the forearm and hand sit over the cello but are trimmed under the mustache. The cello's neck passes in front of the mustache curl.",
+  "layers": [
+    "1_pepper_body",
+    "2_eyes_brows",
+    "3_teeth",
+    "4_mustache",
+    "5_legs_feet",
+    "6_left_upper_arm",
+    "7_cello",
+    "8_left_forearm_hand",
+    "9_bow",
+    "10_right_arm"
+  ],
+  "accessory_slots": {
+    "behind_body": {
+      "before": "1_pepper_body",
+      "note": "capes, wings, backpacks"
+    },
+    "clothing_torso": {
+      "after": "1_pepper_body",
+      "note": "shirts, scarves, bow ties; stays under the face and cello"
+    },
+    "shoes": {
+      "after": "5_legs_feet"
+    },
+    "clothing_lower": {
+      "after": "5_legs_feet",
+      "note": "skirts and dresses; over the legs and boots, under the cello"
+    },
+    "face": {
+      "after": "4_mustache",
+      "note": "glasses, masks"
+    },
+    "sleeves_left_upper_arm": {
+      "after": "6_left_upper_arm"
+    },
+    "sleeves_left_arm": {
+      "after": "8_left_forearm_hand"
+    },
+    "sleeves_right_arm": {
+      "after": "10_right_arm"
+    },
+    "hat": {
+      "after": "10_right_arm",
+      "note": "top of stack"
+    }
+  }
+}

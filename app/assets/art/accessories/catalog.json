@@ -65,6 +65,12 @@
             "slot": "hat",
             "file": "crown.png"
           }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "hat",
+            "file": "crown.png"
+          }
         ]
       },
       "display": "display.png"
@@ -129,6 +135,12 @@
           }
         ],
         "jalapeno_ukulele": [
+          {
+            "slot": "face",
+            "file": "sunglasses.png"
+          }
+        ],
+        "jalapeno_cello": [
           {
             "slot": "face",
             "file": "sunglasses.png"
@@ -281,6 +293,20 @@
             "slot": "clothing_lower",
             "file": "3_sash_bow.png"
           }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "clothing_lower",
+            "file": "2_ruffle_skirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "1_strapless_top.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_sash_bow.png"
+          }
         ]
       },
       "display": "display.png"
@@ -409,6 +435,20 @@
           }
         ],
         "jalapeno_ukulele": [
+          {
+            "slot": "shoes",
+            "file": "2_boot_viewer_right.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "1_boot_viewer_left.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_boots.png"
+          }
+        ],
+        "jalapeno_cello": [
           {
             "slot": "shoes",
             "file": "2_boot_viewer_right.png"

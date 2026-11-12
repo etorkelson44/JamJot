@@ -144,7 +144,7 @@ void jalapenoOutfitTests() {
     expect(order.length, manifest.layers.length + 7);
   });
   test('every finished Jalapresto instrument pose is dressed: trimmed legs, boots, then skirt, all before the arms and instrument', () {
-    for (final pose in ['violin', 'viola', 'piano', 'flute', 'acoustic_guitar', 'electric_guitar', 'ukulele']) {
+    for (final pose in ['violin', 'viola', 'piano', 'flute', 'cello', 'acoustic_guitar', 'electric_guitar', 'ukulele']) {
       final folder = 'assets/art/avatar_instrument/jalapeno_$pose';
       final manifest = PoseManifest.parse(
           folder, File('$folder/manifest.json').readAsStringSync());
