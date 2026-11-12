@@ -203,8 +203,7 @@ void jalapenoOutfitTests() {
       }
       expect(at('monocle_lens.png'), greaterThan(at('jacket.png')), reason: pose);
       expect(order.where((f) => f.endsWith('_sneaker.png')).length, 2, reason: pose);
-      // piano: arms are removed for now (placeholder) until Erika's arms arrive, so it has no sleeves yet
-      if (pose != 'piano') expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
+      expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
     }
   });
   test('Jalapresto outfit stacks like the layered PDF: boots behind the skirt, dress over the arms, glasses and crown on top', () {
