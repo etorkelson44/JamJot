@@ -245,6 +245,17 @@ void jalapenoOutfitTests() {
       expect(order.length, manifest.layers.length + 7, reason: pose);
     }
   });
+  test('Presto violin: the coat covers the top of each arm, so elbows, forearms and hands stay in front', () {
+    final folder = 'assets/art/avatar_instrument/jalapeno_violin';
+    final manifest = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
+    final acc = resolveAccessories(presto(), prestoIds, 'jalapeno', 'violin');
+    final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
+    int at(String f) => order.indexOf(f);
+    for (final arm in ['5_left_arm_hand', '9_right_arm_bow_hand']) {
+      expect(at('jacket.png'), lessThan(at('$arm.png')), reason: arm);
+      expect(at('$arm.png'), lessThan(at('cover_$arm.png')), reason: arm);
+    }
+  });
   test('jalapeno dressed frame holds crown and boots', () {
     final m = jsonDecode(File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());
     final b = (m['dressed_display_box'] as List).cast<num>();

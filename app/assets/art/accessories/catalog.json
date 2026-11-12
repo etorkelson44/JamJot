@@ -710,8 +710,16 @@
             "file": "sleeve_5_left_arm_hand.png"
           },
           {
+            "slot": "sleeves_left_arm",
+            "file": "cover_5_left_arm_hand.png"
+          },
+          {
             "slot": "sleeves_right_arm",
             "file": "sleeve_9_right_arm_bow_hand.png"
+          },
+          {
+            "slot": "sleeves_right_arm",
+            "file": "cover_9_right_arm_bow_hand.png"
           }
         ],
         "jalapeno_viola": [
