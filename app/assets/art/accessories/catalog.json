@@ -734,24 +734,56 @@
         ],
         "jalapeno_piano": [
           {
+            "slot": "behind_body",
+            "file": "1_sleeve_back_left.png"
+          },
+          {
             "slot": "clothing_torso",
-            "file": "jacket.png"
+            "file": "2_lapel_point.png"
+          },
+          {
+            "slot": "clothing_torso",
+            "file": "3_sleeve_right.png"
+          },
+          {
+            "slot": "clothing_torso",
+            "file": "4_shirt_and_bow.png"
+          },
+          {
+            "slot": "clothing_torso",
+            "file": "5_jacket_front.png"
+          },
+          {
+            "replaces": "6_keyboard",
+            "file": "keyboard_lowered.png"
           },
           {
             "replaces": "7_arm_viewer_left",
-            "file": "arm_7_arm_viewer_left.png"
-          },
-          {
-            "slot": "sleeves_arm_viewer_left",
-            "file": "sleeve_7_arm_viewer_left.png"
+            "file": "no_arm_7_arm_viewer_left.png"
           },
           {
             "replaces": "8_arm_viewer_right",
-            "file": "arm_8_arm_viewer_right.png"
+            "file": "no_arm_8_arm_viewer_right.png"
           },
           {
-            "slot": "sleeves_arm_viewer_right",
-            "file": "sleeve_8_arm_viewer_right.png"
+            "slot": "sleeves_arm_viewer_left",
+            "file": "hand_1.png"
+          },
+          {
+            "slot": "sleeves_arm_viewer_left",
+            "file": "hand_2.png"
+          },
+          {
+            "slot": "sleeves_arm_viewer_left",
+            "file": "hand_3.png"
+          },
+          {
+            "slot": "sleeves_arm_viewer_left",
+            "file": "hand_4.png"
+          },
+          {
+            "slot": "sleeves_arm_viewer_left",
+            "file": "hand_5.png"
           }
         ],
         "jalapeno_flute": [
@@ -890,12 +922,16 @@
         ],
         "jalapeno_piano": [
           {
-            "slot": "shoes",
-            "file": "1_sneaker.png"
+            "replaces": "5_legs_feet",
+            "file": "legs.png"
           },
           {
             "slot": "shoes",
-            "file": "2_sneaker.png"
+            "file": "shoe_left.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "shoe_right.png"
           }
         ],
         "jalapeno_flute": [

@@ -189,6 +189,7 @@ void jalapenoOutfitTests() {
           }
         }
       }
+      if (pose == 'piano') continue; // piano is built from Erika's finished PDF; see its own test below
       final acc = resolveAccessories(presto(), prestoIds, 'jalapeno', pose);
       final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
       int at(String f) => order.indexOf(f);
@@ -251,6 +252,27 @@ void jalapenoOutfitTests() {
       expect(at('sunglasses.png'), lessThan(at('crown.png')), reason: pose);
       expect(order.length, manifest.layers.length + 7, reason: pose);
     }
+  });
+  test('Presto piano (from Erika\'s finished PDF): jacket under the keyboard, her hands on top, her legs behind her red shoes', () {
+    final folder = 'assets/art/avatar_instrument/jalapeno_piano';
+    final manifest = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
+    final acc = resolveAccessories(presto(), prestoIds, 'jalapeno', 'piano');
+    final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
+    int at(String f) => order.indexOf(f);
+    // the plain arms and keyboard are swapped for hers
+    for (final gone in ['7_arm_viewer_left.png', '8_arm_viewer_right.png', '6_keyboard.png', '5_legs_feet.png']) {
+      expect(order.contains(gone), isFalse, reason: gone);
+    }
+    expect(at('1_sleeve_back_left.png'), lessThan(at('1_pepper_body.png')));
+    expect(at('1_pepper_body.png'), lessThan(at('5_jacket_front.png')));
+    expect(at('5_jacket_front.png'), lessThan(at('keyboard_lowered.png')));
+    expect(at('legs.png'), lessThan(at('shoe_left.png')));
+    expect(at('shoe_right.png'), lessThan(at('keyboard_lowered.png')));
+    for (final h in ['hand_1.png', 'hand_5.png']) {
+      expect(at(h), greaterThan(at('keyboard_lowered.png')), reason: h);
+    }
+    expect(at('monocle_lens.png'), lessThan(at('2_mustache.png')));
+    expect(at('2_mustache.png'), lessThan(at('monocle_chain.png')));
   });
   test('jalapeno dressed frame holds crown and boots', () {
     final m = jsonDecode(File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());
