@@ -9,9 +9,9 @@
   "note": "Layers are square transparent PNGs on one shared canvas (authored at 2000x2000, shipped at 1000x1000), so they stack with no offsets. Draw in list order, first = bottom. An accessory layer must be a square transparent PNG drawn on the same canvas; it is inserted at a slot: 'after' = directly above the named layer, 'before' = directly below it. Do not trim layers.",
   "layers": [
     "1_pepper_body",
-    "2_eyes_brows",
+    "4_eyes_brows",
+    "2_mustache",
     "3_teeth",
-    "4_mustache",
     "5_legs_feet",
     "6_keyboard",
     "7_arm_viewer_left",
@@ -26,7 +26,8 @@
       "note": "shirts, scarves, bow ties; stays under the face and keyboard"
     },
     "face": {
-      "after": "4_mustache"
+      "after": "3_teeth",
+      "note": "glasses, masks; above the eyes, brows, mustache and teeth"
     },
     "shoes": {
       "after": "5_legs_feet"

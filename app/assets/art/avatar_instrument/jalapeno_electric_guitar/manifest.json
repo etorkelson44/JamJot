@@ -9,9 +9,9 @@
   "note": "Layers are square transparent PNGs on one shared canvas (authored at 2000x2000, shipped at 1000x1000), so they stack with no offsets. Draw in list order, first = bottom. An accessory layer must be a square transparent PNG drawn on the same canvas; it is inserted at a slot: 'after' = directly above the named layer, 'before' = directly below it. Do not trim layers. Source: Erika's layered Canva PDF Guitars_Jalapresto.pdf, page 2, 2026-11-11. The fretting arm is under the guitar; the fingertip dots and the strumming arm are on top.",
   "layers": [
     "1_pepper_body",
+    "4_eyes_brows",
     "2_mustache",
     "3_teeth",
-    "4_eyes_brows",
     "5_legs_feet",
     "6_fret_arm",
     "7_guitar",
@@ -31,8 +31,8 @@
       "after": "5_legs_feet"
     },
     "face": {
-      "after": "4_eyes_brows",
-      "note": "glasses, masks"
+      "after": "3_teeth",
+      "note": "glasses, masks; above the eyes, brows, mustache and teeth"
     },
     "sleeves_fret_arm": {
       "after": "6_fret_arm"
