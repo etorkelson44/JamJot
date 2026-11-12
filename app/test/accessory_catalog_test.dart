@@ -167,8 +167,11 @@ void jalapenoOutfitTests() {
     expect(at('7_arm_viewer_left.png'), lessThan(at('1_sleeves.png')));
     expect(at('1_sleeves.png'), lessThan(at('2_jacket.png')));
     expect(at('2_jacket.png'), lessThan(at('3_legs_over_jacket.png')));
-    expect(at('4_eyes_brows.png'), lessThan(at('monocle.png')));
-    expect(order.length, manifest.layers.length + 7);
+    expect(at('4_eyes_brows.png'), lessThan(at('monocle_lens.png')));
+    expect(at('3_teeth.png'), lessThan(at('2_mustache.png')));
+    expect(at('monocle_lens.png'), lessThan(at('2_mustache.png')));
+    expect(at('2_mustache.png'), lessThan(at('monocle_chain.png')));
+    expect(order.length, manifest.layers.length + 8);
   });
   test('every finished Jalapresto instrument pose has Presto art whose files and slots exist; jacket under the arms, sneakers replace the legs', () {
     for (final pose in jalapenoPoses) {
@@ -191,7 +194,7 @@ void jalapenoOutfitTests() {
       int at(String f) => order.indexOf(f);
       expect(at('jacket.png'), greaterThan(at('1_pepper_body.png')), reason: pose);
       expect(at('legs_under_sneakers.png'), greaterThan(at('jacket.png')), reason: pose);
-      expect(at('monocle.png'), greaterThan(at('jacket.png')), reason: pose);
+      expect(at('monocle_lens.png'), greaterThan(at('jacket.png')), reason: pose);
       expect(order.where((f) => f.endsWith('_sneaker.png')).length, 2, reason: pose);
       expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
     }

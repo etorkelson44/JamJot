@@ -49,6 +49,10 @@
     "shoes_front": {
       "after": "7_arm_viewer_left",
       "note": "a boot drawn in front of the skirt hem"
+    },
+    "monocle": {
+      "after": "4_eyes_brows",
+      "note": "monocle lens: above the eyes, under the teeth and mustache (the chain uses the face slot, over the mustache)"
     }
   },
   "display_box": [

@@ -47,6 +47,10 @@
     "clothing_lower": {
       "after": "3_legs_feet",
       "note": "skirts and dresses; over the legs and boots, under the instrument and arms"
+    },
+    "monocle": {
+      "after": "2_eyes_brows",
+      "note": "monocle lens: above the eyes, under the teeth and mustache (the chain uses the face slot, over the mustache)"
     }
   }
 }

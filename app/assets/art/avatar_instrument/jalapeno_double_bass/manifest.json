@@ -51,6 +51,10 @@
     "hat": {
       "after": "10_right_arm",
       "note": "top of stack"
+    },
+    "monocle": {
+      "after": "2_eyes_brows",
+      "note": "monocle lens: above the eyes, under the teeth and mustache (the chain uses the face slot, over the mustache)"
     }
   }
 }

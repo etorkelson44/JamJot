@@ -580,62 +580,102 @@
       "art": {
         "jalapeno_standing": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ],
         "jalapeno_violin": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ],
         "jalapeno_viola": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ],
         "jalapeno_piano": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ],
         "jalapeno_flute": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ],
         "jalapeno_acoustic_guitar": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ],
         "jalapeno_electric_guitar": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ],
         "jalapeno_ukulele": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ],
         "jalapeno_cello": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ],
         "jalapeno_double_bass": [
           {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
             "slot": "face",
-            "file": "monocle.png"
+            "file": "monocle_chain.png"
           }
         ]
       },
