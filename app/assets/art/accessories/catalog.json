@@ -806,24 +806,40 @@
         ],
         "jalapeno_acoustic_guitar": [
           {
+            "slot": "behind_body",
+            "file": "1_fret_arm.png"
+          },
+          {
+            "slot": "behind_body",
+            "file": "2_fret_sleeve.png"
+          },
+          {
             "slot": "clothing_torso",
             "file": "jacket.png"
           },
           {
             "replaces": "6_fret_arm",
-            "file": "no_arm_6_fret_arm.png"
-          },
-          {
-            "replaces": "9_strum_arm_hand",
-            "file": "no_arm_9_strum_arm_hand.png"
-          },
-          {
-            "replaces": "8_fingertips",
-            "file": "no_8_fingertips.png"
+            "file": "no_fret_arm.png"
           },
           {
             "replaces": "7_guitar",
-            "file": "no_7_guitar.png"
+            "file": "guitar.png"
+          },
+          {
+            "replaces": "8_fingertips",
+            "file": "fingertips.png"
+          },
+          {
+            "replaces": "9_strum_arm_hand",
+            "file": "strum_arm_hand.png"
+          },
+          {
+            "slot": "sleeves_strum_arm",
+            "file": "3_strum_upper_sleeve.png"
+          },
+          {
+            "slot": "sleeves_strum_arm",
+            "file": "4_strum_forearm_sleeve.png"
           }
         ],
         "jalapeno_electric_guitar": [
