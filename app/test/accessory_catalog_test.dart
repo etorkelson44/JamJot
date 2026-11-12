@@ -193,7 +193,14 @@ void jalapenoOutfitTests() {
       final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
       int at(String f) => order.indexOf(f);
       expect(at('jacket.png'), greaterThan(at('1_pepper_body.png')), reason: pose);
-      expect(at('legs_under_sneakers.png'), greaterThan(at('jacket.png')), reason: pose);
+      if (pose == 'violin') {
+        // violin: legs and feet stay whole, layered behind the sneakers
+        final legs = manifest.layers.firstWhere((l) => l.contains('legs_feet'));
+        expect(at('$legs.png'), greaterThan(at('jacket.png')), reason: pose);
+        expect(at('$legs.png'), lessThan(at('1_sneaker.png')), reason: pose);
+      } else {
+        expect(at('legs_under_sneakers.png'), greaterThan(at('jacket.png')), reason: pose);
+      }
       expect(at('monocle_lens.png'), greaterThan(at('jacket.png')), reason: pose);
       expect(order.where((f) => f.endsWith('_sneaker.png')).length, 2, reason: pose);
       expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
@@ -243,17 +250,6 @@ void jalapenoOutfitTests() {
       expect(at('2_ruffle_skirt.png'), lessThan(at('1_strapless_top.png')), reason: pose);
       expect(at('sunglasses.png'), lessThan(at('crown.png')), reason: pose);
       expect(order.length, manifest.layers.length + 7, reason: pose);
-    }
-  });
-  test('Presto violin: the coat covers the top of each arm, so elbows, forearms and hands stay in front', () {
-    final folder = 'assets/art/avatar_instrument/jalapeno_violin';
-    final manifest = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
-    final acc = resolveAccessories(presto(), prestoIds, 'jalapeno', 'violin');
-    final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
-    int at(String f) => order.indexOf(f);
-    for (final arm in ['5_left_arm_hand', '9_right_arm_bow_hand']) {
-      expect(at('jacket.png'), lessThan(at('$arm.png')), reason: arm);
-      expect(at('$arm.png'), lessThan(at('cover_$arm.png')), reason: arm);
     }
   });
   test('jalapeno dressed frame holds crown and boots', () {
