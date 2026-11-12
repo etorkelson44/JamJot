@@ -958,6 +958,10 @@
             "file": "arm_10_right_arm.png"
           },
           {
+            "replaces": "9_bow",
+            "file": "bow_lowered.png"
+          },
+          {
             "slot": "sleeves_right_arm",
             "file": "sleeve_10_right_arm.png"
           }
