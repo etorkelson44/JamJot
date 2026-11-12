@@ -40,6 +40,10 @@
     "hat": {
       "after": "6_eyes_lashes",
       "note": "top of stack"
+    },
+    "clothing_over": {
+      "after": "6_eyes_lashes",
+      "note": "jackets worn over the arms, sleeves and monocle chain"
     }
   },
   "display_box": [

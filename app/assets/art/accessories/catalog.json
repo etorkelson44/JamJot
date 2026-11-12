@@ -569,6 +569,18 @@
             "slot": "hat",
             "file": "hat.png"
           }
+        ],
+        "kiwi_standing": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "strawberry_standing": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
         ]
       },
       "display": "display.png"
@@ -676,6 +688,18 @@
           {
             "slot": "face",
             "file": "monocle_chain.png"
+          }
+        ],
+        "kiwi_standing": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "strawberry_standing": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
           }
         ]
       },
@@ -969,6 +993,66 @@
             "slot": "sleeves_right_arm",
             "file": "sleeve_10_right_arm.png"
           }
+        ],
+        "kiwi_standing": [
+          {
+            "slot": "clothing_lower",
+            "file": "1_shirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "2_jacket.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_mouth_over_jacket.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "4_bowtie_buttons.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "5_sleeve_viewer_left.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "6_sleeve_viewer_right.png"
+          }
+        ],
+        "strawberry_standing": [
+          {
+            "slot": "behind_body",
+            "file": "1_sleeve_viewer_right_behind.png"
+          },
+          {
+            "slot": "behind_body",
+            "file": "2_arm_viewer_right_behind.png"
+          },
+          {
+            "slot": "clothing_torso",
+            "file": "3_shirt.png"
+          },
+          {
+            "replaces": "4_arm_viewer_right",
+            "file": "no_arm_viewer_right.png"
+          },
+          {
+            "replaces": "5_arm_viewer_left",
+            "file": "4_arm_viewer_left.png"
+          },
+          {
+            "slot": "sleeves_arm_viewer_left",
+            "file": "5_sleeve_viewer_left.png"
+          },
+          {
+            "slot": "clothing_over",
+            "file": "6_jacket.png"
+          },
+          {
+            "slot": "clothing_over",
+            "file": "7_bowtie_buttons.png"
+          }
         ]
       },
       "display": "display.png"
@@ -1072,6 +1156,18 @@
           {
             "slot": "shoes",
             "file": "2_sneaker.png"
+          }
+        ],
+        "kiwi_standing": [
+          {
+            "slot": "shoes",
+            "file": "sneakers.png"
+          }
+        ],
+        "strawberry_standing": [
+          {
+            "slot": "shoes",
+            "file": "sneakers.png"
           }
         ]
       },

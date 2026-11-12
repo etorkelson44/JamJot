@@ -106,6 +106,8 @@ flutter:
     - assets/art/accessories/lilac_platform_boots/jalapeno_ukulele/
     - assets/art/accessories/black_top_hat/
     - assets/art/accessories/black_top_hat/jalapeno_standing/
+    - assets/art/accessories/black_top_hat/strawberry_standing/
+    - assets/art/accessories/black_top_hat/kiwi_standing/
     - assets/art/accessories/black_top_hat/jalapeno_violin/
     - assets/art/accessories/black_top_hat/jalapeno_viola/
     - assets/art/accessories/black_top_hat/jalapeno_piano/
@@ -117,6 +119,8 @@ flutter:
     - assets/art/accessories/black_top_hat/jalapeno_ukulele/
     - assets/art/accessories/gold_monocle/
     - assets/art/accessories/gold_monocle/jalapeno_standing/
+    - assets/art/accessories/gold_monocle/strawberry_standing/
+    - assets/art/accessories/gold_monocle/kiwi_standing/
     - assets/art/accessories/gold_monocle/jalapeno_violin/
     - assets/art/accessories/gold_monocle/jalapeno_viola/
     - assets/art/accessories/gold_monocle/jalapeno_piano/
@@ -128,6 +132,8 @@ flutter:
     - assets/art/accessories/gold_monocle/jalapeno_ukulele/
     - assets/art/accessories/black_tuxedo/
     - assets/art/accessories/black_tuxedo/jalapeno_standing/
+    - assets/art/accessories/black_tuxedo/strawberry_standing/
+    - assets/art/accessories/black_tuxedo/kiwi_standing/
     - assets/art/accessories/black_tuxedo/jalapeno_violin/
     - assets/art/accessories/black_tuxedo/jalapeno_viola/
     - assets/art/accessories/black_tuxedo/jalapeno_piano/
@@ -139,6 +145,8 @@ flutter:
     - assets/art/accessories/black_tuxedo/jalapeno_ukulele/
     - assets/art/accessories/red_sneakers/
     - assets/art/accessories/red_sneakers/jalapeno_standing/
+    - assets/art/accessories/red_sneakers/strawberry_standing/
+    - assets/art/accessories/red_sneakers/kiwi_standing/
     - assets/art/accessories/red_sneakers/jalapeno_violin/
     - assets/art/accessories/red_sneakers/jalapeno_viola/
     - assets/art/accessories/red_sneakers/jalapeno_piano/
