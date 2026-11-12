@@ -3,7 +3,7 @@
   "items": [
     {
       "id": "purple_glitter_crown",
-      "name": "Queen of Tarts Tiara",
+      "name": "Dolce Diadem",
       "released": false,
       "art": {
         "strawberry_standing": [
@@ -83,7 +83,7 @@
     },
     {
       "id": "cat_eye_sunglasses",
-      "name": "Shady Sharps",
+      "name": "Crescendo Cat-Eyes",
       "released": false,
       "art": {
         "strawberry_standing": [
@@ -163,7 +163,7 @@
     },
     {
       "id": "pink_ruffle_dress",
-      "name": "Tutti Frutti Frock",
+      "name": "Falsetto Frock",
       "released": false,
       "art": {
         "strawberry_standing": [
@@ -339,7 +339,7 @@
     },
     {
       "id": "lilac_platform_boots",
-      "name": "Staccato Stompers",
+      "name": "Bravura Boots",
       "released": false,
       "art": {
         "strawberry_standing": [
