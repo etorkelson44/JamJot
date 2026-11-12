@@ -5,6 +5,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:jamjot/widgets/accessory_catalog.dart';
 import 'package:jamjot/widgets/pose_stack.dart';
 
+const starterIds = [
+  'purple_glitter_crown',
+  'cat_eye_sunglasses',
+  'pink_ruffle_dress',
+  'lilac_platform_boots'
+];
+const prestoIds = ['black_top_hat', 'gold_monocle', 'black_tuxedo', 'red_sneakers'];
+const jalapenoPoses = [
+  'violin', 'viola', 'piano', 'flute', 'cello', 'double_bass',
+  'acoustic_guitar', 'electric_guitar', 'ukulele'
+];
+
 void main() {
   dressedFrameTests();
   keywiOutfitTests();
@@ -17,14 +29,19 @@ void main() {
               id: i.id, name: i.name, released: true, art: i.art, display: i.display)
       ];
 
-  test('catalog lists the four outfit items, drawn for Ms. Straw-ccato and Keywi standing', () {
-    expect(catalog.map((i) => i.id), [
-      'purple_glitter_crown',
-      'cat_eye_sunglasses',
-      'pink_ruffle_dress',
-      'lilac_platform_boots'
+  test('catalog lists the four starter items then the four Presto items, with their final names', () {
+    expect(catalog.map((i) => i.id), [...starterIds, ...prestoIds]);
+    expect(catalog.map((i) => i.name), [
+      'Dolce Diadem',
+      'Crescendo Cat-Eyes',
+      'Falsetto Frock',
+      'Bravura Boots',
+      'Tarantella Top Hat',
+      'Marcato Monocle',
+      'Toccata Tuxedo',
+      'Legato Lace-Ups'
     ]);
-    for (final i in catalog) {
+    for (final i in catalog.where((i) => starterIds.contains(i.id))) {
       expect(i.hasArtFor('strawberry', 'standing'), isTrue, reason: i.id);
       expect(i.hasArtFor('kiwi', 'standing'), isTrue, reason: i.id);
       expect(i.hasArtFor('jalapeno', 'standing'), isTrue, reason: i.id);
@@ -86,7 +103,7 @@ void main() {
   });
 
   test('catalog json parses with the expected keys', () {
-    expect(jsonDecode(json)['items'], hasLength(4));
+    expect(jsonDecode(json)['items'], hasLength(8));
   });
 }
 
@@ -123,9 +140,62 @@ void jalapenoOutfitTests() {
   final catalog = parseAccessoryCatalog(
       File('assets/art/accessories/catalog.json').readAsStringSync());
   List<AccessoryItem> all() => [
-        for (final i in catalog)
+        for (final i in catalog.where((i) => starterIds.contains(i.id)))
           AccessoryItem(id: i.id, name: i.name, released: true, art: i.art, display: i.display)
       ];
+  List<AccessoryItem> presto() => [
+        for (final i in catalog.where((i) => prestoIds.contains(i.id)))
+          AccessoryItem(id: i.id, name: i.name, released: true, art: i.art, display: i.display)
+      ];
+  test('Presto set is drawn for Jalapresto standing and every finished instrument pose, not yet for Keywi or Ms. Straw-ccato', () {
+    for (final i in catalog.where((i) => prestoIds.contains(i.id))) {
+      expect(i.released, isFalse, reason: i.id);
+      expect(i.hasArtFor('jalapeno', 'standing'), isTrue, reason: i.id);
+      expect(i.hasArtFor('kiwi', 'standing'), isFalse, reason: i.id);
+      expect(i.hasArtFor('strawberry', 'standing'), isFalse, reason: i.id);
+      expect(File(i.displayAsset).existsSync(), isTrue, reason: i.id);
+    }
+  });
+  test('Presto standing stack: sleeves, shirt and jacket over the arms, then legs over the jacket; sneakers replace the legs; monocle and hat on top', () {
+    final manifest = PoseManifest.parse('assets/art/avatar_pose/jalapeno_standing',
+        File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());
+    final acc = resolveAccessories(presto(), prestoIds, 'jalapeno', 'standing');
+    final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
+    int at(String f) => order.indexOf(f);
+    expect(order.contains('5_legs_feet.png'), isFalse);
+    expect(at('legs_under_sneakers.png'), lessThan(at('1_sneaker_flat.png')));
+    expect(at('7_arm_viewer_left.png'), lessThan(at('1_sleeves.png')));
+    expect(at('1_sleeves.png'), lessThan(at('2_jacket.png')));
+    expect(at('2_jacket.png'), lessThan(at('3_legs_over_jacket.png')));
+    expect(at('4_eyes_brows.png'), lessThan(at('monocle.png')));
+    expect(order.length, manifest.layers.length + 7);
+  });
+  test('every finished Jalapresto instrument pose has Presto art whose files and slots exist; jacket under the arms, sneakers replace the legs', () {
+    for (final pose in jalapenoPoses) {
+      final folder = 'assets/art/avatar_instrument/jalapeno_$pose';
+      final manifest = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
+      for (final i in catalog.where((i) => prestoIds.contains(i.id))) {
+        expect(i.hasArtFor('jalapeno', pose), isTrue, reason: '${i.id} $pose');
+        for (final p in i.art['jalapeno_$pose']!) {
+          expect(File('${i.assetFolder('jalapeno', pose)}/${p.file}').existsSync(), isTrue,
+              reason: '${i.id}/$pose/${p.file}');
+          if (p.replaces != null) {
+            expect(manifest.layers.contains(p.replaces), isTrue, reason: '$pose ${p.replaces}');
+          } else {
+            expect(manifest.slots.containsKey(p.slot), isTrue, reason: '$pose slot ${p.slot}');
+          }
+        }
+      }
+      final acc = resolveAccessories(presto(), prestoIds, 'jalapeno', pose);
+      final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
+      int at(String f) => order.indexOf(f);
+      expect(at('jacket.png'), greaterThan(at('1_pepper_body.png')), reason: pose);
+      expect(at('legs_under_sneakers.png'), greaterThan(at('jacket.png')), reason: pose);
+      expect(at('monocle.png'), greaterThan(at('jacket.png')), reason: pose);
+      expect(order.where((f) => f.endsWith('_sneaker.png')).length, 2, reason: pose);
+      expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
+    }
+  });
   test('Jalapresto outfit stacks like the layered PDF: boots behind the skirt, dress over the arms, glasses and crown on top', () {
     final manifest = PoseManifest.parse('assets/art/avatar_pose/jalapeno_standing',
         File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());
@@ -148,7 +218,7 @@ void jalapenoOutfitTests() {
       final folder = 'assets/art/avatar_instrument/jalapeno_$pose';
       final manifest = PoseManifest.parse(
           folder, File('$folder/manifest.json').readAsStringSync());
-      for (final i in catalog) {
+      for (final i in catalog.where((i) => starterIds.contains(i.id))) {
         expect(i.hasArtFor('jalapeno', pose), isTrue, reason: '${i.id} $pose');
         for (final p in i.art['jalapeno_$pose']!) {
           expect(File('${i.assetFolder('jalapeno', pose)}/${p.file}').existsSync(), isTrue,

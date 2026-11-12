@@ -1,5 +1,5 @@
 {
-  "note": "Market accessories. Each accessory is drawn once per avatar and pose (folder <item>/<avatar>_<pose>/), as square transparent PNG layers on that pose's 1000px canvas. The app pairs the chosen item with the avatar and pose being drawn (JJ-059-C). If an item has no art for that avatar and pose it is hidden there, never drawn wrong. released:false = wired in but NOT wearable yet; flip to true when the item goes on sale in the Market. Item names chosen by Erika 2026-11-11 (JJ-059-C). display.png in each item folder is the single shelf image used in the Market and dressing room (from Erika's accessories PDF, 2026-11-11).",
+  "note": "Market accessories. Each accessory is drawn once per avatar and pose (folder <item>/<avatar>_<pose>/), as square transparent PNG layers on that pose's 1000px canvas. The app pairs the chosen item with the avatar and pose being drawn (JJ-059-C). If an item has no art for that avatar and pose it is hidden there, never drawn wrong. released:false = wired in but NOT wearable yet; flip to true when the item goes on sale in the Market. Item names chosen by Erika 2026-11-11 and renamed 2026-11-12 (JJ-059-C, JJ-060-C). The Dapper Presto set (top hat, monocle, tuxedo, sneakers) is drawn for Señor Jalapresto's standing pose and his nine finished instrument poses; Keywi and Ms. Straw-ccato art for it is pending. display.png in each item folder is the single shelf image used in the Market and dressing room (from Erika's accessories PDF, 2026-11-11).",
   "items": [
     {
       "id": "purple_glitter_crown",
@@ -500,6 +500,450 @@
           {
             "replaces": "5_legs_feet",
             "file": "legs_under_boots.png"
+          }
+        ]
+      },
+      "display": "display.png"
+    },
+    {
+      "id": "black_top_hat",
+      "name": "Tarantella Top Hat",
+      "released": false,
+      "art": {
+        "jalapeno_standing": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_double_bass": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ]
+      },
+      "display": "display.png"
+    },
+    {
+      "id": "gold_monocle",
+      "name": "Marcato Monocle",
+      "released": false,
+      "art": {
+        "jalapeno_standing": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ],
+        "jalapeno_double_bass": [
+          {
+            "slot": "face",
+            "file": "monocle.png"
+          }
+        ]
+      },
+      "display": "display.png"
+    },
+    {
+      "id": "black_tuxedo",
+      "name": "Toccata Tuxedo",
+      "released": false,
+      "art": {
+        "jalapeno_standing": [
+          {
+            "slot": "clothing_lower",
+            "file": "1_sleeves.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "2_jacket.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_legs_over_jacket.png"
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "slot": "sleeves_left_arm",
+            "file": "sleeve_5_left_arm_hand.png"
+          },
+          {
+            "slot": "sleeves_right_arm",
+            "file": "sleeve_9_right_arm_bow_hand.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "slot": "sleeves_left_arm",
+            "file": "sleeve_4_left_arm_hand.png"
+          },
+          {
+            "slot": "sleeves_right_upper_arm",
+            "file": "sleeve_5_right_upper_arm.png"
+          },
+          {
+            "slot": "sleeves_right_arm",
+            "file": "sleeve_10_right_forearm_bow_hand.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "slot": "sleeves_arm_viewer_left",
+            "file": "sleeve_7_arm_viewer_left.png"
+          },
+          {
+            "slot": "sleeves_arm_viewer_right",
+            "file": "sleeve_8_arm_viewer_right.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "slot": "sleeves_left_arm",
+            "file": "sleeve_7_left_arm.png"
+          },
+          {
+            "slot": "sleeves_right_arm",
+            "file": "sleeve_8_right_arm.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "slot": "sleeves_fret_arm",
+            "file": "sleeve_6_fret_arm.png"
+          },
+          {
+            "slot": "sleeves_strum_arm",
+            "file": "sleeve_9_strum_arm_hand.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "slot": "sleeves_fret_arm",
+            "file": "sleeve_6_fret_arm.png"
+          },
+          {
+            "slot": "sleeves_strum_arm",
+            "file": "sleeve_9_strum_arm_hand.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "slot": "sleeves_fret_arm",
+            "file": "sleeve_6_fret_arm.png"
+          },
+          {
+            "slot": "sleeves_strum_arm",
+            "file": "sleeve_9_strum_arm_hand.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "slot": "sleeves_left_upper_arm",
+            "file": "sleeve_6_left_upper_arm.png"
+          },
+          {
+            "slot": "sleeves_left_arm",
+            "file": "sleeve_8_left_forearm_hand.png"
+          },
+          {
+            "slot": "sleeves_right_arm",
+            "file": "sleeve_10_right_arm.png"
+          }
+        ],
+        "jalapeno_double_bass": [
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "slot": "sleeves_left_upper_arm",
+            "file": "sleeve_6_left_upper_arm.png"
+          },
+          {
+            "slot": "sleeves_left_arm",
+            "file": "sleeve_8_left_forearm_hand.png"
+          },
+          {
+            "slot": "sleeves_right_arm",
+            "file": "sleeve_10_right_arm.png"
+          }
+        ]
+      },
+      "display": "display.png"
+    },
+    {
+      "id": "red_sneakers",
+      "name": "Legato Lace-Ups",
+      "released": false,
+      "art": {
+        "jalapeno_standing": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker_flat.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker_upright.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_sneakers.png"
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker.png"
+          },
+          {
+            "replaces": "3_legs_feet",
+            "file": "legs_under_sneakers.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker.png"
+          },
+          {
+            "replaces": "3_legs_feet",
+            "file": "legs_under_sneakers.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_sneakers.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_sneakers.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_sneakers.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_sneakers.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_sneakers.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_sneakers.png"
+          }
+        ],
+        "jalapeno_double_bass": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "2_sneaker.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_sneakers.png"
           }
         ]
       },
