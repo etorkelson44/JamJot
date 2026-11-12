@@ -32,7 +32,7 @@ void main() {
   });
 
   test('all bundled poses list layers that exist as PNG files', () {
-    for (final pose in ['jalapeno_violin', 'jalapeno_piano', 'jalapeno_viola']) {
+    for (final pose in ['jalapeno_violin', 'jalapeno_piano', 'jalapeno_viola', 'jalapeno_acoustic_guitar', 'jalapeno_electric_guitar']) {
       final dir = 'assets/art/avatar_instrument/$pose';
       final m = PoseManifest.parse(
           dir, File('$dir/manifest.json').readAsStringSync());
