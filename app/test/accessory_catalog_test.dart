@@ -193,8 +193,8 @@ void jalapenoOutfitTests() {
       final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
       int at(String f) => order.indexOf(f);
       expect(at('jacket.png'), greaterThan(at('1_pepper_body.png')), reason: pose);
-      if (pose == 'violin') {
-        // violin: legs and feet stay whole, layered behind the sneakers
+      if (pose != 'acoustic_guitar' && pose != 'electric_guitar' && pose != 'ukulele') {
+        // legs and feet stay whole, layered behind the sneakers
         final legs = manifest.layers.firstWhere((l) => l.contains('legs_feet'));
         expect(at('$legs.png'), greaterThan(at('jacket.png')), reason: pose);
         expect(at('$legs.png'), lessThan(at('1_sneaker.png')), reason: pose);

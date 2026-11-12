@@ -878,10 +878,6 @@
           {
             "slot": "shoes",
             "file": "2_sneaker.png"
-          },
-          {
-            "replaces": "3_legs_feet",
-            "file": "legs_under_sneakers.png"
           }
         ],
         "jalapeno_piano": [
@@ -892,10 +888,6 @@
           {
             "slot": "shoes",
             "file": "2_sneaker.png"
-          },
-          {
-            "replaces": "5_legs_feet",
-            "file": "legs_under_sneakers.png"
           }
         ],
         "jalapeno_flute": [
@@ -906,10 +898,6 @@
           {
             "slot": "shoes",
             "file": "2_sneaker.png"
-          },
-          {
-            "replaces": "5_legs_feet",
-            "file": "legs_under_sneakers.png"
           }
         ],
         "jalapeno_acoustic_guitar": [
@@ -962,10 +950,6 @@
           {
             "slot": "shoes",
             "file": "2_sneaker.png"
-          },
-          {
-            "replaces": "5_legs_feet",
-            "file": "legs_under_sneakers.png"
           }
         ],
         "jalapeno_double_bass": [
@@ -976,10 +960,6 @@
           {
             "slot": "shoes",
             "file": "2_sneaker.png"
-          },
-          {
-            "replaces": "5_legs_feet",
-            "file": "legs_under_sneakers.png"
           }
         ]
       },
