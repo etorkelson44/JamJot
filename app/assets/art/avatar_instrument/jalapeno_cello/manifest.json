@@ -8,6 +8,7 @@
   "format": "png-rgba",
   "note": "Cello hold from Erika's Jalapresto_Instruments_Compilation.pdf (page 5 cello photo, 2026-11-11): the cello leans against his chest with the neck by his left shoulder and the bow lies across the strings. The photo's white background was cut out. His left arm is drawn from two line segments plus the compilation's fork hand so it matches his other limbs: the shoulder-to-elbow part sits behind the cello, level with his right arm; the forearm and hand sit over the cello but are trimmed under the mustache. The cello's neck passes in front of the mustache curl.",
   "layers": [
+    "0_stool",
     "1_pepper_body",
     "2_eyes_brows",
     "3_teeth",
