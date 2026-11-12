@@ -820,6 +820,10 @@
           {
             "replaces": "8_fingertips",
             "file": "no_8_fingertips.png"
+          },
+          {
+            "replaces": "7_guitar",
+            "file": "no_7_guitar.png"
           }
         ],
         "jalapeno_electric_guitar": [
