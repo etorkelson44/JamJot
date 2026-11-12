@@ -954,6 +954,10 @@
             "file": "sleeve_8_left_forearm_hand.png"
           },
           {
+            "replaces": "10_right_arm",
+            "file": "arm_10_right_arm.png"
+          },
+          {
             "slot": "sleeves_right_arm",
             "file": "sleeve_10_right_arm.png"
           }
