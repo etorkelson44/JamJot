@@ -798,6 +798,10 @@
           {
             "slot": "sleeves_right_arm",
             "file": "sleeve_8_right_arm.png"
+          },
+          {
+            "slot": "sleeves_right_arm",
+            "file": "cover_8_right_arm.png"
           }
         ],
         "jalapeno_acoustic_guitar": [
