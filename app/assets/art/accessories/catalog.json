@@ -882,16 +882,40 @@
         ],
         "jalapeno_ukulele": [
           {
+            "slot": "behind_body",
+            "file": "1_fret_arm.png"
+          },
+          {
+            "slot": "behind_body",
+            "file": "2_fret_sleeve.png"
+          },
+          {
             "slot": "clothing_torso",
             "file": "jacket.png"
           },
           {
-            "slot": "sleeves_fret_arm",
-            "file": "sleeve_6_fret_arm.png"
+            "replaces": "6_fret_arm",
+            "file": "no_fret_arm.png"
+          },
+          {
+            "replaces": "7_ukulele",
+            "file": "guitar.png"
+          },
+          {
+            "replaces": "8_fingertips",
+            "file": "fingertips.png"
+          },
+          {
+            "replaces": "9_strum_arm_hand",
+            "file": "strum_arm_hand.png"
           },
           {
             "slot": "sleeves_strum_arm",
-            "file": "sleeve_9_strum_arm_hand.png"
+            "file": "3_strum_upper_sleeve.png"
+          },
+          {
+            "slot": "sleeves_strum_arm",
+            "file": "4_strum_forearm_sleeve.png"
           }
         ],
         "jalapeno_cello": [
