@@ -43,6 +43,10 @@
     "hat": {
       "after": "9_strum_arm_hand",
       "note": "top of stack"
+    },
+    "clothing_lower": {
+      "after": "5_legs_feet",
+      "note": "skirts and dresses; over the legs and boots, under the instrument and arms"
     }
   }
 }

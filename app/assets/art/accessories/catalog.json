@@ -23,6 +23,48 @@
             "slot": "hat",
             "file": "crown.png"
           }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "hat",
+            "file": "crown.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "hat",
+            "file": "crown.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "hat",
+            "file": "crown.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "hat",
+            "file": "crown.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "hat",
+            "file": "crown.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "hat",
+            "file": "crown.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "hat",
+            "file": "crown.png"
+          }
         ]
       },
       "display": "display.png"
@@ -45,6 +87,48 @@
           }
         ],
         "jalapeno_standing": [
+          {
+            "slot": "face",
+            "file": "sunglasses.png"
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "face",
+            "file": "sunglasses.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "face",
+            "file": "sunglasses.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "face",
+            "file": "sunglasses.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "face",
+            "file": "sunglasses.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "face",
+            "file": "sunglasses.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "face",
+            "file": "sunglasses.png"
+          }
+        ],
+        "jalapeno_ukulele": [
           {
             "slot": "face",
             "file": "sunglasses.png"
@@ -99,6 +183,104 @@
             "slot": "clothing_lower",
             "file": "3_sash_bow.png"
           }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "clothing_lower",
+            "file": "2_ruffle_skirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "1_strapless_top.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_sash_bow.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "clothing_lower",
+            "file": "2_ruffle_skirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "1_strapless_top.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_sash_bow.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "clothing_lower",
+            "file": "2_ruffle_skirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "1_strapless_top.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_sash_bow.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "clothing_lower",
+            "file": "2_ruffle_skirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "1_strapless_top.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_sash_bow.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "clothing_lower",
+            "file": "2_ruffle_skirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "1_strapless_top.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_sash_bow.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "clothing_lower",
+            "file": "2_ruffle_skirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "1_strapless_top.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_sash_bow.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "clothing_lower",
+            "file": "2_ruffle_skirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "1_strapless_top.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_sash_bow.png"
+          }
         ]
       },
       "display": "display.png"
@@ -134,8 +316,110 @@
             "file": "2_boot_viewer_right.png"
           },
           {
-            "slot": "shoes_front",
+            "slot": "shoes",
             "file": "1_boot_viewer_left.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_boots.png"
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "shoes",
+            "file": "2_boot_viewer_right.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "1_boot_viewer_left.png"
+          },
+          {
+            "replaces": "3_legs_feet",
+            "file": "legs_under_boots.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "shoes",
+            "file": "2_boot_viewer_right.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "1_boot_viewer_left.png"
+          },
+          {
+            "replaces": "3_legs_feet",
+            "file": "legs_under_boots.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "shoes",
+            "file": "2_boot_viewer_right.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "1_boot_viewer_left.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_boots.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "shoes",
+            "file": "2_boot_viewer_right.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "1_boot_viewer_left.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_boots.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "shoes",
+            "file": "2_boot_viewer_right.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "1_boot_viewer_left.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_boots.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "shoes",
+            "file": "2_boot_viewer_right.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "1_boot_viewer_left.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_boots.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "shoes",
+            "file": "2_boot_viewer_right.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "1_boot_viewer_left.png"
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_under_boots.png"
           }
         ]
       },

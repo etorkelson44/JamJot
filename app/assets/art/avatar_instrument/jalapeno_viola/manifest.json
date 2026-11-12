@@ -50,6 +50,10 @@
     "hat": {
       "after": "10_right_forearm_bow_hand",
       "note": "top of stack"
+    },
+    "clothing_lower": {
+      "after": "3_legs_feet",
+      "note": "skirts and dresses; over the legs and boots, under the instrument and arms"
     }
   }
 }

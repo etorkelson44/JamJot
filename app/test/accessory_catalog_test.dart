@@ -28,7 +28,7 @@ void main() {
       expect(i.hasArtFor('strawberry', 'standing'), isTrue, reason: i.id);
       expect(i.hasArtFor('kiwi', 'standing'), isTrue, reason: i.id);
       expect(i.hasArtFor('jalapeno', 'standing'), isTrue, reason: i.id);
-      expect(i.hasArtFor('jalapeno', 'violin'), isFalse, reason: i.id);
+      expect(i.hasArtFor('jalapeno', 'trumpet'), isFalse, reason: i.id);
       for (final av in ['strawberry', 'kiwi', 'jalapeno']) {
         for (final p in i.art['${av}_standing']!) {
           expect(File('${i.assetFolder(av, 'standing')}/${p.file}').existsSync(),
@@ -54,7 +54,7 @@ void main() {
 
   test('once released, an item is hidden for an avatar or pose it has no art for', () {
     final c = released();
-    expect(resolveAccessories(c, ['pink_ruffle_dress'], 'jalapeno', 'violin'), isEmpty);
+    expect(resolveAccessories(c, ['pink_ruffle_dress'], 'jalapeno', 'trumpet'), isEmpty);
     expect(resolveAccessories(c, ['pink_ruffle_dress'], 'strawberry', 'violin'), isEmpty);
     expect(resolveAccessories(c, ['no_such_item'], 'strawberry', 'standing'), isEmpty);
   });
@@ -122,25 +122,55 @@ void keywiOutfitTests() {
 void jalapenoOutfitTests() {
   final catalog = parseAccessoryCatalog(
       File('assets/art/accessories/catalog.json').readAsStringSync());
-  test('Jalapresto outfit stacks like the layered PDF: dress over the arms, left boot over the skirt, glasses and crown on top', () {
-    final all = [
-      for (final i in catalog)
-        AccessoryItem(id: i.id, name: i.name, released: true, art: i.art, display: i.display)
-    ];
+  List<AccessoryItem> all() => [
+        for (final i in catalog)
+          AccessoryItem(id: i.id, name: i.name, released: true, art: i.art, display: i.display)
+      ];
+  test('Jalapresto outfit stacks like the layered PDF: boots behind the skirt, dress over the arms, glasses and crown on top', () {
     final manifest = PoseManifest.parse('assets/art/avatar_pose/jalapeno_standing',
         File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());
-    final acc = resolveAccessories(all, all.map((i) => i.id), 'jalapeno', 'standing');
+    final acc = resolveAccessories(all(), all().map((i) => i.id), 'jalapeno', 'standing');
     final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
     int at(String f) => order.indexOf(f);
-    expect(at('5_legs_feet.png'), lessThan(at('2_boot_viewer_right.png')));
-    expect(at('2_boot_viewer_right.png'), lessThan(at('6_arm_viewer_right.png')));
+    expect(order.contains('5_legs_feet.png'), isFalse);
+    expect(at('legs_under_boots.png'), lessThan(at('2_boot_viewer_right.png')));
+    expect(at('2_boot_viewer_right.png'), lessThan(at('1_boot_viewer_left.png')));
+    expect(at('1_boot_viewer_left.png'), lessThan(at('6_arm_viewer_right.png')));
     expect(at('7_arm_viewer_left.png'), lessThan(at('2_ruffle_skirt.png')));
     expect(at('2_ruffle_skirt.png'), lessThan(at('1_strapless_top.png')));
     expect(at('1_strapless_top.png'), lessThan(at('3_sash_bow.png')));
-    expect(at('3_sash_bow.png'), lessThan(at('1_boot_viewer_left.png')));
     expect(at('4_eyes_brows.png'), lessThan(at('sunglasses.png')));
-    expect(at('1_boot_viewer_left.png'), lessThan(at('crown.png')));
+    expect(at('3_sash_bow.png'), lessThan(at('crown.png')));
     expect(order.length, manifest.layers.length + 7);
+  });
+  test('every finished Jalapresto instrument pose is dressed: trimmed legs, boots, then skirt, all before the arms and instrument', () {
+    for (final pose in ['violin', 'viola', 'piano', 'flute', 'acoustic_guitar', 'electric_guitar', 'ukulele']) {
+      final folder = 'assets/art/avatar_instrument/jalapeno_$pose';
+      final manifest = PoseManifest.parse(
+          folder, File('$folder/manifest.json').readAsStringSync());
+      for (final i in catalog) {
+        expect(i.hasArtFor('jalapeno', pose), isTrue, reason: '${i.id} $pose');
+        for (final p in i.art['jalapeno_$pose']!) {
+          expect(File('${i.assetFolder('jalapeno', pose)}/${p.file}').existsSync(), isTrue,
+              reason: '${i.id}/$pose/${p.file}');
+          if (p.replaces != null) {
+            expect(manifest.layers.contains(p.replaces), isTrue, reason: '$pose ${p.replaces}');
+          } else {
+            expect(manifest.slots.containsKey(p.slot), isTrue, reason: '$pose slot ${p.slot}');
+          }
+        }
+      }
+      final acc = resolveAccessories(all(), all().map((i) => i.id), 'jalapeno', pose);
+      final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
+      int at(String f) => order.indexOf(f);
+      final legs = manifest.slots['clothing_lower']!.layer;
+      expect(order.contains('$legs.png'), isFalse, reason: pose);
+      expect(at('legs_under_boots.png'), lessThan(at('2_boot_viewer_right.png')), reason: pose);
+      expect(at('1_boot_viewer_left.png'), lessThan(at('2_ruffle_skirt.png')), reason: pose);
+      expect(at('2_ruffle_skirt.png'), lessThan(at('1_strapless_top.png')), reason: pose);
+      expect(at('sunglasses.png'), lessThan(at('crown.png')), reason: pose);
+      expect(order.length, manifest.layers.length + 7, reason: pose);
+    }
   });
   test('jalapeno dressed frame holds crown and boots', () {
     final m = jsonDecode(File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());

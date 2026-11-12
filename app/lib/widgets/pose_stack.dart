@@ -72,10 +72,15 @@ class PoseSlot {
 
 /// An accessory to draw in a pose: a square transparent PNG on the pose's
 /// canvas, put at the named slot (e.g. `hat`, `face`, `clothing_torso`).
+///
+/// A piece with [replaces] set is not drawn on top: it stands in for that
+/// layer of the pose (e.g. a legs layer trimmed so no feet show under boots)
+/// and [slot] is ignored.
 class PoseAccessory {
-  const PoseAccessory({required this.slot, required this.asset});
+  const PoseAccessory({required this.slot, required this.asset, this.replaces});
   final String slot;
   final String asset;
+  final String? replaces;
 }
 
 /// The asset paths to draw, bottom first: the pose's layers with each
@@ -84,15 +89,24 @@ class PoseAccessory {
 List<String> poseDrawOrder(
     PoseManifest manifest, List<PoseAccessory> accessories) {
   final out = <String>[];
-  List<String> at(String layer, bool after) => [
-        for (final a in accessories)
-          if (manifest.slots[a.slot] case final s?
-              when s.layer == layer && s.after == after)
-            a.asset
-      ];
+  final replacements = <String, String>{
+    for (final a in accessories)
+      if (a.replaces != null && manifest.layers.contains(a.replaces))
+        a.replaces!: a.asset
+  };
+  List<String> at(String layer, bool after) {
+    final r = <String>[];
+    for (final a in accessories) {
+      if (a.replaces != null) continue;
+      final s = manifest.slots[a.slot];
+      if (s != null && s.layer == layer && s.after == after) r.add(a.asset);
+    }
+    return r;
+  }
+
   for (final layer in manifest.layers) {
     out.addAll(at(layer, false));
-    out.add(manifest.layerAsset(layer));
+    out.add(replacements[layer] ?? manifest.layerAsset(layer));
     out.addAll(at(layer, true));
   }
   return out;

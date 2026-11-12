@@ -12,9 +12,13 @@ import 'pose_stack.dart';
 /// hidden there (never drawn wrong). Items with `released: false` are wired
 /// in but cannot be worn yet.
 class AccessoryPiece {
-  const AccessoryPiece({required this.slot, required this.file});
+  const AccessoryPiece({required this.slot, required this.file, this.replaces});
   final String slot;
   final String file;
+
+  /// When set, this file replaces that layer of the pose instead of being
+  /// drawn on top (a legs layer trimmed under boots).
+  final String? replaces;
 }
 
 class AccessoryItem {
@@ -76,8 +80,9 @@ List<AccessoryItem> parseAccessoryCatalog(String json) {
               e.key: [
                 for (final p in (e.value as List))
                   AccessoryPiece(
-                      slot: (p as Map<String, dynamic>)['slot'] as String,
-                      file: p['file'] as String)
+                      slot: (p as Map<String, dynamic>)['slot'] as String? ?? '',
+                      file: p['file'] as String,
+                      replaces: p['replaces'] as String?)
               ]
           },
         )
@@ -109,7 +114,8 @@ List<PoseAccessory> resolveAccessories(
       }
       final folder = item.assetFolder(avatarKey, pose);
       for (final p in item.art['${avatarKey}_$pose']!) {
-        out.add(PoseAccessory(slot: p.slot, asset: '$folder/${p.file}'));
+        out.add(PoseAccessory(
+            slot: p.slot, asset: '$folder/${p.file}', replaces: p.replaces));
       }
     }
   }
