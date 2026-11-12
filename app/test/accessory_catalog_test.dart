@@ -205,7 +205,8 @@ void jalapenoOutfitTests() {
       expect(at('monocle_lens.png'), greaterThan(at('jacket.png')), reason: pose);
       // acoustic guitar: his crossed legs get Erika's pair of shoes as one piece
       expect(order.where((f) => f.endsWith('_sneaker.png')).length, pose == 'acoustic_guitar' ? 1 : 2, reason: pose);
-      expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
+      // acoustic guitar has no arms or sleeves for now (Erika will supply them)
+      if (pose != 'acoustic_guitar') expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
     }
   });
   test('Jalapresto outfit stacks like the layered PDF: boots behind the skirt, dress over the arms, glasses and crown on top', () {
