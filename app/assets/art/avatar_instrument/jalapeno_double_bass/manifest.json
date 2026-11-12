@@ -1,0 +1,56 @@
+{
+  "character": "senor_jalapresto",
+  "pose": "double_bass",
+  "canvas": [
+    1000,
+    1000
+  ],
+  "format": "png-rgba",
+  "note": "Double bass hold from Erika's Jalapresto_Instruments_Compilation.pdf (page 4 double bass photo, 2026-11-11), sized and leaned from the three reference photos Erika attached: the bass is taller than he is with the scroll above his head, leans toward him with the neck by the side of his face, and the bow lies level across the strings. The photo's white background was cut out. His left arm is drawn from two line segments plus the compilation's fork hand: the upper arm sits behind the bass, the forearm and hand sit over it and over the mustache.",
+  "layers": [
+    "1_pepper_body",
+    "2_eyes_brows",
+    "3_teeth",
+    "4_mustache",
+    "5_legs_feet",
+    "6_left_upper_arm",
+    "7_double_bass",
+    "8_left_forearm_hand",
+    "9_bow",
+    "10_right_arm"
+  ],
+  "accessory_slots": {
+    "behind_body": {
+      "before": "1_pepper_body",
+      "note": "capes, wings, backpacks"
+    },
+    "clothing_torso": {
+      "after": "1_pepper_body",
+      "note": "shirts, scarves, bow ties; stays under the face and bass"
+    },
+    "shoes": {
+      "after": "5_legs_feet"
+    },
+    "clothing_lower": {
+      "after": "5_legs_feet",
+      "note": "skirts and dresses; over the legs and boots, under the bass"
+    },
+    "face": {
+      "after": "4_mustache",
+      "note": "glasses, masks"
+    },
+    "sleeves_left_upper_arm": {
+      "after": "6_left_upper_arm"
+    },
+    "sleeves_left_arm": {
+      "after": "8_left_forearm_hand"
+    },
+    "sleeves_right_arm": {
+      "after": "10_right_arm"
+    },
+    "hat": {
+      "after": "10_right_arm",
+      "note": "top of stack"
+    }
+  }
+}

@@ -47,6 +47,7 @@ flutter:
     - assets/art/avatar_instrument/jalapeno_ukulele/
     - assets/art/avatar_instrument/jalapeno_flute/
     - assets/art/avatar_instrument/jalapeno_cello/
+    - assets/art/avatar_instrument/jalapeno_double_bass/
     - assets/art/avatar_pose/kiwi_standing/
     - assets/art/avatar_pose/strawberry_standing/
     - assets/art/avatar_pose/jalapeno_standing/
@@ -60,6 +61,7 @@ flutter:
     - assets/art/accessories/purple_glitter_crown/jalapeno_piano/
     - assets/art/accessories/purple_glitter_crown/jalapeno_flute/
     - assets/art/accessories/purple_glitter_crown/jalapeno_cello/
+    - assets/art/accessories/purple_glitter_crown/jalapeno_double_bass/
     - assets/art/accessories/purple_glitter_crown/jalapeno_acoustic_guitar/
     - assets/art/accessories/purple_glitter_crown/jalapeno_electric_guitar/
     - assets/art/accessories/purple_glitter_crown/jalapeno_ukulele/
@@ -72,6 +74,7 @@ flutter:
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_piano/
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_flute/
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_cello/
+    - assets/art/accessories/cat_eye_sunglasses/jalapeno_double_bass/
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_acoustic_guitar/
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_electric_guitar/
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_ukulele/
@@ -84,6 +87,7 @@ flutter:
     - assets/art/accessories/pink_ruffle_dress/jalapeno_piano/
     - assets/art/accessories/pink_ruffle_dress/jalapeno_flute/
     - assets/art/accessories/pink_ruffle_dress/jalapeno_cello/
+    - assets/art/accessories/pink_ruffle_dress/jalapeno_double_bass/
     - assets/art/accessories/pink_ruffle_dress/jalapeno_acoustic_guitar/
     - assets/art/accessories/pink_ruffle_dress/jalapeno_electric_guitar/
     - assets/art/accessories/pink_ruffle_dress/jalapeno_ukulele/
@@ -96,6 +100,7 @@ flutter:
     - assets/art/accessories/lilac_platform_boots/jalapeno_piano/
     - assets/art/accessories/lilac_platform_boots/jalapeno_flute/
     - assets/art/accessories/lilac_platform_boots/jalapeno_cello/
+    - assets/art/accessories/lilac_platform_boots/jalapeno_double_bass/
     - assets/art/accessories/lilac_platform_boots/jalapeno_acoustic_guitar/
     - assets/art/accessories/lilac_platform_boots/jalapeno_electric_guitar/
     - assets/art/accessories/lilac_platform_boots/jalapeno_ukulele/
