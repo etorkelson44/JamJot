@@ -37,7 +37,7 @@
     },
     "face": {
       "after": "4_mustache",
-      "note": "glasses, masks"
+      "note": "glasses, masks; above the eyes, brows, teeth and mustache"
     },
     "sleeves_left_upper_arm": {
       "after": "6_left_upper_arm"

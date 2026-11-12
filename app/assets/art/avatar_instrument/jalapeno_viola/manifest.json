@@ -14,8 +14,8 @@
     "4_left_arm_hand",
     "5_right_upper_arm",
     "6_viola",
-    "7_mustache",
     "8_teeth",
+    "7_mustache",
     "9_bow",
     "10_right_forearm_bow_hand"
   ],
@@ -40,8 +40,8 @@
       "note": "bow-arm upper half sits under the viola; a bow-arm sleeve needs this piece plus sleeves_right_arm"
     },
     "face": {
-      "after": "8_teeth",
-      "note": "glasses, masks"
+      "after": "7_mustache",
+      "note": "glasses, masks; above the eyes, brows, teeth and mustache"
     },
     "sleeves_right_arm": {
       "after": "10_right_forearm_bow_hand",

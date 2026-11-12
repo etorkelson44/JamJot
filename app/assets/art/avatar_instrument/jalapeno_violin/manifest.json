@@ -13,8 +13,8 @@
     "3_legs_feet",
     "4_violin",
     "5_left_arm_hand",
-    "6_mustache",
     "7_teeth",
+    "6_mustache",
     "8_bow",
     "9_right_arm_bow_hand"
   ],
@@ -31,8 +31,8 @@
       "after": "3_legs_feet"
     },
     "face": {
-      "after": "7_teeth",
-      "note": "glasses, masks"
+      "after": "6_mustache",
+      "note": "glasses, masks; above the eyes, brows, teeth and mustache"
     },
     "sleeves_left_arm": {
       "after": "5_left_arm_hand"
