@@ -784,6 +784,10 @@
           {
             "slot": "sleeves_arm_viewer_left",
             "file": "hand_5.png"
+          },
+          {
+            "slot": "sleeves_arm_viewer_left",
+            "file": "hand_6.png"
           }
         ],
         "jalapeno_flute": [
