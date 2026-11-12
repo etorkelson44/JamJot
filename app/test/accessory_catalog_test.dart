@@ -203,7 +203,7 @@ void jalapenoOutfitTests() {
       // acoustic guitar: his crossed legs get Erika's pair of shoes as one piece
       expect(order.where((f) => f.endsWith('_sneaker.png')).length, crossed ? 1 : 2, reason: pose);
       // acoustic guitar is built from Erika's layered PDF (its sleeves are her pieces); see its own test below
-      if (pose != 'acoustic_guitar') expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
+      if (pose != 'acoustic_guitar' && pose != 'electric_guitar') expect(order.where((f) => f.startsWith('sleeve_')).length, greaterThanOrEqualTo(2), reason: pose);
     }
   });
   test('Jalapresto outfit stacks like the layered PDF: boots behind the skirt, dress over the arms, glasses and crown on top', () {
@@ -273,10 +273,11 @@ void jalapenoOutfitTests() {
     expect(at('monocle_lens.png'), lessThan(at('2_mustache.png')));
     expect(at('2_mustache.png'), lessThan(at('monocle_chain.png')));
   });
-  test('Presto acoustic guitar (from Erika\'s layered PDF): fret arm behind the body, her guitar, then fingers, strum arm and sleeves on top', () {
-    final folder = 'assets/art/avatar_instrument/jalapeno_acoustic_guitar';
+  test('Presto acoustic and electric guitar (from Erika\'s layered PDF): fret arm behind the body, the moved guitar, then fingers, strum arm and sleeves on top', () {
+   for (final gp in ['acoustic_guitar', 'electric_guitar']) {
+    final folder = 'assets/art/avatar_instrument/jalapeno_$gp';
     final manifest = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
-    final acc = resolveAccessories(presto(), prestoIds, 'jalapeno', 'acoustic_guitar');
+    final acc = resolveAccessories(presto(), prestoIds, 'jalapeno', gp);
     final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
     int at(String f) => order.indexOf(f);
     for (final gone in ['6_fret_arm.png', '7_guitar.png', '8_fingertips.png', '9_strum_arm_hand.png']) {
@@ -289,6 +290,7 @@ void jalapenoOutfitTests() {
     expect(at('guitar.png'), lessThan(at('fingertips.png')));
     expect(at('fingertips.png'), lessThan(at('strum_arm_hand.png')));
     expect(at('strum_arm_hand.png'), lessThan(at('4_strum_forearm_sleeve.png')));
+   }
   });
   test('jalapeno dressed frame holds crown and boots', () {
     final m = jsonDecode(File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());
