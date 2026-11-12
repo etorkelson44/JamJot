@@ -982,28 +982,12 @@
           {
             "slot": "shoes",
             "file": "1_sneaker.png"
-          },
-          {
-            "slot": "shoes",
-            "file": "2_sneaker.png"
-          },
-          {
-            "replaces": "5_legs_feet",
-            "file": "legs_under_sneakers.png"
           }
         ],
         "jalapeno_ukulele": [
           {
             "slot": "shoes",
             "file": "1_sneaker.png"
-          },
-          {
-            "slot": "shoes",
-            "file": "2_sneaker.png"
-          },
-          {
-            "replaces": "5_legs_feet",
-            "file": "legs_under_sneakers.png"
           }
         ],
         "jalapeno_cello": [
