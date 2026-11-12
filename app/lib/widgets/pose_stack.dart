@@ -77,10 +77,19 @@ class PoseSlot {
 /// layer of the pose (e.g. a legs layer trimmed so no feet show under boots)
 /// and [slot] is ignored.
 class PoseAccessory {
-  const PoseAccessory({required this.slot, required this.asset, this.replaces});
+  const PoseAccessory(
+      {required this.slot,
+      required this.asset,
+      this.replaces,
+      this.overflowTop = 0});
   final String slot;
   final String asset;
   final String? replaces;
+
+  /// Canvas pixels of art above the top of the pose canvas (a tall feather):
+  /// the file is 1000 wide and 1000 + [overflowTop] tall, with the pose
+  /// canvas starting [overflowTop] pixels down.
+  final double overflowTop;
 }
 
 /// The asset paths to draw, bottom first: the pose's layers with each
@@ -127,19 +136,68 @@ class PoseStack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final overflow = {
+      for (final a in accessories)
+        if (a.overflowTop > 0) a.asset: a.overflowTop
+    };
     return SizedBox(
       width: size,
       height: size,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           for (final asset in poseDrawOrder(manifest, accessories))
-            Positioned.fill(
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              top: -(overflow[asset] ?? 0) * size / 1000,
               child: Image.asset(asset,
                   fit: BoxFit.fill,
                   filterQuality: FilterQuality.medium,
                   gaplessPlayback: true),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A pose cropped to [box] = [x, y, side] on its 1000px canvas and scaled to
+/// fill a [size] square. The box may start above or left of the canvas
+/// (negative x or y) to make room for art that overflows it.
+class FramedPose extends StatelessWidget {
+  const FramedPose(
+      {super.key,
+      required this.manifest,
+      required this.box,
+      this.accessories = const [],
+      this.size = 120});
+
+  final PoseManifest manifest;
+  final List<double> box;
+  final List<PoseAccessory> accessories;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final k = size / box[2];
+    return SizedBox(
+      width: size,
+      height: size,
+      child: ClipRect(
+        child: OverflowBox(
+          alignment: Alignment.topLeft,
+          minWidth: 0,
+          minHeight: 0,
+          maxWidth: 1000 * k,
+          maxHeight: 1000 * k,
+          child: Transform.translate(
+            offset: Offset(-box[0] * k, -box[1] * k),
+            child: PoseStack(
+                manifest: manifest, accessories: accessories, size: 1000 * k),
+          ),
+        ),
       ),
     );
   }

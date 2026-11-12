@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/instruments.dart';
 import '../state/app_state.dart';
 import '../state/wardrobe.dart';
+import 'accessory_catalog.dart';
 import 'dressed_avatar.dart';
 import 'pose_stack.dart';
 import 'letter_avatar.dart' show studentAvatarKey;
@@ -31,6 +32,10 @@ final _poseManifestProvider =
     return null;
   }
 });
+
+/// The layered accessory catalog, loaded once.
+final accessoryItemsProvider = FutureProvider<List<AccessoryItem>>(
+    (ref) => loadAccessoryCatalog());
 
 /// Every bundled asset path, read once from the asset manifest.
 final _bundledAssetsProvider = FutureProvider<Set<String>>((ref) async {
@@ -73,7 +78,25 @@ class PerformingAvatar extends ConsumerWidget {
     if (bundled != null && bundled.contains('$poseFolder/manifest.json')) {
       final pose = ref.watch(_poseManifestProvider(poseFolder)).valueOrNull;
       if (pose != null) {
-        return PoseStack(manifest: pose, size: size * 1.35);
+        // Worn pieces fitted to this pose are drawn at their slots; a piece
+        // with no art for this pose is left off (plain pose fallback).
+        final catalog =
+            ref.watch(accessoryItemsProvider).valueOrNull ?? const [];
+        final worn = sid == null
+            ? const <String>[]
+            : ref.watch(wardrobeProvider(sid)).outfitFor(wornKey);
+        final accessories =
+            resolveAccessories(catalog, worn, wornKey, entry.key);
+        final frame = accessoryFrame(catalog, worn, wornKey, entry.key);
+        if (frame != null && accessories.isNotEmpty) {
+          return FramedPose(
+              manifest: pose,
+              box: frame,
+              accessories: accessories,
+              size: size * 1.35);
+        }
+        return PoseStack(
+            manifest: pose, accessories: accessories, size: size * 1.35);
       }
     }
 

@@ -1172,6 +1172,150 @@
         ]
       },
       "display": "display.png"
+    },
+    {
+      "id": "sugar_shrub_shako",
+      "name": "Sugar Shrub Shako",
+      "released": true,
+      "free": true,
+      "display": "display.png",
+      "overflow_top": 200,
+      "frames": {
+        "kiwi_standing": [
+          -58,
+          -137,
+          1117
+        ],
+        "strawberry_standing": [
+          0,
+          -60,
+          1005
+        ],
+        "jalapeno_standing": [
+          -74,
+          -151,
+          1135
+        ],
+        "jalapeno_violin": [
+          -67,
+          -134,
+          1134
+        ],
+        "jalapeno_viola": [
+          -67,
+          -134,
+          1134
+        ],
+        "jalapeno_piano": [
+          -24,
+          -49,
+          1049
+        ],
+        "jalapeno_flute": [
+          -76,
+          -151,
+          1151
+        ],
+        "jalapeno_acoustic_guitar": [
+          -56,
+          -111,
+          1111
+        ],
+        "jalapeno_electric_guitar": [
+          -56,
+          -111,
+          1111
+        ],
+        "jalapeno_ukulele": [
+          -56,
+          -111,
+          1111
+        ],
+        "jalapeno_cello": [
+          -67,
+          -134,
+          1134
+        ],
+        "jalapeno_double_bass": [
+          -67,
+          -134,
+          1134
+        ]
+      },
+      "art": {
+        "kiwi_standing": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "strawberry_standing": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_standing": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "hat",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_double_bass": [
+          {
+            "slot": "hat_behind_instrument",
+            "file": "shako.png"
+          }
+        ]
+      }
     }
   ]
 }

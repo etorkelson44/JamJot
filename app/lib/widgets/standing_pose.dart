@@ -34,11 +34,16 @@ class StandingPose extends StatelessWidget {
       {super.key,
       required this.avatarKey,
       this.size = 120,
-      this.accessories = const []});
+      this.accessories = const [],
+      this.frame});
 
   final String avatarKey;
   final double size;
   final List<PoseAccessory> accessories;
+
+  /// A larger square to show instead of the pose's own box, for a worn
+  /// piece that needs more room (a tall hat).
+  final List<double>? frame;
 
   @override
   Widget build(BuildContext context) {
@@ -47,28 +52,12 @@ class StandingPose extends StatelessWidget {
       builder: (context, snap) {
         final pose = snap.data;
         if (pose == null) return SizedBox(width: size, height: size);
-        final box = (accessories.isNotEmpty ? pose.dressedDisplayBox : null) ??
+        final box = frame ??
+            (accessories.isNotEmpty ? pose.dressedDisplayBox : null) ??
             pose.displayBox ??
-            const [0, 0, 1000];
-        final k = size / box[2];
-        return SizedBox(
-          width: size,
-          height: size,
-          child: ClipRect(
-            child: OverflowBox(
-              alignment: Alignment.topLeft,
-              minWidth: 0,
-              minHeight: 0,
-              maxWidth: 1000 * k,
-              maxHeight: 1000 * k,
-              child: Transform.translate(
-                offset: Offset(-box[0] * k, -box[1] * k),
-                child: PoseStack(
-                    manifest: pose, accessories: accessories, size: 1000 * k),
-              ),
-            ),
-          ),
-        );
+            const <double>[0, 0, 1000];
+        return FramedPose(
+            manifest: pose, box: box, accessories: accessories, size: size);
       },
     );
   }

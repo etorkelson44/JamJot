@@ -10,7 +10,9 @@ import '../../state/wardrobe.dart';
 import '../../services/sound_effects.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/ask_maestro.dart' show TisdaleImprint;
+import '../../widgets/accessory_catalog.dart';
 import '../../widgets/dressed_avatar.dart';
+import '../../widgets/performing_avatar.dart' show accessoryItemsProvider;
 import '../../widgets/fan_stage.dart';
 import '../../widgets/letter_avatar.dart'
     show artAsset, isWearableAvatar, studentAvatarKey;
@@ -335,6 +337,13 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       Wardrobe wardrobe, int coins, int level) {
     final text = Theme.of(context).textTheme;
     final outfit = wardrobe.outfitFor(wornKey);
+    // Pieces with fitted layered art that this student has: gifts every
+    // student owns (JJ-061-C) and anything bought.
+    final rack = [
+      for (final i
+          in ref.watch(accessoryItemsProvider).valueOrNull ?? const <AccessoryItem>[])
+        if (i.released && (i.free || wardrobe.owned.contains(i.id))) i
+    ];
     return Container(
       // Backstage: deep velvet walls behind everything.
       decoration: const BoxDecoration(
@@ -483,7 +492,10 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                     color: const Color(0xFFF5B82E))),
         ]),
         Text(
-            accessoryCatalog.isEmpty
+            rack.isNotEmpty
+                ? 'Tap a piece to wear it. Everything on your rack dresses '
+                    'ANY band member!'
+                : accessoryCatalog.isEmpty
                 ? 'The costume department is sewing a whole new wardrobe '
                     'for the World Tour — arriving soon! 🧵'
                 : 'Everything you own dresses ANY band member. 🪙 $coins to spend.',
@@ -499,6 +511,36 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
             border: Border.all(color: JamJotColors.ink, width: 3),
           ),
           child: Column(children: [
+            for (var row = 0; row * 4 < rack.length; row++) ...[
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var col = 0; col < 4; col++) ...[
+                      if (col > 0) const SizedBox(width: 6),
+                      Expanded(
+                        child: row * 4 + col < rack.length
+                            ? _rackTile(context, sid, wornKey, wardrobe,
+                                rack[row * 4 + col])
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Container(
+                height: 7,
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF9A6A3C),
+                  borderRadius: BorderRadius.circular(3),
+                  border: Border.all(color: JamJotColors.ink, width: 1.5),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x55000000), offset: Offset(0, 2)),
+                  ],
+                ),
+              ),
+            ],
             for (var row = 0; row * 4 < accessoryCatalog.length; row++) ...[
               IntrinsicHeight(
                 child: Row(
@@ -546,7 +588,10 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                accessoryCatalog.isEmpty
+                rack.isNotEmpty && accessoryCatalog.isEmpty
+                    ? '"Every great performer starts with one good hat, mon '
+                        'ami. This one is on the house!" — Maestro Marmalade'
+                    : accessoryCatalog.isEmpty
                     ? '"The tailors are hard at work, mon ami — a world tour '
                         'deserves a world-class wardrobe!" — Maestro Marmalade'
                     : wardrobe.owned.length >= accessoryCatalog.length
@@ -613,6 +658,73 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
 
   Future<void> _giveSpotlight(String sid, String assetKey) async {
     if (await _wear(sid, assetKey)) playSound('cheer');
+  }
+
+  /// A piece with fitted layered art on the rack: its shelf picture, its
+  /// name, and whether the band member in the mirror is wearing it.
+  Widget _rackTile(BuildContext context, String sid, String wornKey,
+      Wardrobe wardrobe, AccessoryItem item) {
+    final text = Theme.of(context).textTheme;
+    final worn = wardrobe.outfitFor(wornKey).contains(item.id);
+    return Semantics(
+      button: true,
+      label: '${item.name}, ${worn ? 'wearing, tap to take off' : 'tap to wear'}',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          ref.read(wardrobeProvider(sid).notifier).toggleWear(wornKey, item.id);
+          playSound('pop');
+        },
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 96),
+          padding: const EdgeInsets.fromLTRB(4, 6, 4, 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: worn ? JamJotColors.marigold : JamJotColors.ink,
+                width: worn ? 3 : 2),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ExcludeSemantics(
+                child: Image.asset(item.displayAsset,
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) =>
+                        const SizedBox(width: 44, height: 44)),
+              ),
+              const SizedBox(height: 4),
+              ExcludeSemantics(
+                child: Text(item.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: text.labelSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 2),
+              ExcludeSemantics(
+                child: Text(
+                    worn
+                        ? 'WEARING'
+                        : item.free
+                            ? 'FREE · tap to wear'
+                            : 'tap to wear',
+                    textAlign: TextAlign.center,
+                    style: text.labelSmall?.copyWith(
+                        fontWeight: worn ? FontWeight.w800 : FontWeight.w600,
+                        color: worn
+                            ? JamJotColors.marigold
+                            : JamJotColors.inkSoft)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _closetTile(BuildContext context, String sid, String wornKey,

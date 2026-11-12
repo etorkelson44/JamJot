@@ -55,6 +55,10 @@
     "monocle": {
       "after": "2_eyes_brows",
       "note": "monocle lens: above the eyes, under the teeth and mustache (the chain uses the face slot, over the mustache)"
+    },
+    "hat_behind_instrument": {
+      "after": "6_left_upper_arm",
+      "note": "hats that sit behind the bass, so its scroll shows in front of the hat"
     }
   }
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../widgets/accessory_catalog.dart';
 import '../widgets/fan_stage.dart' show venues;
 
 /// One closet item. Accessories belong to the STUDENT, not to the avatar
@@ -72,10 +73,15 @@ class WardrobeNotifier extends StateNotifier<Wardrobe> {
   }
   final String studentId;
 
+  /// Gifts every student owns (JJ-061-C); wearable without being bought.
+  Set<String> _free = const {};
+
   String get _ownedKey => 'jj_wardrobe_owned_$studentId';
   String get _outfitKey => 'jj_wardrobe_outfits_$studentId';
 
   Future<void> _load() async {
+    final layered = await loadAccessoryCatalog();
+    _free = freeAccessoryIds(layered);
     try {
       final prefs = await SharedPreferences.getInstance();
       final owned =
@@ -90,7 +96,13 @@ class WardrobeNotifier extends StateNotifier<Wardrobe> {
       }
       // Keep only accessories that still exist in the catalog — retired
       // pieces disappear from the rack and from saved outfits.
-      final ids = {for (final a in accessoryCatalog) a.id};
+      // Pieces with layered art (the Market accessories, JJ-059-C) count
+      // once they are released.
+      final ids = {
+        for (final a in accessoryCatalog) a.id,
+        for (final i in layered)
+          if (i.released) i.id
+      };
       final prunedOwned = owned.where(ids.contains).toSet();
       final prunedOutfits = <String, List<String>>{
         for (final e in outfits.entries)
@@ -159,7 +171,9 @@ class WardrobeNotifier extends StateNotifier<Wardrobe> {
 
   /// Toggle an owned accessory on one avatar's saved outfit.
   void toggleWear(String avatarKey, String accessoryId) {
-    if (!state.owned.contains(accessoryId)) return;
+    if (!state.owned.contains(accessoryId) && !_free.contains(accessoryId)) {
+      return;
+    }
     final outfit = [...state.outfitFor(avatarKey)];
     if (outfit.contains(accessoryId)) {
       outfit.remove(accessoryId);

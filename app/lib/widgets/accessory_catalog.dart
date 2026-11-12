@@ -27,11 +27,24 @@ class AccessoryItem {
       required this.name,
       required this.released,
       required this.art,
-      this.display = 'display.png'});
+      this.display = 'display.png',
+      this.free = false,
+      this.overflowTop = 0,
+      this.frames = const {}});
 
   final String id;
   final String name;
   final bool released;
+
+  /// A gift every student owns from the start (JJ-061-C); never sold.
+  final bool free;
+
+  /// Canvas pixels of art above the pose canvas in this item's files.
+  final double overflowTop;
+
+  /// `<avatar>_<pose>` -> [x, y, side]: the larger square to frame the
+  /// avatar with while this item is worn there.
+  final Map<String, List<double>> frames;
 
   /// The one shelf image for the Market and dressing room (not the fitted art).
   final String display;
@@ -74,6 +87,14 @@ List<AccessoryItem> parseAccessoryCatalog(String json) {
           name: raw['name'] as String? ?? raw['id'] as String,
           released: raw['released'] == true,
           display: raw['display'] as String? ?? 'display.png',
+          free: raw['free'] == true,
+          overflowTop: (raw['overflow_top'] as num?)?.toDouble() ?? 0,
+          frames: {
+            for (final e
+                in (raw['frames'] as Map<String, dynamic>? ?? const {}).entries)
+              if (e.value is List && (e.value as List).length == 3)
+                e.key: [for (final v in e.value as List) (v as num).toDouble()]
+          },
           art: {
             for (final e in (raw['art'] as Map<String, dynamic>? ?? const {})
                 .entries)
@@ -115,7 +136,10 @@ List<PoseAccessory> resolveAccessories(
       final folder = item.assetFolder(avatarKey, pose);
       for (final p in item.art['${avatarKey}_$pose']!) {
         out.add(PoseAccessory(
-            slot: p.slot, asset: '$folder/${p.file}', replaces: p.replaces));
+            slot: p.slot,
+            asset: '$folder/${p.file}',
+            replaces: p.replaces,
+            overflowTop: item.overflowTop));
       }
     }
   }
@@ -131,4 +155,30 @@ List<PoseAccessory> resolveAccessories(
     return c != 0 ? c : a.$1.compareTo(b.$1);
   });
   return [for (final e in indexed) e.$2];
+}
+
+/// Ids of the released gifts every student owns without buying (JJ-061-C).
+Set<String> freeAccessoryIds(List<AccessoryItem> catalog) =>
+    {for (final i in catalog) if (i.released && i.free) i.id};
+
+/// The square to frame [avatarKey] in [pose] with while [itemIds] are worn:
+/// the smallest square holding every worn item's own frame, or null when no
+/// worn item asks for more room.
+List<double>? accessoryFrame(List<AccessoryItem> catalog,
+    Iterable<String> itemIds, String avatarKey, String pose) {
+  double? l, t, r, b;
+  for (final id in itemIds) {
+    for (final item in catalog) {
+      if (item.id != id || !item.released) continue;
+      final f = item.frames['${avatarKey}_$pose'];
+      if (f == null) continue;
+      l = l == null || f[0] < l ? f[0] : l;
+      t = t == null || f[1] < t ? f[1] : t;
+      r = r == null || f[0] + f[2] > r ? f[0] + f[2] : r;
+      b = b == null || f[1] + f[2] > b ? f[1] + f[2] : b;
+    }
+  }
+  if (l == null || t == null || r == null || b == null) return null;
+  final side = (r - l) > (b - t) ? r - l : b - t;
+  return [l - (side - (r - l)) / 2, b - side, side];
 }

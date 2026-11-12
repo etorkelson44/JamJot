@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../state/wardrobe.dart';
-import 'letter_avatar.dart' show berryArt;
+import 'accessory_catalog.dart';
+import 'letter_avatar.dart' show berryArt, berryAvatars;
+import 'standing_pose.dart';
 
 /// Every catalog accessory now has real drawn art, tailored per character:
 /// each (accessory, avatar) pair ships as a full-canvas overlay PNG drawn
@@ -91,6 +93,29 @@ class DressedAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Pieces with layered art (JJ-059-C) are drawn inside the standing pose
+    // at their slots; a piece with no art for this avatar is simply not
+    // drawn, so the avatar falls back to its plain pose.
+    if (berryAvatars.containsKey(avatarKey) && outfit.isNotEmpty) {
+      return FutureBuilder<List<AccessoryItem>>(
+        future: loadAccessoryCatalog(),
+        builder: (context, snap) {
+          final catalog = snap.data ?? const <AccessoryItem>[];
+          final layered =
+              resolveAccessories(catalog, outfit, avatarKey, 'standing');
+          if (layered.isEmpty) return _legacy(context);
+          return StandingPose(
+              avatarKey: avatarKey,
+              size: size,
+              accessories: layered,
+              frame: accessoryFrame(catalog, outfit, avatarKey, 'standing'));
+        },
+      );
+    }
+    return _legacy(context);
+  }
+
+  Widget _legacy(BuildContext context) {
     final body = berryArt(avatarKey, size) ??
         Text('🎵', style: TextStyle(fontSize: size * 0.7));
     final worn = [...outfit]..sort((a, b) => _zOf(a).compareTo(_zOf(b)));

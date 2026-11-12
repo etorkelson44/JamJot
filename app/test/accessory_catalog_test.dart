@@ -30,7 +30,7 @@ void main() {
       ];
 
   test('catalog lists the four starter items then the four Presto items, with their final names', () {
-    expect(catalog.map((i) => i.id), [...starterIds, ...prestoIds]);
+    expect(catalog.map((i) => i.id), [...starterIds, ...prestoIds, 'sugar_shrub_shako']);
     expect(catalog.map((i) => i.name), [
       'Dolce Diadem',
       'Crescendo Cat-Eyes',
@@ -39,7 +39,8 @@ void main() {
       'Tarantella Top Hat',
       'Marcato Monocle',
       'Toccata Tuxedo',
-      'Legato Lace-Ups'
+      'Legato Lace-Ups',
+      'Sugar Shrub Shako'
     ]);
     for (final i in catalog.where((i) => starterIds.contains(i.id))) {
       expect(i.hasArtFor('strawberry', 'standing'), isTrue, reason: i.id);
@@ -62,11 +63,13 @@ void main() {
     }
   });
 
-  test('every item is wired in but not wearable yet', () {
-    expect(catalog.every((i) => !i.released), isTrue);
+  test('every item for sale is wired in but not wearable yet; only the free shako is live', () {
+    expect(catalog.where((i) => i.released).map((i) => i.id), ['sugar_shrub_shako']);
+    expect(catalog.where((i) => !i.free).every((i) => !i.released), isTrue);
     expect(
-        resolveAccessories(catalog, catalog.map((i) => i.id), 'strawberry', 'standing'),
-        isEmpty);
+        resolveAccessories(catalog, catalog.map((i) => i.id), 'strawberry', 'standing')
+            .map((a) => a.asset.split('/').last),
+        ['shako.png']);
   });
 
   test('once released, an item is hidden for an avatar or pose it has no art for', () {
@@ -103,7 +106,7 @@ void main() {
   });
 
   test('catalog json parses with the expected keys', () {
-    expect(jsonDecode(json)['items'], hasLength(8));
+    expect(jsonDecode(json)['items'], hasLength(9));
   });
 }
 
@@ -319,6 +322,48 @@ void jalapenoOutfitTests() {
         expect(at('monocle.png'), lessThan(at('6_jacket.png')));
       }
     }
+  });
+  test('Sugar Shrub Shako (JJ-061-C): a free, released hat with art for every finished pose and its own taller frame', () {
+    final shako = catalog.firstWhere((i) => i.id == 'sugar_shrub_shako');
+    expect(shako.name, 'Sugar Shrub Shako');
+    expect(shako.released, isTrue);
+    expect(shako.free, isTrue);
+    expect(freeAccessoryIds(catalog), {'sugar_shrub_shako'});
+    expect(File(shako.displayAsset).existsSync(), isTrue);
+    final tags = [
+      'kiwi_standing',
+      'strawberry_standing',
+      'jalapeno_standing',
+      for (final p in jalapenoPoses) 'jalapeno_$p'
+    ];
+    for (final tag in tags) {
+      final avatar = tag.split('_').first;
+      final pose = tag.substring(avatar.length + 1);
+      expect(shako.hasArtFor(avatar, pose), isTrue, reason: tag);
+      for (final p in shako.art[tag]!) {
+        expect(File('assets/art/accessories/sugar_shrub_shako/$tag/${p.file}').existsSync(), isTrue, reason: tag);
+      }
+      // The feather rises above the canvas, so the frame starts above it.
+      final frame = accessoryFrame(catalog, ['sugar_shrub_shako'], avatar, pose);
+      expect(frame, isNotNull, reason: tag);
+      expect(frame![1], lessThan(0), reason: tag);
+      final acc = resolveAccessories(catalog, ['sugar_shrub_shako'], avatar, pose);
+      expect(acc.single.overflowTop, 200, reason: tag);
+    }
+    // No other item asks for a bigger frame, and unreleased items never do.
+    expect(accessoryFrame(catalog, prestoIds, 'jalapeno', 'standing'), isNull);
+    // An avatar or pose with no fitted art falls back to the plain pose.
+    expect(resolveAccessories(catalog, ['sugar_shrub_shako'], 'kiwi', 'violin'), isEmpty);
+    expect(accessoryFrame(catalog, ['sugar_shrub_shako'], 'kiwi', 'violin'), isNull);
+  });
+  test('Sugar Shrub Shako on the double bass sits behind the bass, so the scroll shows in front of the hat', () {
+    final folder = 'assets/art/avatar_instrument/jalapeno_double_bass';
+    final manifest = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
+    final acc = resolveAccessories(catalog, ['sugar_shrub_shako'], 'jalapeno', 'double_bass');
+    final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
+    final bass = manifest.layers.firstWhere((l) => l.contains('double_bass'));
+    expect(order.indexOf('shako.png'), greaterThan(order.indexOf('4_mustache.png')));
+    expect(order.indexOf('shako.png'), lessThan(order.indexOf('$bass.png')));
   });
   test('jalapeno dressed frame holds crown and boots', () {
     final m = jsonDecode(File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());
