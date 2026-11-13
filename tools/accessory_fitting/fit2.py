@@ -95,3 +95,15 @@ def img(c): return Image.fromarray((np.clip(c[...,:3],0,1)*255).round().astype('
 def trimmed_legs(a,cuff,keep=10):
     """The legs layer with everything above the pant cuffs removed, so no leg shows outside the pants."""
     o=a.copy(); o[:int(cuff-keep),:,3]=0; return o
+
+def seat_fill(body_alpha,mid_x,waist_y,kw,kl,start=2,shade=0.9):
+    """Plaid fabric over every part of the body that would show below the waistband (behind and beside the pants), so
+    no body peeks out. Texture is the pants' own hip block, mirrored sideways and repeated downward to cover the area."""
+    yy,xx=np.mgrid[0:1000,0:1000].astype(np.float32); sx=XC+(xx-mid_x)/kw; sy=(yy-waist_y)/kl
+    al=PANTS[...,3]>0.5; r=np.nonzero(al[int(CY*0.6)])[0]; x0,x1=float(r.min()+25),float(r.max()-25); w=x1-x0
+    u=np.mod(sx-x0,2*w); sx=x0+np.where(u>w,2*w-u,u)                      # mirror across the hip block's sides
+    y0,y1=265.0,float(CY-30); hh=y1-y0; v=np.mod(sy-y0,2*hh); sy=y0+np.where(v>hh,2*hh-v,v)     # plain plaid rows only (below the bow, above the crotch)
+    pm=cv2.GaussianBlur(PANTS[...,:3],(0,0),max(0.5,0.35/kw)); tex=cv2.remap(pm,sx.astype(np.float32),sy.astype(np.float32),cv2.INTER_LINEAR,borderMode=cv2.BORDER_REFLECT)*shade
+    reg=np.zeros((1000,1000),np.float32); reg[int(waist_y+start):]=1
+    m=cv2.GaussianBlur((cv2.dilate((body_alpha>0.5).astype(np.uint8),np.ones((5,5),np.uint8))>0).astype(np.float32)*reg,(0,0),0.7)
+    return np.concatenate([tex,m[...,None]],-1)

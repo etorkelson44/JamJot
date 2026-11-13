@@ -14,7 +14,7 @@ art={J:{},S:{}}
 # --- crossed legs: standing, acoustic guitar, electric guitar, ukulele ---
 for tag in ['avatar_pose/jalapeno_standing','avatar_instrument/jalapeno_acoustic_guitar','avatar_instrument/jalapeno_electric_guitar','avatar_instrument/jalapeno_ukulele']:
     m,leg,a=F.legs_of(tag); bb=Image.open(A+tag+f'/{leg}.png').getbbox(); P={k:v3.to_canvas(v,bb) for k,v in v3.PIE.items()}; t=tag.split('/')[1]
-    body=F.lay(A+tag+f'/{m["layers"][0]}.png')[...,3]; k=(bb[2]-bb[0])/581; back=F.gusset(P['A'],P['B'],body,bb[1]+(275-4)*k)
+    body=F.lay(A+tag+f'/{m["layers"][0]}.png')[...,3]; k=(bb[2]-bb[0])/581; back=F.over(F.seat_fill(body,bb[0]+(270.5-4)*k,bb[1]+(-30-4)*k,.78*k,v3.kl*k),P['A'])   # plaid over every part of his body below the waistband
     save(back,J,t,'back.png'); save(P['F2'],J,t,'foot.png'); save(P['B'],J,t,'front.png')
     save(F.over(P['S1'],P['S2']),S,t,'soles.png'); save(F.over(P['U1'],P['U2']),S,t,'straps.png')
     for n,k_ in (('sole_flat','S1'),('strap_flat','U1'),('sole_tiptoe','S2'),('strap_tiptoe','U2')): save(P[k_],S,t,n+'.png')

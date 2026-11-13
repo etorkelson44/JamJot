@@ -395,7 +395,8 @@ void jalapenoOutfitTests() {
       expect(resolveAccessories(c, [i.id], 'strawberry', 'standing'), isEmpty, reason: i.id);
       final onPresto = i.id == 'jazzy_joggers' || i.id == 'serenade_sandals';
       for (final pose in prestoPoses) {
-        expect(resolveAccessories(c, [i.id], 'jalapeno', pose).isNotEmpty, onPresto, reason: '${i.id} $pose');
+        // Joggers and sandals are on all his poses; hat, glasses and tee on his regular pose so far.
+        expect(resolveAccessories(c, [i.id], 'jalapeno', pose).isNotEmpty, onPresto || pose == 'standing', reason: '${i.id} $pose');
       }
     }
     // Hat and glasses leave his body alone.
@@ -452,6 +453,14 @@ void jalapenoOutfitTests() {
       // The crossed foot is not drawn over another shoe.
       expect(order(e.value, e.key, ['red_sneakers', 'jazzy_joggers']).contains('foot.png'), isFalse);
     }
+    // His regular pose in Keywi's set (Erika's layers): sleeves over the arms, tee over the sleeves and the joggers, hat on top.
+    var st = order('assets/art/avatar_pose/jalapeno_standing', 'standing', ['tenuto_tee', 'jazzy_joggers', 'ballad_bucket_hat', 'fermata_frames']);
+    expect(st.indexOf('7_arm_viewer_left.png'), lessThan(st.indexOf('sleeve_viewer_right.png')));
+    expect(st.indexOf('sleeve_viewer_right.png'), lessThan(st.indexOf('sleeve_viewer_left.png')));
+    expect(st.indexOf('sleeve_viewer_left.png'), lessThan(st.indexOf('tee.png')));
+    expect(st.indexOf('front.png'), lessThan(st.indexOf('tee.png')));
+    expect(st.indexOf('2_mustache.png'), lessThan(st.indexOf('frames.png')));
+    expect(st.last, 'hat.png');
     // Under the instrument.
     var o = order('assets/art/avatar_instrument/jalapeno_ukulele', 'ukulele', ['jazzy_joggers']);
     expect(o.indexOf('front.png'), lessThan(o.indexOf('7_ukulele.png')));

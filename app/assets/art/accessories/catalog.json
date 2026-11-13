@@ -1,5 +1,5 @@
 {
-  "note": "Market accessories. Each accessory is drawn once per avatar and pose (folder <item>/<avatar>_<pose>/), as square transparent PNG layers on that pose's 1000px canvas. The app pairs the chosen item with the avatar and pose being drawn (JJ-059-C). If an item has no art for that avatar and pose it is hidden there, never drawn wrong. released:false = wired in but NOT wearable yet; flip to true when the item goes on sale in the Market. Item names chosen by Erika 2026-11-11 and renamed 2026-11-12 (JJ-059-C, JJ-060-C). The Dapper Presto set (top hat, monocle, tuxedo, sneakers) is drawn for Señor Jalapresto's standing pose and his nine finished instrument poses; Keywi and Ms. Straw-ccato art for it is pending. display.png in each item folder is the single shelf image used in the Market and dressing room (from Erika's accessories PDF, 2026-11-11). Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. kind: 'dress' is a whole outfit and is never worn with a 'top' or a 'bottom' (Erika, 2026-11-13); putting one on takes the other off, on every avatar. Jazzy Joggers and Serenade Sandals are fitted to Keywi's normal legs and to all ten of Señor Jalapresto's poses (2026-11-13): on his crossed-leg poses the joggers come in a back leg, the crossed foot and a front leg so the sandal can sit between them; on legs-apart and seated poses the joggers replace the legs layer with one trimmed above the cuffs. With the joggers on Keywi the Bravura Boots use a version hidden above the pant cuffs (pants over boots).",
+  "note": "Market accessories. Each accessory is drawn once per avatar and pose (folder <item>/<avatar>_<pose>/), as square transparent PNG layers on that pose's 1000px canvas. The app pairs the chosen item with the avatar and pose being drawn (JJ-059-C). If an item has no art for that avatar and pose it is hidden there, never drawn wrong. released:false = wired in but NOT wearable yet; flip to true when the item goes on sale in the Market. Item names chosen by Erika 2026-11-11 and renamed 2026-11-12 (JJ-059-C, JJ-060-C). The Dapper Presto set (top hat, monocle, tuxedo, sneakers) is drawn for Señor Jalapresto's standing pose and his nine finished instrument poses; Keywi and Ms. Straw-ccato art for it is pending. display.png in each item folder is the single shelf image used in the Market and dressing room (from Erika's accessories PDF, 2026-11-11). Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. kind: 'dress' is a whole outfit and is never worn with a 'top' or a 'bottom' (Erika, 2026-11-13); putting one on takes the other off, on every avatar. Jazzy Joggers and Serenade Sandals are fitted to Keywi's normal legs and to all ten of Señor Jalapresto's poses (2026-11-13): on his crossed-leg poses the joggers come in a back leg, the crossed foot and a front leg so the sandal can sit between them; on legs-apart and seated poses the joggers replace the legs layer with one trimmed above the cuffs. With the joggers on Keywi the Bravura Boots use a version hidden above the pant cuffs (pants over boots). Ballad Bucket Hat, Fermata Frames and Tenuto Tee on Señor Jalapresto's regular pose are Erika's own layers (presto_top_half.pdf, 2026-11-13): sleeves over the arms, tee over the sleeves and over the joggers' waistband, glasses over the mustache.",
   "items": [
     {
       "id": "purple_glitter_crown",
@@ -1352,6 +1352,12 @@
             "slot": "hat",
             "file": "hat.png"
           }
+        ],
+        "jalapeno_standing": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
         ]
       },
       "frames": {
@@ -1359,6 +1365,11 @@
           -1,
           -22,
           1002
+        ],
+        "jalapeno_standing": [
+          0,
+          2,
+          985
         ]
       }
     },
@@ -1371,6 +1382,12 @@
       "overflow_bottom": 110,
       "art": {
         "kiwi_standing": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_standing": [
           {
             "slot": "face",
             "file": "frames.png"
@@ -1395,6 +1412,20 @@
           {
             "replaces": "6_arm_viewer_right",
             "file": "arm_viewer_right.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "tee.png"
+          }
+        ],
+        "jalapeno_standing": [
+          {
+            "slot": "clothing_lower",
+            "file": "sleeve_viewer_right.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "sleeve_viewer_left.png"
           },
           {
             "slot": "clothing_lower",

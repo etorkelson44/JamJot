@@ -1,3 +1,4 @@
+import cv2
 import numpy as np, json
 from PIL import Image
 import sys; sys.path.insert(0,'/home/claude/pp'); import fit2 as F
@@ -15,15 +16,28 @@ def profile(al,kind):
 _m,_leg,_a=F.legs_of('avatar_pose/kiwi_standing'); PA,PB,_cr,_inf,_cuff=F.joggers_two_legs(_a,.22,702); PA,PB=PA[:1000],PB[:1000]
 yy=np.arange(1000)[:,None]
 def cuff_line(leg):
-    """per column: the bottom edge of this pant leg's cuff, carried sideways past both ends of the cuff"""
-    al=leg[...,3]>0.5; cols=np.nonzero(al.any(0))[0]; bot=np.array([np.nonzero(al[:,x])[0].max() for x in cols]); keep=bot>bot.max()-28
-    line=np.full(1000,float(bot.max())); line[cols[keep].min():cols[keep].max()+1]=np.interp(np.arange(cols[keep].min(),cols[keep].max()+1),cols[keep],bot[keep]); return line
+    """Per column: where the boot may start showing. Under the flat bottom edge of this pant leg's cuff it is that edge;
+    everywhere else (rounded cuff corners, the sides of the pant leg, columns the pants do not reach) it is the cuff's
+    lowest point, so no boot shows beside the pants above their bottom edge."""
+    al=leg[...,3]>0.5; cols=np.nonzero(al.any(0))[0]; bot=np.array([np.nonzero(al[:,x])[0].max() for x in cols]).astype(float)
+    flat=np.abs(np.gradient(bot))<1.0; i=int(bot.argmax()); lo=hi=None
+    # the longest run of gently sloping columns: the cuff's bottom edge
+    runs=[]; st=None
+    for k,f in enumerate(flat):
+        if f and st is None: st=k
+        if (not f or k==len(flat)-1) and st is not None: runs.append((st,k if not f else k+1)); st=None
+    lo,hi=max(runs,key=lambda r:r[1]-r[0]); lo,hi=lo+8,hi-8   # stay clear of the rounded cuff corners
+    line=np.full(1000,float(bot.max())); line[cols[lo]:cols[hi-1]+1]=bot[lo:hi]; return line
 def boot_top(boot):
     al=boot[...,3]>0.5; cols=np.nonzero(al.any(0))[0]; top=np.array([np.nonzero(al[:,x])[0].min() for x in cols]); keep=top<top.min()+14
     return np.interp(np.arange(1000),cols[keep],top[keep])
 def over_boots(boot,leg):
     """Option B: pants over the boots - the boot shows only below that pant leg's cuff."""
-    o=boot.copy(); o[...,3]*=(yy>=cuff_line(leg)[None,:]-3); return o
+    o=boot.copy(); keep=(yy>=cuff_line(leg)[None,:]-2)&(boot[...,3]>0.5)
+    # Grade the cut: instead of a step beside the cuff, the boot's edge runs in a straight slope from the cuff's bottom
+    # corner out to the curve of the boot (convex hull of what is kept, still inside the boot's own shape).
+    pts=cv2.findNonZero(keep.astype(np.uint8)); hull=np.zeros(keep.shape,np.uint8); cv2.fillConvexPoly(hull,cv2.convexHull(pts),1)
+    m=cv2.GaussianBlur(hull.astype(np.float32),(0,0),0.8); o[...,3]*=np.clip(m*1.6-0.3,0,1); return o
 def shaft(boot):
     al=boot[...,3]>0.5; cols=np.nonzero(al.any(0))[0]; top=np.array([np.nonzero(al[:,x])[0].min() for x in cols]); keep=top<top.min()+14; return cols[keep].mean(), float(top.min())
 def tucked():
