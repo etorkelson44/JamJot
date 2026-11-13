@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/supabase_service.dart';
 import '../widgets/accessory_catalog.dart';
 import '../widgets/fan_stage.dart' show venues;
 
@@ -114,6 +115,41 @@ class WardrobeNotifier extends StateNotifier<Wardrobe> {
         _save();
       }
     } catch (_) {/* fresh wardrobe */}
+    await _pullOutfits({
+      for (final a in accessoryCatalog) a.id,
+      for (final i in layered)
+        if (i.released) i.id
+    });
+  }
+
+  /// Outfits live on the student's record (JJ-061-C), so they show on every
+  /// device and to the student's teacher and grown-ups. The copy saved on
+  /// this device is only a cache for when the network is away.
+  Future<void> _pullOutfits(Set<String> knownIds) async {
+    try {
+      final row = await JamJotBackend.client
+          .from('students')
+          .select('outfits')
+          .eq('id', studentId)
+          .maybeSingle();
+      final raw = row?['outfits'];
+      if (raw is! Map) return;
+      final remote = parseOutfits(raw, knownIds);
+      if (!mounted) return;
+      state = Wardrobe(owned: state.owned, outfits: remote);
+      _save();
+    } catch (_) {/* offline or signed out: keep the cached outfits */}
+  }
+
+  Future<void> _pushOutfit(String avatarKey, List<String> outfit) async {
+    try {
+      await JamJotBackend.client.rpc('set_student_outfit', params: {
+        'p_student_id': studentId,
+        'p_avatar_key': avatarKey,
+        // Only gifts are wearable from the server's side for now.
+        'p_item_ids': outfit.where(_free.contains).toList(),
+      });
+    } catch (_) {/* stays on this device; saved again on the next change */}
   }
 
   Future<void> _save() async {
@@ -183,9 +219,25 @@ class WardrobeNotifier extends StateNotifier<Wardrobe> {
     state = Wardrobe(
         owned: state.owned, outfits: {...state.outfits, avatarKey: outfit});
     _save();
+    _pushOutfit(avatarKey, outfit);
   }
 }
 
 final wardrobeProvider = StateNotifierProvider.autoDispose
     .family<WardrobeNotifier, Wardrobe, String>(
         (ref, studentId) => WardrobeNotifier(studentId));
+
+/// The outfits stored on a student record (`{avatarKey: [accessoryId, ...]}`),
+/// keeping only accessories this build of the app knows.
+Map<String, List<String>> parseOutfits(Map raw, Set<String> knownIds) {
+  final out = <String, List<String>>{};
+  raw.forEach((k, v) {
+    if (k is! String || v is! List) return;
+    final ids = [
+      for (final id in v)
+        if (id is String && knownIds.contains(id)) id
+    ];
+    if (ids.isNotEmpty) out[k] = ids;
+  });
+  return out;
+}

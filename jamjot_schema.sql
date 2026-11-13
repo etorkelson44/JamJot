@@ -702,3 +702,7 @@ alter table students add column if not exists pin_hash text;
 -- Which profile view a device was last using (quality-of-life on reopen)
 alter table profiles add column if not exists last_active_student uuid
   references students(id) on delete set null;
+
+-- ---------- OUTFITS (JJ-061-C, 2026-11-13) ----------
+-- See supabase/migrations/20261113080000_student_outfits.sql: students.outfits jsonb, free_accessories,
+-- set_student_outfit(p_student_id, p_avatar_key, p_item_ids).
