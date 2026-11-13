@@ -12,7 +12,6 @@ create table if not exists public.free_accessories (
   created_at timestamptz not null default now()
 );
 alter table public.free_accessories enable row level security;
-drop policy if exists free_accessories_select on public.free_accessories;
 create policy free_accessories_select on public.free_accessories for select to authenticated using (true);
 insert into public.free_accessories (id) values ('sugar_shrub_shako') on conflict do nothing;
 
