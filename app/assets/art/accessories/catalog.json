@@ -1022,27 +1022,27 @@
         ],
         "kiwi_standing": [
           {
-            "slot": "clothing_lower",
+            "slot": "jacket",
             "file": "1_shirt.png"
           },
           {
-            "slot": "clothing_lower",
+            "slot": "jacket",
             "file": "2_jacket.png"
           },
           {
-            "slot": "clothing_lower",
+            "slot": "jacket",
             "file": "3_mouth_over_jacket.png"
           },
           {
-            "slot": "clothing_lower",
+            "slot": "jacket",
             "file": "4_bowtie_buttons.png"
           },
           {
-            "slot": "clothing_lower",
+            "slot": "jacket",
             "file": "5_sleeve_viewer_left.png"
           },
           {
-            "slot": "clothing_lower",
+            "slot": "jacket",
             "file": "6_sleeve_viewer_right.png"
           }
         ],

@@ -52,6 +52,10 @@
     "pants": {
       "after": "6_arm_viewer_right",
       "note": "pants: over shirts and jackets, under hats"
+    },
+    "jacket": {
+      "after": "6_arm_viewer_right",
+      "note": "jackets and their shirts: over pants, under hats (Erika, 2026-11-13)"
     }
   },
   "display_box": [
