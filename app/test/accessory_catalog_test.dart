@@ -416,6 +416,57 @@ void jalapenoOutfitTests() {
     expect(accessoryFrame(c, ['fermata_frames', 'tenuto_tee', 'serenade_sandals'], 'kiwi', 'standing'), isNull);
     final f = accessoryFrame(c, ['jazzy_joggers'], 'kiwi', 'standing')!;
     expect(f[1] + f[2], greaterThanOrEqualTo(1095));
+    // Shoe rule (JJ-062-C): every shoe Keywi can wear has a lower position for the joggers' longer legs.
+    for (final shoe in ['lilac_platform_boots', 'red_sneakers']) {
+      final plain = resolveAccessories(c, [shoe], 'kiwi', 'standing');
+      final withJoggers = resolveAccessories(c, [shoe, 'jazzy_joggers'], 'kiwi', 'standing').where((a) => a.asset.contains(shoe)).toList();
+      expect(plain, isNotEmpty, reason: shoe);
+      expect(plain.every((a) => !a.asset.contains('_with_joggers') && a.overflowBottom == 0), isTrue, reason: shoe);
+      expect(withJoggers.length, plain.length, reason: shoe);
+      for (final a in withJoggers) {
+        expect(a.asset.endsWith('_with_joggers.png'), isTrue, reason: a.asset);
+        expect(a.overflowTop, 40, reason: a.asset);
+        expect(a.overflowBottom, 110, reason: a.asset);
+        expect(File(a.asset).existsSync(), isTrue, reason: a.asset);
+      }
+      final o2 = order([shoe, 'jazzy_joggers']);
+      expect(o2.indexOf('legs.png'), lessThan(o2.indexOf(withJoggers.first.asset.split('/').last)));
+      expect(o2.last, 'joggers.png');
+    }
+  });
+  test('dress rule: the Falsetto Frock is never worn with a top or a bottom, on any avatar', () {
+    final c = [
+      for (final i in catalog)
+        AccessoryItem(
+            id: i.id, name: i.name, released: true, art: i.art, display: i.display, kind: i.kind,
+            overflowTop: i.overflowTop, overflowBottom: i.overflowBottom, frames: i.frames)
+    ];
+    String kind(String id) => catalog.firstWhere((i) => i.id == id).kind;
+    expect(kind('pink_ruffle_dress'), 'dress');
+    expect(kind('black_tuxedo'), 'top');
+    expect(kind('tenuto_tee'), 'top');
+    expect(kind('jazzy_joggers'), 'bottom');
+    // Putting the frock on takes off shirts and pants, and keeps hats, glasses and shoes.
+    expect(outfitConflicts(c, 'pink_ruffle_dress', ['tenuto_tee', 'jazzy_joggers', 'black_tuxedo', 'ballad_bucket_hat', 'red_sneakers']),
+        ['tenuto_tee', 'jazzy_joggers', 'black_tuxedo']);
+    // Putting a shirt or pants on takes the frock off, and nothing else.
+    expect(outfitConflicts(c, 'jazzy_joggers', ['pink_ruffle_dress', 'tenuto_tee', 'gold_monocle']), ['pink_ruffle_dress']);
+    expect(outfitConflicts(c, 'black_tuxedo', ['pink_ruffle_dress']), ['pink_ruffle_dress']);
+    expect(outfitConflicts(c, 'tenuto_tee', ['jazzy_joggers', 'black_tuxedo']), isEmpty);
+    expect(outfitConflicts(c, 'sugar_shrub_shako', ['pink_ruffle_dress', 'jazzy_joggers']), isEmpty);
+    // An outfit saved with both never draws both: the frock wins, on every avatar.
+    for (final avatar in ['kiwi', 'strawberry', 'jalapeno']) {
+      final drawn = resolveAccessories(c, ['black_tuxedo', 'tenuto_tee', 'jazzy_joggers', 'pink_ruffle_dress', 'red_sneakers'], avatar, 'standing');
+      expect(drawn.any((a) => a.asset.contains('pink_ruffle_dress')), isTrue, reason: avatar);
+      expect(drawn.any((a) => a.asset.contains('red_sneakers')), isTrue, reason: avatar);
+      for (final hidden in ['black_tuxedo', 'tenuto_tee', 'jazzy_joggers']) {
+        expect(drawn.any((a) => a.asset.contains(hidden)), isFalse, reason: '$avatar $hidden');
+      }
+    }
+    // Shoes go back to his regular foot height when the frock hides the joggers.
+    final kw = resolveAccessories(c, ['jazzy_joggers', 'pink_ruffle_dress', 'red_sneakers'], 'kiwi', 'standing');
+    expect(kw.any((a) => a.asset.contains('_with_joggers')), isFalse);
+    expect(accessoryFrame(c, ['jazzy_joggers', 'pink_ruffle_dress'], 'kiwi', 'standing'), isNull);
   });
   test('jalapeno dressed frame holds crown and boots', () {
     final m = jsonDecode(File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());

@@ -672,7 +672,11 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          ref.read(wardrobeProvider(sid).notifier).toggleWear(wornKey, item.id);
+          final catalog = ref.read(accessoryItemsProvider).valueOrNull ??
+              const <AccessoryItem>[];
+          ref.read(wardrobeProvider(sid).notifier).toggleWear(wornKey, item.id,
+              takesOff: outfitConflicts(
+                  catalog, item.id, wardrobe.outfitFor(wornKey)));
           playSound('pop');
         },
         child: Container(

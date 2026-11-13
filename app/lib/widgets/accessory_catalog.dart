@@ -17,7 +17,9 @@ class AccessoryPiece {
       required this.file,
       this.replaces,
       this.whenWorn = const [],
-      this.unlessWorn = const []});
+      this.unlessWorn = const [],
+      this.overflowTop,
+      this.overflowBottom});
   final String slot;
   final String file;
 
@@ -31,6 +33,11 @@ class AccessoryPiece {
 
   /// Leave this piece out while any of these items is also worn.
   final List<String> unlessWorn;
+
+  /// This file's own extra height above and below the pose canvas, when it
+  /// differs from the item's (a shoe moved down onto longer legs).
+  final double? overflowTop;
+  final double? overflowBottom;
 }
 
 class AccessoryItem {
@@ -40,6 +47,7 @@ class AccessoryItem {
       required this.released,
       required this.art,
       this.display = 'display.png',
+      this.kind = '',
       this.free = false,
       this.overflowTop = 0,
       this.overflowBottom = 0,
@@ -48,6 +56,11 @@ class AccessoryItem {
   final String id;
   final String name;
   final bool released;
+
+  /// 'dress', 'top' or 'bottom' for clothes that follow the dress rule
+  /// (JJ-062-C): a dress is a whole outfit, never worn with a top or a
+  /// bottom. Empty for everything else.
+  final String kind;
 
   /// A gift every student owns from the start (JJ-061-C); never sold.
   final bool free;
@@ -105,6 +118,7 @@ List<AccessoryItem> parseAccessoryCatalog(String json) {
           name: raw['name'] as String? ?? raw['id'] as String,
           released: raw['released'] == true,
           display: raw['display'] as String? ?? 'display.png',
+          kind: raw['kind'] as String? ?? '',
           free: raw['free'] == true,
           overflowTop: (raw['overflow_top'] as num?)?.toDouble() ?? 0,
           overflowBottom: (raw['overflow_bottom'] as num?)?.toDouble() ?? 0,
@@ -126,10 +140,56 @@ List<AccessoryItem> parseAccessoryCatalog(String json) {
                       whenWorn: [...?(p['when_worn'] as List?)?.cast<String>()],
                       unlessWorn: [
                         ...?(p['unless_worn'] as List?)?.cast<String>()
-                      ])
+                      ],
+                      overflowTop: (p['overflow_top'] as num?)?.toDouble(),
+                      overflowBottom:
+                          (p['overflow_bottom'] as num?)?.toDouble())
               ]
           },
         )
+  ];
+}
+
+/// The worn pieces that have to come off when [id] goes on: a dress takes
+/// off tops and bottoms, and a top or a bottom takes off a dress.
+List<String> outfitConflicts(
+    List<AccessoryItem> catalog, String id, Iterable<String> worn) {
+  String kindOf(String i) {
+    for (final item in catalog) {
+      if (item.id == i) return item.kind;
+    }
+    return '';
+  }
+
+  final k = kindOf(id);
+  if (k.isEmpty) return const [];
+  return [
+    for (final w in worn)
+      if (w != id &&
+          (k == 'dress'
+              ? (kindOf(w) == 'top' || kindOf(w) == 'bottom')
+              : (k == 'top' || k == 'bottom') && kindOf(w) == 'dress'))
+        w
+  ];
+}
+
+/// [itemIds] with the dress rule applied for drawing: while a dress is
+/// among them, tops and bottoms are left out (an outfit saved before the
+/// rule never draws both).
+List<String> applyDressRule(
+    List<AccessoryItem> catalog, Iterable<String> itemIds) {
+  final ids = itemIds.toList();
+  String kindOf(String i) {
+    for (final item in catalog) {
+      if (item.id == i) return item.kind;
+    }
+    return '';
+  }
+
+  if (!ids.any((i) => kindOf(i) == 'dress')) return ids;
+  return [
+    for (final i in ids)
+      if (kindOf(i) != 'top' && kindOf(i) != 'bottom') i
   ];
 }
 
@@ -150,6 +210,7 @@ List<PoseAccessory> resolveAccessories(
   String avatarKey,
   String pose,
 ) {
+  itemIds = applyDressRule(catalog, itemIds);
   final out = <PoseAccessory>[];
   // The items that will really be drawn here; pieces can depend on them.
   final worn = <String>{
@@ -173,8 +234,8 @@ List<PoseAccessory> resolveAccessories(
             slot: p.slot,
             asset: '$folder/${p.file}',
             replaces: p.replaces,
-            overflowTop: item.overflowTop,
-            overflowBottom: item.overflowBottom));
+            overflowTop: p.overflowTop ?? item.overflowTop,
+            overflowBottom: p.overflowBottom ?? item.overflowBottom));
       }
     }
   }
@@ -201,6 +262,7 @@ Set<String> freeAccessoryIds(List<AccessoryItem> catalog) =>
 /// worn item asks for more room.
 List<double>? accessoryFrame(List<AccessoryItem> catalog,
     Iterable<String> itemIds, String avatarKey, String pose) {
+  itemIds = applyDressRule(catalog, itemIds);
   double? l, t, r, b;
   for (final id in itemIds) {
     for (final item in catalog) {

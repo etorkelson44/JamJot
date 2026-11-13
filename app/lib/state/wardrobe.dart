@@ -205,8 +205,11 @@ class WardrobeNotifier extends StateNotifier<Wardrobe> {
     }
   }
 
-  /// Toggle an owned accessory on one avatar's saved outfit.
-  void toggleWear(String avatarKey, String accessoryId) {
+  /// Toggle an owned accessory on one avatar's saved outfit. Putting a piece
+  /// on takes off the pieces in [takesOff] (the dress rule: a dress is never
+  /// worn with a top or a bottom).
+  void toggleWear(String avatarKey, String accessoryId,
+      {List<String> takesOff = const []}) {
     if (!state.owned.contains(accessoryId) && !_free.contains(accessoryId)) {
       return;
     }
@@ -214,6 +217,7 @@ class WardrobeNotifier extends StateNotifier<Wardrobe> {
     if (outfit.contains(accessoryId)) {
       outfit.remove(accessoryId);
     } else {
+      outfit.removeWhere(takesOff.contains);
       outfit.add(accessoryId);
     }
     state = Wardrobe(
