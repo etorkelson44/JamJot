@@ -1,5 +1,5 @@
 {
-  "note": "Market accessories. Each accessory is drawn once per avatar and pose (folder <item>/<avatar>_<pose>/), as square transparent PNG layers on that pose's 1000px canvas. The app pairs the chosen item with the avatar and pose being drawn (JJ-059-C). If an item has no art for that avatar and pose it is hidden there, never drawn wrong. released:false = wired in but NOT wearable yet; flip to true when the item goes on sale in the Market. Item names chosen by Erika 2026-11-11 and renamed 2026-11-12 (JJ-059-C, JJ-060-C). The Dapper Presto set (top hat, monocle, tuxedo, sneakers) is drawn for Señor Jalapresto's standing pose and his nine finished instrument poses; Keywi and Ms. Straw-ccato art for it is pending. display.png in each item folder is the single shelf image used in the Market and dressing room (from Erika's accessories PDF, 2026-11-11). Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. kind: 'dress' is a whole outfit and is never worn with a 'top' or a 'bottom' (Erika, 2026-11-13); putting one on takes the other off, on every avatar.",
+  "note": "Market accessories. Each accessory is drawn once per avatar and pose (folder <item>/<avatar>_<pose>/), as square transparent PNG layers on that pose's 1000px canvas. The app pairs the chosen item with the avatar and pose being drawn (JJ-059-C). If an item has no art for that avatar and pose it is hidden there, never drawn wrong. released:false = wired in but NOT wearable yet; flip to true when the item goes on sale in the Market. Item names chosen by Erika 2026-11-11 and renamed 2026-11-12 (JJ-059-C, JJ-060-C). The Dapper Presto set (top hat, monocle, tuxedo, sneakers) is drawn for Señor Jalapresto's standing pose and his nine finished instrument poses; Keywi and Ms. Straw-ccato art for it is pending. display.png in each item folder is the single shelf image used in the Market and dressing room (from Erika's accessories PDF, 2026-11-11). Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. Keywi's set (Ballad Bucket Hat, Fermata Frames, Tenuto Tee, Jazzy Joggers, Serenade Sandals; named by Erika 2026-11-13) is fitted to Keywi's standing pose only; when_worn / unless_worn on a piece pick the version that goes with another worn item. kind: 'dress' is a whole outfit and is never worn with a 'top' or a 'bottom' (Erika, 2026-11-13); putting one on takes the other off, on every avatar. Jazzy Joggers and Serenade Sandals are fitted to Keywi's normal legs and to all ten of Señor Jalapresto's poses (2026-11-13): on his crossed-leg poses the joggers come in a back leg, the crossed foot and a front leg so the sandal can sit between them; on legs-apart and seated poses the joggers replace the legs layer with one trimmed above the cuffs. With the joggers on Keywi the Bravura Boots use a version hidden above the pant cuffs (pants over boots).",
   "items": [
     {
       "id": "purple_glitter_crown",
@@ -370,21 +370,17 @@
           },
           {
             "slot": "shoes",
-            "file": "1_boot_viewer_left_with_joggers.png",
+            "file": "1_boot_viewer_left_under_joggers.png",
             "when_worn": [
               "jazzy_joggers"
-            ],
-            "overflow_top": 40,
-            "overflow_bottom": 110
+            ]
           },
           {
             "slot": "shoes",
-            "file": "2_boot_viewer_right_with_joggers.png",
+            "file": "2_boot_viewer_right_under_joggers.png",
             "when_worn": [
               "jazzy_joggers"
-            ],
-            "overflow_top": 40,
-            "overflow_bottom": 110
+            ]
           }
         ],
         "jalapeno_standing": [
@@ -1187,19 +1183,7 @@
         "kiwi_standing": [
           {
             "slot": "shoes",
-            "file": "sneakers.png",
-            "unless_worn": [
-              "jazzy_joggers"
-            ]
-          },
-          {
-            "slot": "shoes",
-            "file": "sneakers_with_joggers.png",
-            "when_worn": [
-              "jazzy_joggers"
-            ],
-            "overflow_top": 40,
-            "overflow_bottom": 110
+            "file": "sneakers.png"
           }
         ],
         "strawberry_standing": [
@@ -1437,13 +1421,138 @@
             "slot": "pants",
             "file": "joggers.png"
           }
-        ]
-      },
-      "frames": {
-        "kiwi_standing": [
-          -55,
-          0,
-          1110
+        ],
+        "jalapeno_standing": [
+          {
+            "slot": "pants_back",
+            "file": "back.png"
+          },
+          {
+            "slot": "pants_foot",
+            "file": "foot.png",
+            "unless_worn": [
+              "lilac_platform_boots",
+              "red_sneakers"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "pants_back",
+            "file": "back.png"
+          },
+          {
+            "slot": "pants_foot",
+            "file": "foot.png",
+            "unless_worn": [
+              "lilac_platform_boots",
+              "red_sneakers"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "pants_back",
+            "file": "back.png"
+          },
+          {
+            "slot": "pants_foot",
+            "file": "foot.png",
+            "unless_worn": [
+              "lilac_platform_boots",
+              "red_sneakers"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "pants_back",
+            "file": "back.png"
+          },
+          {
+            "slot": "pants_foot",
+            "file": "foot.png",
+            "unless_worn": [
+              "lilac_platform_boots",
+              "red_sneakers"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front.png"
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "replaces": "3_legs_feet",
+            "file": "legs.png"
+          },
+          {
+            "slot": "pants",
+            "file": "joggers.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "replaces": "3_legs_feet",
+            "file": "legs.png"
+          },
+          {
+            "slot": "pants",
+            "file": "joggers.png"
+          }
+        ],
+        "jalapeno_double_bass": [
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs.png"
+          },
+          {
+            "slot": "pants",
+            "file": "joggers.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs.png"
+          },
+          {
+            "slot": "pants",
+            "file": "joggers.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs.png"
+          },
+          {
+            "slot": "pants",
+            "file": "joggers.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs.png"
+          },
+          {
+            "slot": "pants",
+            "file": "joggers.png"
+          }
         ]
       }
     },
@@ -1456,6 +1565,16 @@
       "overflow_bottom": 110,
       "art": {
         "kiwi_standing": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png"
+          }
+        ],
+        "jalapeno_standing": [
           {
             "slot": "shoes_under",
             "file": "soles.png",
@@ -1472,17 +1591,223 @@
           },
           {
             "slot": "shoes_under",
-            "file": "soles_with_joggers.png",
+            "file": "sole_flat.png",
             "when_worn": [
               "jazzy_joggers"
             ]
           },
           {
             "slot": "shoes",
-            "file": "straps_with_joggers.png",
+            "file": "strap_flat.png",
             "when_worn": [
               "jazzy_joggers"
             ]
+          },
+          {
+            "slot": "shoes_mid_under",
+            "file": "sole_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "strap_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_under",
+            "file": "sole_flat.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "strap_flat.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid_under",
+            "file": "sole_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "strap_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_under",
+            "file": "sole_flat.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "strap_flat.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid_under",
+            "file": "sole_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "strap_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_under",
+            "file": "sole_flat.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "strap_flat.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid_under",
+            "file": "sole_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "strap_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png"
+          }
+        ],
+        "jalapeno_double_bass": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png"
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png"
           }
         ]
       }

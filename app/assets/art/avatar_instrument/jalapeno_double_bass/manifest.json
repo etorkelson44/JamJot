@@ -59,6 +59,14 @@
     "hat_behind_instrument": {
       "after": "6_left_upper_arm",
       "note": "hats that sit behind the bass, so its scroll shows in front of the hat"
+    },
+    "shoes_under": {
+      "before": "5_legs_feet",
+      "note": "sandal soles: under the feet"
+    },
+    "pants": {
+      "after": "5_legs_feet",
+      "note": "pants: over legs and shoes, under instruments"
     }
   }
 }

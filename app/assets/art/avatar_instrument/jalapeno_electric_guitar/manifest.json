@@ -51,6 +51,30 @@
     "monocle": {
       "after": "4_eyes_brows",
       "note": "monocle lens: above the eyes, under the teeth and mustache (the chain uses the face slot, over the mustache)"
+    },
+    "shoes_under": {
+      "before": "5_legs_feet",
+      "note": "sandal soles: under the feet"
+    },
+    "pants_back": {
+      "after": "5_legs_feet",
+      "note": "the pant leg of the straight (back) leg"
+    },
+    "shoes_mid_under": {
+      "after": "5_legs_feet",
+      "note": "sole of the crossed foot, in front of the back pant leg"
+    },
+    "pants_foot": {
+      "after": "5_legs_feet",
+      "note": "the crossed foot again, in front of the back pant leg"
+    },
+    "shoes_mid": {
+      "after": "5_legs_feet",
+      "note": "straps of the crossed foot"
+    },
+    "pants": {
+      "after": "5_legs_feet",
+      "note": "the pant leg of the crossed (front) leg; under instruments"
     }
   }
 }

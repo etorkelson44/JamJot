@@ -371,26 +371,32 @@ void jalapenoOutfitTests() {
     expect(order.indexOf('shako.png'), greaterThan(order.indexOf('4_mustache.png')));
     expect(order.indexOf('shako.png'), lessThan(order.indexOf('$bass.png')));
   });
-  test('Keywi\'s set: fitted to his standing pose, off for now, and pieces swap with what else is worn', () {
+  test('Keywi\'s set: off for now; joggers and sandals fit his normal legs and all of Presto\'s poses', () {
     final c = [
       for (final i in catalog)
         AccessoryItem(
-            id: i.id, name: i.name, released: true, art: i.art, display: i.display,
+            id: i.id, name: i.name, released: true, art: i.art, display: i.display, kind: i.kind,
             overflowTop: i.overflowTop, overflowBottom: i.overflowBottom, frames: i.frames)
     ];
     final folder = 'assets/art/avatar_pose/kiwi_standing';
     final manifest = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
     List<String> order(List<String> ids) =>
         poseDrawOrder(manifest, resolveAccessories(c, ids, 'kiwi', 'standing')).map((a) => a.split('/').last).toList();
+    const prestoPoses = ['standing', 'violin', 'viola', 'piano', 'flute', 'acoustic_guitar', 'electric_guitar', 'ukulele', 'cello', 'double_bass'];
     for (final i in catalog.where((i) => keywiSetIds.contains(i.id))) {
       expect(i.released, isFalse, reason: i.id);
       expect(File(i.displayAsset).existsSync(), isTrue, reason: i.id);
-      for (final p in i.art['kiwi_standing']!) {
-        expect(File('assets/art/accessories/${i.id}/kiwi_standing/${p.file}').existsSync(), isTrue, reason: p.file);
+      for (final e in i.art.entries) {
+        for (final p in e.value) {
+          expect(File('assets/art/accessories/${i.id}/${e.key}/${p.file}').existsSync(), isTrue, reason: '${e.key}/${p.file}');
+        }
       }
-      // Other avatars fall back to their plain pose until their art arrives.
+      // Ms. Straw-ccato falls back to her plain pose until her art arrives.
       expect(resolveAccessories(c, [i.id], 'strawberry', 'standing'), isEmpty, reason: i.id);
-      expect(resolveAccessories(c, [i.id], 'jalapeno', 'standing'), isEmpty, reason: i.id);
+      final onPresto = i.id == 'jazzy_joggers' || i.id == 'serenade_sandals';
+      for (final pose in prestoPoses) {
+        expect(resolveAccessories(c, [i.id], 'jalapeno', pose).isNotEmpty, onPresto, reason: '${i.id} $pose');
+      }
     }
     // Hat and glasses leave his body alone.
     var o = order(['ballad_bucket_hat', 'fermata_frames']);
@@ -400,38 +406,61 @@ void jalapenoOutfitTests() {
     expect(o.contains('5_arm_viewer_left.png'), isFalse);
     expect(o.indexOf('arm_viewer_right.png'), lessThan(o.indexOf('tee.png')));
     expect(o.contains('4_legs_feet.png'), isTrue);
-    // Sandals alone sit on his regular feet: soles under, straps over.
-    o = order(['serenade_sandals']);
-    expect(o.indexOf('soles.png'), lessThan(o.indexOf('4_legs_feet.png')));
-    expect(o.indexOf('4_legs_feet.png'), lessThan(o.indexOf('straps.png')));
-    expect(o.contains('soles_with_joggers.png'), isFalse);
-    // With the joggers: longer legs, lower sandals, joggers over the tee whatever order they were put on.
-    o = order(['jazzy_joggers', 'serenade_sandals', 'tenuto_tee']);
+    // Sandals sit on his regular feet, with or without the joggers: soles under, straps over.
+    for (final ids in [['serenade_sandals'], ['jazzy_joggers', 'serenade_sandals', 'tenuto_tee']]) {
+      o = order(ids);
+      final legs = ids.contains('jazzy_joggers') ? 'legs.png' : '4_legs_feet.png';
+      expect(o.indexOf('soles.png'), lessThan(o.indexOf(legs)));
+      expect(o.indexOf(legs), lessThan(o.indexOf('straps.png')));
+    }
+    // Joggers: legs trimmed above the cuffs, joggers over the tee, tuxedo over the joggers; normal height, so no bigger frame.
     expect(o.contains('4_legs_feet.png'), isFalse);
-    expect(o.contains('soles.png'), isFalse);
-    expect(o.indexOf('soles_with_joggers.png'), lessThan(o.indexOf('legs.png')));
-    expect(o.indexOf('legs.png'), lessThan(o.indexOf('straps_with_joggers.png')));
     expect(o.indexOf('tee.png'), lessThan(o.indexOf('joggers.png')));
-    // The joggers need room below the canvas; the frame grows only for them (and a little for the hat).
-    expect(accessoryFrame(c, ['fermata_frames', 'tenuto_tee', 'serenade_sandals'], 'kiwi', 'standing'), isNull);
-    final f = accessoryFrame(c, ['jazzy_joggers'], 'kiwi', 'standing')!;
-    expect(f[1] + f[2], greaterThanOrEqualTo(1095));
-    // Shoe rule (JJ-062-C): every shoe Keywi can wear has a lower position for the joggers' longer legs.
-    for (final shoe in ['lilac_platform_boots', 'red_sneakers']) {
-      final plain = resolveAccessories(c, [shoe], 'kiwi', 'standing');
-      final withJoggers = resolveAccessories(c, [shoe, 'jazzy_joggers'], 'kiwi', 'standing').where((a) => a.asset.contains(shoe)).toList();
-      expect(plain, isNotEmpty, reason: shoe);
-      expect(plain.every((a) => !a.asset.contains('_with_joggers') && a.overflowBottom == 0), isTrue, reason: shoe);
-      expect(withJoggers.length, plain.length, reason: shoe);
-      for (final a in withJoggers) {
-        expect(a.asset.endsWith('_with_joggers.png'), isTrue, reason: a.asset);
-        expect(a.overflowTop, 40, reason: a.asset);
-        expect(a.overflowBottom, 110, reason: a.asset);
-        expect(File(a.asset).existsSync(), isTrue, reason: a.asset);
+    o = order(['black_tuxedo', 'jazzy_joggers']);
+    expect(o.indexOf('joggers.png'), lessThan(o.indexOf('2_jacket.png')));
+    expect(accessoryFrame(c, ['jazzy_joggers', 'tenuto_tee', 'serenade_sandals'], 'kiwi', 'standing'), isNull);
+    // Pants over boots: with the joggers the Bravura Boots use the version hidden above the cuffs; other shoes are unchanged.
+    o = order(['lilac_platform_boots']);
+    expect(o, containsAll(['1_boot_viewer_left.png', '2_boot_viewer_right.png']));
+    o = order(['lilac_platform_boots', 'jazzy_joggers']);
+    expect(o, containsAll(['1_boot_viewer_left_under_joggers.png', '2_boot_viewer_right_under_joggers.png']));
+    expect(o.contains('1_boot_viewer_left.png'), isFalse);
+    expect(o.indexOf('2_boot_viewer_right_under_joggers.png'), lessThan(o.indexOf('joggers.png')));
+    expect(order(['red_sneakers', 'jazzy_joggers']).contains('sneakers.png'), isTrue);
+  });
+  test('Presto in the joggers and sandals: crossed legs layer leg, foot and sandal; other poses trim the legs', () {
+    final c = [
+      for (final i in catalog)
+        AccessoryItem(id: i.id, name: i.name, released: true, art: i.art, display: i.display, kind: i.kind,
+            overflowTop: i.overflowTop, overflowBottom: i.overflowBottom, frames: i.frames)
+    ];
+    List<String> order(String folder, String pose, List<String> ids) {
+      final m = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
+      return poseDrawOrder(m, resolveAccessories(c, ids, 'jalapeno', pose)).map((a) => a.split('/').last).toList();
+    }
+    for (final e in {'standing': 'assets/art/avatar_pose/jalapeno_standing', 'ukulele': 'assets/art/avatar_instrument/jalapeno_ukulele'}.entries) {
+      var o = order(e.value, e.key, ['serenade_sandals']);
+      expect(o.indexOf('soles.png'), lessThan(o.indexOf('5_legs_feet.png')));
+      expect(o.indexOf('5_legs_feet.png'), lessThan(o.indexOf('straps.png')));
+      o = order(e.value, e.key, ['serenade_sandals', 'jazzy_joggers']);
+      final seq = ['sole_flat.png', '5_legs_feet.png', 'strap_flat.png', 'back.png', 'sole_tiptoe.png', 'foot.png', 'strap_tiptoe.png', 'front.png'];
+      for (var i = 0; i + 1 < seq.length; i++) {
+        expect(o.indexOf(seq[i]), greaterThanOrEqualTo(0), reason: '${e.key} ${seq[i]}');
+        expect(o.indexOf(seq[i]), lessThan(o.indexOf(seq[i + 1])), reason: '${e.key} ${seq[i]} < ${seq[i + 1]}');
       }
-      final o2 = order([shoe, 'jazzy_joggers']);
-      expect(o2.indexOf('legs.png'), lessThan(o2.indexOf(withJoggers.first.asset.split('/').last)));
-      expect(o2.last, 'joggers.png');
+      expect(o.contains('soles.png'), isFalse);
+      // The crossed foot is not drawn over another shoe.
+      expect(order(e.value, e.key, ['red_sneakers', 'jazzy_joggers']).contains('foot.png'), isFalse);
+    }
+    // Under the instrument.
+    var o = order('assets/art/avatar_instrument/jalapeno_ukulele', 'ukulele', ['jazzy_joggers']);
+    expect(o.indexOf('front.png'), lessThan(o.indexOf('7_ukulele.png')));
+    for (final e in {'violin': '3_legs_feet', 'flute': '5_legs_feet', 'cello': '5_legs_feet'}.entries) {
+      o = order('assets/art/avatar_instrument/jalapeno_${e.key}', e.key, ['jazzy_joggers', 'serenade_sandals']);
+      expect(o.contains('${e.value}.png'), isFalse, reason: e.key);
+      expect(o.indexOf('soles.png'), lessThan(o.indexOf('legs.png')), reason: e.key);
+      expect(o.indexOf('legs.png'), lessThan(o.indexOf('straps.png')), reason: e.key);
+      expect(o.indexOf('straps.png'), lessThan(o.indexOf('joggers.png')), reason: e.key);
     }
   });
   test('dress rule: the Falsetto Frock is never worn with a top or a bottom, on any avatar', () {
