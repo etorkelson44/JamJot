@@ -81,7 +81,8 @@ class PoseAccessory {
       {required this.slot,
       required this.asset,
       this.replaces,
-      this.overflowTop = 0});
+      this.overflowTop = 0,
+      this.overflowBottom = 0});
   final String slot;
   final String asset;
   final String? replaces;
@@ -90,6 +91,9 @@ class PoseAccessory {
   /// the file is 1000 wide and 1000 + [overflowTop] tall, with the pose
   /// canvas starting [overflowTop] pixels down.
   final double overflowTop;
+
+  /// Canvas pixels of art below the bottom of the pose canvas (long legs).
+  final double overflowBottom;
 }
 
 /// The asset paths to draw, bottom first: the pose's layers with each
@@ -140,6 +144,10 @@ class PoseStack extends StatelessWidget {
       for (final a in accessories)
         if (a.overflowTop > 0) a.asset: a.overflowTop
     };
+    final under = {
+      for (final a in accessories)
+        if (a.overflowBottom > 0) a.asset: a.overflowBottom
+    };
     return SizedBox(
       width: size,
       height: size,
@@ -150,7 +158,7 @@ class PoseStack extends StatelessWidget {
             Positioned(
               left: 0,
               right: 0,
-              bottom: 0,
+              bottom: -(under[asset] ?? 0) * size / 1000,
               top: -(overflow[asset] ?? 0) * size / 1000,
               child: Image.asset(asset,
                   fit: BoxFit.fill,

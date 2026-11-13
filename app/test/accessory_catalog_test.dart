@@ -12,6 +12,7 @@ const starterIds = [
   'lilac_platform_boots'
 ];
 const prestoIds = ['black_top_hat', 'gold_monocle', 'black_tuxedo', 'red_sneakers'];
+const keywiSetIds = ['ballad_bucket_hat', 'fermata_frames', 'tenuto_tee', 'jazzy_joggers', 'serenade_sandals'];
 const jalapenoPoses = [
   'violin', 'viola', 'piano', 'flute', 'cello', 'double_bass',
   'acoustic_guitar', 'electric_guitar', 'ukulele'
@@ -30,7 +31,7 @@ void main() {
       ];
 
   test('catalog lists the four starter items then the four Presto items, with their final names', () {
-    expect(catalog.map((i) => i.id), [...starterIds, ...prestoIds, 'sugar_shrub_shako']);
+    expect(catalog.map((i) => i.id), [...starterIds, ...prestoIds, 'sugar_shrub_shako', ...keywiSetIds]);
     expect(catalog.map((i) => i.name), [
       'Dolce Diadem',
       'Crescendo Cat-Eyes',
@@ -40,7 +41,12 @@ void main() {
       'Marcato Monocle',
       'Toccata Tuxedo',
       'Legato Lace-Ups',
-      'Sugar Shrub Shako'
+      'Sugar Shrub Shako',
+      'Ballad Bucket Hat',
+      'Fermata Frames',
+      'Tenuto Tee',
+      'Jazzy Joggers',
+      'Serenade Sandals'
     ]);
     for (final i in catalog.where((i) => starterIds.contains(i.id))) {
       expect(i.hasArtFor('strawberry', 'standing'), isTrue, reason: i.id);
@@ -106,7 +112,7 @@ void main() {
   });
 
   test('catalog json parses with the expected keys', () {
-    expect(jsonDecode(json)['items'], hasLength(9));
+    expect(jsonDecode(json)['items'], hasLength(14));
   });
 }
 
@@ -364,6 +370,52 @@ void jalapenoOutfitTests() {
     final bass = manifest.layers.firstWhere((l) => l.contains('double_bass'));
     expect(order.indexOf('shako.png'), greaterThan(order.indexOf('4_mustache.png')));
     expect(order.indexOf('shako.png'), lessThan(order.indexOf('$bass.png')));
+  });
+  test('Keywi\'s set: fitted to his standing pose, off for now, and pieces swap with what else is worn', () {
+    final c = [
+      for (final i in catalog)
+        AccessoryItem(
+            id: i.id, name: i.name, released: true, art: i.art, display: i.display,
+            overflowTop: i.overflowTop, overflowBottom: i.overflowBottom, frames: i.frames)
+    ];
+    final folder = 'assets/art/avatar_pose/kiwi_standing';
+    final manifest = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
+    List<String> order(List<String> ids) =>
+        poseDrawOrder(manifest, resolveAccessories(c, ids, 'kiwi', 'standing')).map((a) => a.split('/').last).toList();
+    for (final i in catalog.where((i) => keywiSetIds.contains(i.id))) {
+      expect(i.released, isFalse, reason: i.id);
+      expect(File(i.displayAsset).existsSync(), isTrue, reason: i.id);
+      for (final p in i.art['kiwi_standing']!) {
+        expect(File('assets/art/accessories/${i.id}/kiwi_standing/${p.file}').existsSync(), isTrue, reason: p.file);
+      }
+      // Other avatars fall back to their plain pose until their art arrives.
+      expect(resolveAccessories(c, [i.id], 'strawberry', 'standing'), isEmpty, reason: i.id);
+      expect(resolveAccessories(c, [i.id], 'jalapeno', 'standing'), isEmpty, reason: i.id);
+    }
+    // Hat and glasses leave his body alone.
+    var o = order(['ballad_bucket_hat', 'fermata_frames']);
+    expect(o, containsAll(['4_legs_feet.png', '5_arm_viewer_left.png', '6_arm_viewer_right.png', 'hat.png', 'frames.png']));
+    // Tee: lower arms under the tee; legs unchanged.
+    o = order(['tenuto_tee']);
+    expect(o.contains('5_arm_viewer_left.png'), isFalse);
+    expect(o.indexOf('arm_viewer_right.png'), lessThan(o.indexOf('tee.png')));
+    expect(o.contains('4_legs_feet.png'), isTrue);
+    // Sandals alone sit on his regular feet: soles under, straps over.
+    o = order(['serenade_sandals']);
+    expect(o.indexOf('soles.png'), lessThan(o.indexOf('4_legs_feet.png')));
+    expect(o.indexOf('4_legs_feet.png'), lessThan(o.indexOf('straps.png')));
+    expect(o.contains('soles_with_joggers.png'), isFalse);
+    // With the joggers: longer legs, lower sandals, joggers over the tee whatever order they were put on.
+    o = order(['jazzy_joggers', 'serenade_sandals', 'tenuto_tee']);
+    expect(o.contains('4_legs_feet.png'), isFalse);
+    expect(o.contains('soles.png'), isFalse);
+    expect(o.indexOf('soles_with_joggers.png'), lessThan(o.indexOf('legs.png')));
+    expect(o.indexOf('legs.png'), lessThan(o.indexOf('straps_with_joggers.png')));
+    expect(o.indexOf('tee.png'), lessThan(o.indexOf('joggers.png')));
+    // The joggers need room below the canvas; the frame grows only for them (and a little for the hat).
+    expect(accessoryFrame(c, ['fermata_frames', 'tenuto_tee', 'serenade_sandals'], 'kiwi', 'standing'), isNull);
+    final f = accessoryFrame(c, ['jazzy_joggers'], 'kiwi', 'standing')!;
+    expect(f[1] + f[2], greaterThanOrEqualTo(1095));
   });
   test('jalapeno dressed frame holds crown and boots', () {
     final m = jsonDecode(File('assets/art/avatar_pose/jalapeno_standing/manifest.json').readAsStringSync());

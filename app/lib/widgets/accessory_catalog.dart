@@ -12,13 +12,25 @@ import 'pose_stack.dart';
 /// hidden there (never drawn wrong). Items with `released: false` are wired
 /// in but cannot be worn yet.
 class AccessoryPiece {
-  const AccessoryPiece({required this.slot, required this.file, this.replaces});
+  const AccessoryPiece(
+      {required this.slot,
+      required this.file,
+      this.replaces,
+      this.whenWorn = const [],
+      this.unlessWorn = const []});
   final String slot;
   final String file;
 
   /// When set, this file replaces that layer of the pose instead of being
   /// drawn on top (a legs layer trimmed under boots).
   final String? replaces;
+
+  /// Draw this piece only while all of these items are also worn (sandals
+  /// that sit lower when the joggers lengthen the legs).
+  final List<String> whenWorn;
+
+  /// Leave this piece out while any of these items is also worn.
+  final List<String> unlessWorn;
 }
 
 class AccessoryItem {
@@ -30,6 +42,7 @@ class AccessoryItem {
       this.display = 'display.png',
       this.free = false,
       this.overflowTop = 0,
+      this.overflowBottom = 0,
       this.frames = const {}});
 
   final String id;
@@ -41,6 +54,9 @@ class AccessoryItem {
 
   /// Canvas pixels of art above the pose canvas in this item's files.
   final double overflowTop;
+
+  /// Canvas pixels of art below the pose canvas in this item's files.
+  final double overflowBottom;
 
   /// `<avatar>_<pose>` -> [x, y, side]: the larger square to frame the
   /// avatar with while this item is worn there.
@@ -67,9 +83,11 @@ const String accessoryCatalogAsset = 'assets/art/accessories/catalog.json';
 /// Fixed draw order among accessories that share a place in the stack.
 const List<String> accessorySlotRank = [
   'behind_body',
+  'shoes_under',
   'shoes',
   'clothing_torso',
   'clothing_lower',
+  'pants',
   'shoes_front',
   'sleeves_arm_viewer_right',
   'sleeves_arm_viewer_left',
@@ -89,6 +107,7 @@ List<AccessoryItem> parseAccessoryCatalog(String json) {
           display: raw['display'] as String? ?? 'display.png',
           free: raw['free'] == true,
           overflowTop: (raw['overflow_top'] as num?)?.toDouble() ?? 0,
+          overflowBottom: (raw['overflow_bottom'] as num?)?.toDouble() ?? 0,
           frames: {
             for (final e
                 in (raw['frames'] as Map<String, dynamic>? ?? const {}).entries)
@@ -103,7 +122,11 @@ List<AccessoryItem> parseAccessoryCatalog(String json) {
                   AccessoryPiece(
                       slot: (p as Map<String, dynamic>)['slot'] as String? ?? '',
                       file: p['file'] as String,
-                      replaces: p['replaces'] as String?)
+                      replaces: p['replaces'] as String?,
+                      whenWorn: [...?(p['when_worn'] as List?)?.cast<String>()],
+                      unlessWorn: [
+                        ...?(p['unless_worn'] as List?)?.cast<String>()
+                      ])
               ]
           },
         )
@@ -128,6 +151,13 @@ List<PoseAccessory> resolveAccessories(
   String pose,
 ) {
   final out = <PoseAccessory>[];
+  // The items that will really be drawn here; pieces can depend on them.
+  final worn = <String>{
+    for (final id in itemIds)
+      for (final item in catalog)
+        if (item.id == id && item.released && item.hasArtFor(avatarKey, pose))
+          id
+  };
   for (final id in itemIds) {
     for (final item in catalog) {
       if (item.id != id || !item.released || !item.hasArtFor(avatarKey, pose)) {
@@ -135,11 +165,16 @@ List<PoseAccessory> resolveAccessories(
       }
       final folder = item.assetFolder(avatarKey, pose);
       for (final p in item.art['${avatarKey}_$pose']!) {
+        if (!p.whenWorn.every(worn.contains) ||
+            p.unlessWorn.any(worn.contains)) {
+          continue;
+        }
         out.add(PoseAccessory(
             slot: p.slot,
             asset: '$folder/${p.file}',
             replaces: p.replaces,
-            overflowTop: item.overflowTop));
+            overflowTop: item.overflowTop,
+            overflowBottom: item.overflowBottom));
       }
     }
   }

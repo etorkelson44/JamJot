@@ -44,6 +44,14 @@
     "clothing_lower": {
       "after": "6_arm_viewer_right",
       "note": "skirts and sashes; drawn over the legs and arms, as in Erika's Fabulous Keywi PDF (2026-11-11)"
+    },
+    "shoes_under": {
+      "before": "4_legs_feet",
+      "note": "sandal soles: under the feet"
+    },
+    "pants": {
+      "after": "6_arm_viewer_right",
+      "note": "pants: over shirts and jackets, under hats"
     }
   },
   "display_box": [
