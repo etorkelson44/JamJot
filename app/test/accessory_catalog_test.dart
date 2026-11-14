@@ -506,7 +506,13 @@ void jalapenoOutfitTests() {
     // Putting a shirt or pants on takes the frock off, and nothing else.
     expect(outfitConflicts(c, 'jazzy_joggers', ['pink_ruffle_dress', 'tenuto_tee', 'gold_monocle']), ['pink_ruffle_dress']);
     expect(outfitConflicts(c, 'black_tuxedo', ['pink_ruffle_dress']), ['pink_ruffle_dress']);
-    expect(outfitConflicts(c, 'tenuto_tee', ['jazzy_joggers', 'black_tuxedo']), isEmpty);
+    // One top at a time: the tee and the tuxedo are either/or (Erika, 2026-11-14).
+    expect(outfitConflicts(c, 'tenuto_tee', ['jazzy_joggers', 'black_tuxedo']), ['black_tuxedo']);
+    expect(outfitConflicts(c, 'black_tuxedo', ['tenuto_tee', 'jazzy_joggers', 'gold_monocle']), ['tenuto_tee']);
+    final both = resolveAccessories(c, ['tenuto_tee', 'black_tuxedo', 'jazzy_joggers'], 'jalapeno', 'violin');
+    expect(both.any((a) => a.asset.contains('tenuto_tee')), isFalse);
+    expect(both.any((a) => a.asset.contains('black_tuxedo')), isTrue);
+    expect(both.any((a) => a.asset.contains('jazzy_joggers')), isTrue);
     expect(outfitConflicts(c, 'sugar_shrub_shako', ['pink_ruffle_dress', 'jazzy_joggers']), isEmpty);
     // An outfit saved with both never draws both: the frock wins, on every avatar.
     for (final avatar in ['kiwi', 'strawberry', 'jalapeno']) {

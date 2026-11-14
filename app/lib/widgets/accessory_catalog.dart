@@ -162,7 +162,8 @@ List<AccessoryItem> parseAccessoryCatalog(String json) {
 }
 
 /// The worn pieces that have to come off when [id] goes on: a dress takes
-/// off tops and bottoms, and a top or a bottom takes off a dress.
+/// off tops and bottoms, a top or a bottom takes off a dress, and a top takes
+/// off any other top (Tenuto Tee or Toccata Tuxedo, never both).
 List<String> outfitConflicts(
     List<AccessoryItem> catalog, String id, Iterable<String> worn) {
   String kindOf(String i) {
@@ -179,7 +180,9 @@ List<String> outfitConflicts(
       if (w != id &&
           (k == 'dress'
               ? (kindOf(w) == 'top' || kindOf(w) == 'bottom')
-              : (k == 'top' || k == 'bottom') && kindOf(w) == 'dress'))
+              : ((k == 'top' || k == 'bottom') && kindOf(w) == 'dress') ||
+                  // one top at a time: a shirt and a jacket are either/or
+                  (k == 'top' && kindOf(w) == 'top')))
         w
   ];
 }
@@ -197,7 +200,14 @@ List<String> applyDressRule(
     return '';
   }
 
-  if (!ids.any((i) => kindOf(i) == 'dress')) return ids;
+  if (!ids.any((i) => kindOf(i) == 'dress')) {
+    // One top at a time: an outfit saved with two tops draws the last one.
+    final lastTop = ids.lastWhere((i) => kindOf(i) == 'top', orElse: () => '');
+    return [
+      for (final i in ids)
+        if (kindOf(i) != 'top' || i == lastTop) i
+    ];
+  }
   return [
     for (final i in ids)
       if (kindOf(i) != 'top' && kindOf(i) != 'bottom') i
