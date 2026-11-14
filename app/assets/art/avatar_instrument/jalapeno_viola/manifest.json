@@ -52,8 +52,8 @@
       "note": "top of stack"
     },
     "clothing_lower": {
-      "after": "3_legs_feet",
-      "note": "skirts and dresses; over the legs and boots, under the instrument and arms"
+      "after": "5_right_upper_arm",
+      "note": "clothes cover where the arms join the body; under the instrument"
     },
     "monocle": {
       "after": "2_eyes_brows",
@@ -66,6 +66,10 @@
     "pants": {
       "after": "3_legs_feet",
       "note": "pants: over legs and shoes, under instruments"
+    },
+    "shirt": {
+      "after": "5_right_upper_arm",
+      "note": "clothes cover where the arms join the body; under the instrument"
     }
   }
 }

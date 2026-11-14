@@ -2,7 +2,7 @@
 import json, numpy as np
 from PIL import Image, ImageDraw, ImageFont
 A='/home/claude/jamjot/app/assets/art/'; AC=A+'accessories/'
-RANK=['behind_body','shoes_under','shoes','pants_back','shoes_mid_under','pants_foot','shoes_mid','clothing_torso','clothing_lower','pants','jacket','shoes_front','sleeves_arm_viewer_right','sleeves_arm_viewer_left','face','hat']
+RANK=['behind_body','shoes_under','shoes','pants_back','shoes_mid_under','pants_foot','shoes_mid','clothing_torso','clothing_lower','pants','shoes_over_pants','shirt_sleeves','shirt','shirt_over','tee_arm_over','tee_sleeve_over','jacket','shoes_front','sleeves_arm_viewer_right','sleeves_arm_viewer_left','face','hat']
 CAT=json.load(open(AC+'catalog.json'))['items']; BY={i['id']:i for i in CAT}
 def over(b,t):
     a=t[...,3:]; ba=b[...,3:]; oa=a+ba*(1-a); rgb=(t[...,:3]*a+b[...,:3]*ba*(1-a))/np.maximum(oa,1e-6); return np.concatenate([rgb,oa],-1)

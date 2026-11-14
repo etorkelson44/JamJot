@@ -56,6 +56,23 @@
     "pants": {
       "after": "5_legs_feet",
       "note": "pants: over legs and shoes, under instruments"
+    },
+    "shirt": {
+      "after": "5_legs_feet",
+      "note": "shirt body: over the legs, the pants waistband and its own sleeves; under instruments and arms"
+    },
+    "shirt_sleeves": {
+      "after": "5_legs_feet",
+      "note": "shirt sleeves that sit behind the shirt body"
+    },
+    "shirt_over": {
+      "after": "5_legs_feet",
+      "note": "a sleeve drawn over the shirt body, under the keyboard"
+    },
+    "tee_sleeve_7_arm_viewer_left": {
+      "after": "7_arm_viewer_left",
+      "note": "sleeve on top of this arm"
     }
-  }
+  },
+  "scaled_to_full_size": "layers and fitted accessories scaled x1.213 on 2026-11-13 so this pose matches the others"
 }

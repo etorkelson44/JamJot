@@ -171,8 +171,8 @@ void jalapenoOutfitTests() {
     final acc = resolveAccessories(presto(), prestoIds, 'jalapeno', 'standing');
     final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
     int at(String f) => order.indexOf(f);
-    expect(order.contains('5_legs_feet.png'), isFalse);
-    expect(at('legs_under_sneakers.png'), lessThan(at('1_sneaker_flat.png')));
+    // His legs stay whole and run down into the sneakers (Erika, 2026-11-13).
+    expect(at('5_legs_feet.png'), lessThan(at('1_sneaker_flat.png')));
     expect(at('7_arm_viewer_left.png'), lessThan(at('1_sleeves.png')));
     expect(at('1_sleeves.png'), lessThan(at('2_jacket.png')));
     expect(at('2_jacket.png'), lessThan(at('3_legs_over_jacket.png')));
@@ -222,7 +222,7 @@ void jalapenoOutfitTests() {
     final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
     int at(String f) => order.indexOf(f);
     expect(order.contains('5_legs_feet.png'), isFalse);
-    expect(at('legs_under_boots.png'), lessThan(at('2_boot_viewer_right.png')));
+    expect(at('legs_into_boots.png'), lessThan(at('2_boot_viewer_right.png')));
     expect(at('2_boot_viewer_right.png'), lessThan(at('1_boot_viewer_left.png')));
     expect(at('1_boot_viewer_left.png'), lessThan(at('6_arm_viewer_right.png')));
     expect(at('7_arm_viewer_left.png'), lessThan(at('2_ruffle_skirt.png')));
@@ -252,9 +252,10 @@ void jalapenoOutfitTests() {
       final acc = resolveAccessories(all(), all().map((i) => i.id), 'jalapeno', pose);
       final order = poseDrawOrder(manifest, acc).map((a) => a.split('/').last).toList();
       int at(String f) => order.indexOf(f);
-      final legs = manifest.slots['clothing_lower']!.layer;
+      final legs = manifest.layers.firstWhere((l) => l.contains('legs'));
       expect(order.contains('$legs.png'), isFalse, reason: pose);
-      expect(at('legs_under_boots.png'), lessThan(at('2_boot_viewer_right.png')), reason: pose);
+      final bootLegs = order.firstWhere((f) => f == 'legs_under_boots.png' || f == 'legs_into_boots.png');
+      expect(at(bootLegs), lessThan(at('2_boot_viewer_right.png')), reason: pose);
       expect(at('1_boot_viewer_left.png'), lessThan(at('2_ruffle_skirt.png')), reason: pose);
       expect(at('2_ruffle_skirt.png'), lessThan(at('1_strapless_top.png')), reason: pose);
       expect(at('sunglasses.png'), lessThan(at('crown.png')), reason: pose);
@@ -395,8 +396,8 @@ void jalapenoOutfitTests() {
       expect(resolveAccessories(c, [i.id], 'strawberry', 'standing'), isEmpty, reason: i.id);
       final onPresto = i.id == 'jazzy_joggers' || i.id == 'serenade_sandals';
       for (final pose in prestoPoses) {
-        // Joggers and sandals are on all his poses; hat, glasses and tee on his regular pose so far.
-        expect(resolveAccessories(c, [i.id], 'jalapeno', pose).isNotEmpty, onPresto || pose == 'standing', reason: '${i.id} $pose');
+        // The whole set is fitted to all ten of his poses.
+        expect(resolveAccessories(c, [i.id], 'jalapeno', pose).isNotEmpty, isTrue, reason: '${i.id} $pose');
       }
     }
     // Hat and glasses leave his body alone.
@@ -450,8 +451,23 @@ void jalapenoOutfitTests() {
         expect(o.indexOf(seq[i]), lessThan(o.indexOf(seq[i + 1])), reason: '${e.key} ${seq[i]} < ${seq[i + 1]}');
       }
       expect(o.contains('soles.png'), isFalse);
-      // The crossed foot is not drawn over another shoe.
-      expect(order(e.value, e.key, ['red_sneakers', 'jazzy_joggers']).contains('foot.png'), isFalse);
+      // The crossed foot is not drawn over another shoe; the upright lace-up goes in front of both pant legs.
+      final ls = order(e.value, e.key, ['red_sneakers', 'jazzy_joggers']);
+      expect(ls.contains('foot.png'), isFalse);
+      expect(ls.indexOf('front.png'), lessThan(ls.indexOf('crossed_with_joggers.png')));
+      // With the boots the joggers are the short version, so the boots show.
+      final bs = order(e.value, e.key, ['lilac_platform_boots', 'jazzy_joggers']);
+      expect(bs.contains('front_short.png') && !bs.contains('front.png'), isTrue);
+      // Tee sleeves: the fretting arm is redrawn over the instrument with its sleeve on top (instrument poses).
+      if (e.key != 'standing') {
+        final ts = order(e.value, e.key, ['tenuto_tee']);
+        // Sleeves tucked behind the shirt body; the part beside the shirt and the fretting arm are in front of the instrument.
+        expect(ts.indexOf('sleeve_6_fret_arm.png'), lessThan(ts.indexOf('tee.png')));
+        expect(ts.indexOf('sleeve_9_strum_arm_hand.png'), lessThan(ts.indexOf('tee.png')));
+        expect(ts.indexOf('tee.png'), lessThan(ts.indexOf('7_${e.key}.png')));
+        expect(ts.indexOf('7_${e.key}.png'), lessThan(ts.indexOf('arm_6_fret_arm.png')));
+        expect(ts.indexOf('strum_upper_arm.png'), lessThan(ts.indexOf('sleeve_9_strum_arm_hand_beside_shirt.png')));
+      }
     }
     // His regular pose in Keywi's set (Erika's layers): sleeves over the arms, tee over the sleeves and the joggers, hat on top.
     var st = order('assets/art/avatar_pose/jalapeno_standing', 'standing', ['tenuto_tee', 'jazzy_joggers', 'ballad_bucket_hat', 'fermata_frames']);

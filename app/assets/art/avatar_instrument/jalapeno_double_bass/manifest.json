@@ -67,6 +67,10 @@
     "pants": {
       "after": "5_legs_feet",
       "note": "pants: over legs and shoes, under instruments"
+    },
+    "shirt": {
+      "after": "5_legs_feet",
+      "note": "shirt body: over the legs, the pants waistband and its own sleeves; under instruments and arms"
     }
   }
 }

@@ -386,15 +386,35 @@
         "jalapeno_standing": [
           {
             "slot": "shoes",
-            "file": "2_boot_viewer_right.png"
+            "file": "2_boot_viewer_right.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
             "slot": "shoes",
-            "file": "1_boot_viewer_left.png"
+            "file": "1_boot_viewer_left.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
             "replaces": "5_legs_feet",
-            "file": "legs_under_boots.png"
+            "file": "legs_into_boots.png"
           }
         ],
         "jalapeno_violin": [
@@ -456,43 +476,103 @@
         "jalapeno_acoustic_guitar": [
           {
             "slot": "shoes",
-            "file": "2_boot_viewer_right.png"
+            "file": "2_boot_viewer_right.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
             "slot": "shoes",
-            "file": "1_boot_viewer_left.png"
+            "file": "1_boot_viewer_left.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
             "replaces": "5_legs_feet",
-            "file": "legs_under_boots.png"
+            "file": "legs_into_boots.png"
           }
         ],
         "jalapeno_electric_guitar": [
           {
             "slot": "shoes",
-            "file": "2_boot_viewer_right.png"
+            "file": "2_boot_viewer_right.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
             "slot": "shoes",
-            "file": "1_boot_viewer_left.png"
+            "file": "1_boot_viewer_left.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
             "replaces": "5_legs_feet",
-            "file": "legs_under_boots.png"
+            "file": "legs_into_boots.png"
           }
         ],
         "jalapeno_ukulele": [
           {
             "slot": "shoes",
-            "file": "2_boot_viewer_right.png"
+            "file": "2_boot_viewer_right.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
             "slot": "shoes",
-            "file": "1_boot_viewer_left.png"
+            "file": "1_boot_viewer_left.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
             "replaces": "5_legs_feet",
-            "file": "legs_under_boots.png"
+            "file": "legs_into_boots.png"
           }
         ],
         "jalapeno_cello": [
@@ -1087,15 +1167,31 @@
         "jalapeno_standing": [
           {
             "slot": "shoes",
-            "file": "1_sneaker_flat.png"
+            "file": "1_sneaker_flat.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
             "slot": "shoes",
-            "file": "2_sneaker_upright.png"
+            "file": "2_sneaker_upright.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
           },
           {
-            "replaces": "5_legs_feet",
-            "file": "legs_under_sneakers.png"
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_over_pants",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
           }
         ],
         "jalapeno_violin": [
@@ -1145,19 +1241,70 @@
         "jalapeno_acoustic_guitar": [
           {
             "slot": "shoes",
-            "file": "1_sneaker.png"
+            "file": "1_sneaker.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_over_pants",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
           }
         ],
         "jalapeno_electric_guitar": [
           {
             "slot": "shoes",
-            "file": "1_sneaker.png"
+            "file": "1_sneaker.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_over_pants",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
           }
         ],
         "jalapeno_ukulele": [
           {
             "slot": "shoes",
-            "file": "1_sneaker.png"
+            "file": "1_sneaker.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_over_pants",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
           }
         ],
         "jalapeno_cello": [
@@ -1229,9 +1376,9 @@
           1134
         ],
         "jalapeno_piano": [
-          -24,
-          -49,
-          1049
+          -118,
+          -136,
+          1273
         ],
         "jalapeno_flute": [
           -76,
@@ -1358,6 +1505,60 @@
             "slot": "hat",
             "file": "hat.png"
           }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_double_bass": [
+          {
+            "slot": "hat_behind_instrument",
+            "file": "hat.png"
+          }
         ]
       },
       "frames": {
@@ -1388,6 +1589,60 @@
           }
         ],
         "jalapeno_standing": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_double_bass": [
           {
             "slot": "face",
             "file": "frames.png"
@@ -1431,6 +1686,260 @@
             "slot": "clothing_lower",
             "file": "tee.png"
           }
+        ],
+        "jalapeno_violin": [
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          },
+          {
+            "replaces": "8_bow",
+            "file": "bow.png"
+          },
+          {
+            "replaces": "9_right_arm_bow_hand",
+            "file": "arm_right.png"
+          },
+          {
+            "replaces": "5_left_arm_hand",
+            "file": "arm_left.png"
+          },
+          {
+            "replaces": "5b_right_upper_arm",
+            "file": "empty.png"
+          }
+        ],
+        "jalapeno_viola": [
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          },
+          {
+            "replaces": "9_bow",
+            "file": "bow.png"
+          },
+          {
+            "replaces": "10_right_forearm_bow_hand",
+            "file": "arm_right.png"
+          },
+          {
+            "replaces": "5_right_upper_arm",
+            "file": "empty.png"
+          },
+          {
+            "replaces": "4_left_arm_hand",
+            "file": "arm_left.png"
+          }
+        ],
+        "jalapeno_piano": [
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          },
+          {
+            "slot": "shirt_over",
+            "file": "sleeve_viewer_left.png"
+          },
+          {
+            "replaces": "6_keyboard",
+            "file": "keyboard.png"
+          },
+          {
+            "replaces": "7_arm_viewer_left",
+            "file": "arm_viewer_right.png"
+          },
+          {
+            "slot": "tee_sleeve_7_arm_viewer_left",
+            "file": "sleeve_viewer_right.png"
+          },
+          {
+            "replaces": "8_arm_viewer_right",
+            "file": "arm_viewer_left.png"
+          }
+        ],
+        "jalapeno_flute": [
+          {
+            "slot": "behind_body",
+            "file": "arm_stub_behind_body.png"
+          },
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          },
+          {
+            "slot": "shirt_over",
+            "file": "sleeve_viewer_left.png"
+          },
+          {
+            "slot": "shirt_over",
+            "file": "forearm_viewer_left.png"
+          },
+          {
+            "slot": "shirt_over",
+            "file": "upper_arm_viewer_right.png"
+          },
+          {
+            "slot": "shirt_over",
+            "file": "sleeve_viewer_right.png"
+          },
+          {
+            "replaces": "6_flute",
+            "file": "flute.png"
+          },
+          {
+            "replaces": "7_left_arm",
+            "file": "forearm_viewer_right.png"
+          },
+          {
+            "replaces": "8_right_arm",
+            "file": "empty.png"
+          }
+        ],
+        "jalapeno_acoustic_guitar": [
+          {
+            "slot": "shirt_sleeves",
+            "file": "sleeve_6_fret_arm.png"
+          },
+          {
+            "slot": "tee_sleeve_over",
+            "file": "sleeve_6_fret_arm_beside_shirt.png"
+          },
+          {
+            "replaces": "6_fret_arm",
+            "file": "empty.png"
+          },
+          {
+            "slot": "tee_arm_over",
+            "file": "arm_6_fret_arm.png"
+          },
+          {
+            "slot": "shirt_sleeves",
+            "file": "sleeve_9_strum_arm_hand.png"
+          },
+          {
+            "slot": "tee_arm_over",
+            "file": "strum_upper_arm.png"
+          },
+          {
+            "slot": "tee_sleeve_over",
+            "file": "sleeve_9_strum_arm_hand_beside_shirt.png"
+          },
+          {
+            "replaces": "9_strum_arm_hand",
+            "file": "arm_9_strum_arm_hand.png"
+          },
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          }
+        ],
+        "jalapeno_electric_guitar": [
+          {
+            "slot": "shirt_sleeves",
+            "file": "sleeve_6_fret_arm.png"
+          },
+          {
+            "slot": "tee_sleeve_over",
+            "file": "sleeve_6_fret_arm_beside_shirt.png"
+          },
+          {
+            "replaces": "6_fret_arm",
+            "file": "empty.png"
+          },
+          {
+            "slot": "tee_arm_over",
+            "file": "arm_6_fret_arm.png"
+          },
+          {
+            "slot": "shirt_sleeves",
+            "file": "sleeve_9_strum_arm_hand.png"
+          },
+          {
+            "slot": "tee_arm_over",
+            "file": "strum_upper_arm.png"
+          },
+          {
+            "slot": "tee_sleeve_over",
+            "file": "sleeve_9_strum_arm_hand_beside_shirt.png"
+          },
+          {
+            "replaces": "9_strum_arm_hand",
+            "file": "arm_9_strum_arm_hand.png"
+          },
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          }
+        ],
+        "jalapeno_ukulele": [
+          {
+            "slot": "shirt_sleeves",
+            "file": "sleeve_6_fret_arm.png"
+          },
+          {
+            "slot": "tee_sleeve_over",
+            "file": "sleeve_6_fret_arm_beside_shirt.png"
+          },
+          {
+            "replaces": "6_fret_arm",
+            "file": "empty.png"
+          },
+          {
+            "slot": "tee_arm_over",
+            "file": "arm_6_fret_arm.png"
+          },
+          {
+            "slot": "shirt_sleeves",
+            "file": "sleeve_9_strum_arm_hand.png"
+          },
+          {
+            "slot": "tee_arm_over",
+            "file": "strum_upper_arm.png"
+          },
+          {
+            "slot": "tee_sleeve_over",
+            "file": "sleeve_9_strum_arm_hand_beside_shirt.png"
+          },
+          {
+            "replaces": "9_strum_arm_hand",
+            "file": "arm_9_strum_arm_hand.png"
+          },
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          }
+        ],
+        "jalapeno_cello": [
+          {
+            "slot": "behind_body",
+            "file": "sleeve_bow_arm.png"
+          },
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          },
+          {
+            "replaces": "10_right_arm",
+            "file": "bow_forearm_hand.png"
+          }
+        ],
+        "jalapeno_double_bass": [
+          {
+            "slot": "behind_body",
+            "file": "bow_upper_arm.png"
+          },
+          {
+            "slot": "behind_body",
+            "file": "sleeve_bow_arm.png"
+          },
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          },
+          {
+            "replaces": "10_right_arm",
+            "file": "bow_forearm_hand.png"
+          }
         ]
       }
     },
@@ -1456,7 +1965,17 @@
         "jalapeno_standing": [
           {
             "slot": "pants_back",
-            "file": "back.png"
+            "file": "back.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants_back",
+            "file": "back_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
           },
           {
             "slot": "pants_foot",
@@ -1468,13 +1987,33 @@
           },
           {
             "slot": "pants",
-            "file": "front.png"
+            "file": "front.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
           }
         ],
         "jalapeno_acoustic_guitar": [
           {
             "slot": "pants_back",
-            "file": "back.png"
+            "file": "back.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants_back",
+            "file": "back_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
           },
           {
             "slot": "pants_foot",
@@ -1486,13 +2025,33 @@
           },
           {
             "slot": "pants",
-            "file": "front.png"
+            "file": "front.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
           }
         ],
         "jalapeno_electric_guitar": [
           {
             "slot": "pants_back",
-            "file": "back.png"
+            "file": "back.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants_back",
+            "file": "back_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
           },
           {
             "slot": "pants_foot",
@@ -1504,13 +2063,33 @@
           },
           {
             "slot": "pants",
-            "file": "front.png"
+            "file": "front.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
           }
         ],
         "jalapeno_ukulele": [
           {
             "slot": "pants_back",
-            "file": "back.png"
+            "file": "back.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants_back",
+            "file": "back_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
           },
           {
             "slot": "pants_foot",
@@ -1522,7 +2101,17 @@
           },
           {
             "slot": "pants",
-            "file": "front.png"
+            "file": "front.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
           }
         ],
         "jalapeno_violin": [

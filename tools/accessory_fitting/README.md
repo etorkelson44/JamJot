@@ -49,3 +49,23 @@ this folder, `sources/` and the repo before they run again.
 - `render(avatar, pose, ids)` draws an outfit with the app's own rules (catalog, manifest slots, slot rank, replaces,
   when_worn / unless_worn, dress rule), ignoring the released switch. Use it for combination sheets before anything is
   switched on.
+
+## Keywi's set on Señor Jalapresto's instrument poses (2026-11-13 and 14)
+
+Scripts are in `keywi_set_on_presto/`. Rules Erika approved pose by pose:
+
+- **Her layered PDF wins.** Regular pose, piano, violin and viola, flute and cello are built from her PDFs (presto_top_half,
+  Piano, violin_blue_, Senor_flute, blue_shirt_and_cello): her tee, sleeves, arms and instrument, in her layer order.
+- **Sleeves** are part of the shirt: joined at the shirt's top corners, their inner edge flat along the shirt's side and
+  about 4px under the shirt body, so the only line at the join is the shirt's own outline. Triangles come to a real point.
+- **Arms:** the shoulder-to-elbow part is hidden behind the sleeve (elbow just past the sleeve's edge); elbow to hand is
+  on top of sleeve, shirt, bow and instrument. No arm joins on top of an instrument or clothing, no gaps, no stray marks.
+  Arms are redrawn as clean even lines with the original hand attached where the fingers branch; always zoom in to check.
+- **Violin and viola:** left arm under the instrument, hand behind the neck in first position (just below the nut, not at
+  the scroll), three distinct fingers over the neck. Bow upper arm on its own layer under the instrument.
+- **Cello and double bass:** one small sleeve on the bow-arm side, behind his body, at the same height on the shirt.
+- **Guitars and ukulele:** strumming-side sleeve in front of the instrument where they overlap; fretting arm in front of
+  the neck; the plain pose's strumming arm attaches on his body.
+- **Piano pose** is scaled to the same size as his other poses.
+- **Shoes:** legs run down into shoes with nothing showing through a heel gap. On crossed legs the Jazzy Joggers are
+  shorter with the Bravura Boots, and the upright Legato Lace-Up goes in front of both pant legs.

@@ -11,8 +11,9 @@
     "1_pepper_body",
     "2_eyes_brows",
     "3_legs_feet",
-    "4_violin",
     "5_left_arm_hand",
+    "5b_right_upper_arm",
+    "4_violin",
     "7_teeth",
     "6_mustache",
     "8_bow",
@@ -45,8 +46,8 @@
       "note": "top of stack"
     },
     "clothing_lower": {
-      "after": "3_legs_feet",
-      "note": "skirts and dresses; over the legs and boots, under the instrument and arms"
+      "after": "5b_right_upper_arm",
+      "note": "clothes cover where the arms join the body; under the instrument"
     },
     "monocle": {
       "after": "2_eyes_brows",
@@ -59,6 +60,10 @@
     "pants": {
       "after": "3_legs_feet",
       "note": "pants: over legs and shoes, under instruments"
+    },
+    "shirt": {
+      "after": "5b_right_upper_arm",
+      "note": "clothes cover where the arms join the body; under the instrument"
     }
   }
 }

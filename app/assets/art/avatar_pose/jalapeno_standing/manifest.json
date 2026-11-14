@@ -77,6 +77,10 @@
     "pants": {
       "after": "5_legs_feet",
       "note": "the pant leg of the crossed (front) leg; under instruments"
+    },
+    "shoes_over_pants": {
+      "after": "5_legs_feet",
+      "note": "the crossed foot's shoe, in front of both pant legs"
     }
   },
   "display_box": [

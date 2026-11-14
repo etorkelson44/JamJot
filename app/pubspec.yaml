@@ -150,6 +150,33 @@ flutter:
     - assets/art/accessories/ballad_bucket_hat/jalapeno_standing/
     - assets/art/accessories/fermata_frames/jalapeno_standing/
     - assets/art/accessories/tenuto_tee/jalapeno_standing/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_violin/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_viola/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_piano/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_flute/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_acoustic_guitar/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_electric_guitar/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_ukulele/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_cello/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_double_bass/
+    - assets/art/accessories/fermata_frames/jalapeno_violin/
+    - assets/art/accessories/fermata_frames/jalapeno_viola/
+    - assets/art/accessories/fermata_frames/jalapeno_piano/
+    - assets/art/accessories/fermata_frames/jalapeno_flute/
+    - assets/art/accessories/fermata_frames/jalapeno_acoustic_guitar/
+    - assets/art/accessories/fermata_frames/jalapeno_electric_guitar/
+    - assets/art/accessories/fermata_frames/jalapeno_ukulele/
+    - assets/art/accessories/fermata_frames/jalapeno_cello/
+    - assets/art/accessories/fermata_frames/jalapeno_double_bass/
+    - assets/art/accessories/tenuto_tee/jalapeno_violin/
+    - assets/art/accessories/tenuto_tee/jalapeno_viola/
+    - assets/art/accessories/tenuto_tee/jalapeno_piano/
+    - assets/art/accessories/tenuto_tee/jalapeno_flute/
+    - assets/art/accessories/tenuto_tee/jalapeno_acoustic_guitar/
+    - assets/art/accessories/tenuto_tee/jalapeno_electric_guitar/
+    - assets/art/accessories/tenuto_tee/jalapeno_ukulele/
+    - assets/art/accessories/tenuto_tee/jalapeno_cello/
+    - assets/art/accessories/tenuto_tee/jalapeno_double_bass/
     - assets/art/accessories/black_top_hat/
     - assets/art/accessories/black_top_hat/jalapeno_standing/
     - assets/art/accessories/black_top_hat/strawberry_standing/

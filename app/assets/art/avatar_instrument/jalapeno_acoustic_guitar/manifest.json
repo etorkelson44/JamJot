@@ -75,6 +75,26 @@
     "pants": {
       "after": "5_legs_feet",
       "note": "the pant leg of the crossed (front) leg; under instruments"
+    },
+    "shirt": {
+      "after": "5_legs_feet",
+      "note": "shirt body: over the legs, the pants waistband and its own sleeves; under instruments and arms"
+    },
+    "shirt_sleeves": {
+      "after": "5_legs_feet",
+      "note": "shirt sleeves: joined to the shirt, behind its body"
+    },
+    "shoes_over_pants": {
+      "after": "5_legs_feet",
+      "note": "the crossed foot's shoe, in front of both pant legs"
+    },
+    "tee_arm_over": {
+      "after": "7_guitar",
+      "note": "the fretting arm, in front of the instrument"
+    },
+    "tee_sleeve_over": {
+      "after": "7_guitar",
+      "note": "the part of a sleeve that shows beside the shirt, in front of the instrument"
     }
   }
 }
