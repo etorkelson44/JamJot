@@ -69,3 +69,11 @@ Scripts are in `keywi_set_on_presto/`. Rules Erika approved pose by pose:
 - **Piano pose** is scaled to the same size as his other poses.
 - **Shoes:** legs run down into shoes with nothing showing through a heel gap. On crossed legs the Jazzy Joggers are
   shorter with the Bravura Boots, and the upright Legato Lace-Up goes in front of both pant legs.
+
+## Bass guitar pose (2026-11-14)
+
+`bass_guitar/` holds the scripts for Señor Jalapresto's bass guitar pose. `bass_pose2.py 40 648` builds the plain pose from the
+electric guitar pose and Erika's bass picture (`sources/bass_guitar2.png`); `nudge.py` swings the upper fingertip around the lower one
+so both hang just off the neck's edge (also applied to the electric guitar); `bass_sets.py` installs the pose and fits every accessory
+by reusing the electric guitar fittings, rebuilding only the pieces that follow the fretting arm (tuxedo sleeve, tee arm). On the bass
+the tee's fret-side sleeve stays wholly behind the instrument, because the bass's upper horn reaches it.

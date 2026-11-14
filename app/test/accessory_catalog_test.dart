@@ -15,7 +15,7 @@ const prestoIds = ['black_top_hat', 'gold_monocle', 'black_tuxedo', 'red_sneaker
 const keywiSetIds = ['ballad_bucket_hat', 'fermata_frames', 'tenuto_tee', 'jazzy_joggers', 'serenade_sandals'];
 const jalapenoPoses = [
   'violin', 'viola', 'piano', 'flute', 'cello', 'double_bass',
-  'acoustic_guitar', 'electric_guitar', 'ukulele'
+  'acoustic_guitar', 'electric_guitar', 'bass_guitar', 'ukulele'
 ];
 
 void main() {
@@ -204,7 +204,7 @@ void jalapenoOutfitTests() {
       int at(String f) => order.indexOf(f);
       expect(at('jacket.png'), greaterThan(at('1_pepper_body.png')), reason: pose);
       // legs and feet stay whole, layered behind the sneakers (crossed-leg poses use Erika's shoe pair as one piece)
-      final crossed = ['acoustic_guitar', 'electric_guitar', 'ukulele'].contains(pose);
+      final crossed = ['acoustic_guitar', 'electric_guitar', 'bass_guitar', 'ukulele'].contains(pose);
       final legs = manifest.layers.firstWhere((l) => l.contains('legs_feet'));
       expect(at('$legs.png'), greaterThan(at('jacket.png')), reason: pose);
       expect(at('$legs.png'), lessThan(at('1_sneaker.png')), reason: pose);
@@ -233,7 +233,7 @@ void jalapenoOutfitTests() {
     expect(order.length, manifest.layers.length + 7);
   });
   test('every finished Jalapresto instrument pose is dressed: trimmed legs, boots, then skirt, all before the arms and instrument', () {
-    for (final pose in ['violin', 'viola', 'piano', 'flute', 'cello', 'double_bass', 'acoustic_guitar', 'electric_guitar', 'ukulele']) {
+    for (final pose in ['violin', 'viola', 'piano', 'flute', 'cello', 'double_bass', 'acoustic_guitar', 'electric_guitar', 'bass_guitar', 'ukulele']) {
       final folder = 'assets/art/avatar_instrument/jalapeno_$pose';
       final manifest = PoseManifest.parse(
           folder, File('$folder/manifest.json').readAsStringSync());
@@ -383,7 +383,7 @@ void jalapenoOutfitTests() {
     final manifest = PoseManifest.parse(folder, File('$folder/manifest.json').readAsStringSync());
     List<String> order(List<String> ids) =>
         poseDrawOrder(manifest, resolveAccessories(c, ids, 'kiwi', 'standing')).map((a) => a.split('/').last).toList();
-    const prestoPoses = ['standing', 'violin', 'viola', 'piano', 'flute', 'acoustic_guitar', 'electric_guitar', 'ukulele', 'cello', 'double_bass'];
+    const prestoPoses = ['standing', 'violin', 'viola', 'piano', 'flute', 'acoustic_guitar', 'electric_guitar', 'bass_guitar', 'ukulele', 'cello', 'double_bass'];
     for (final i in catalog.where((i) => keywiSetIds.contains(i.id))) {
       expect(i.released, isFalse, reason: i.id);
       expect(File(i.displayAsset).existsSync(), isTrue, reason: i.id);

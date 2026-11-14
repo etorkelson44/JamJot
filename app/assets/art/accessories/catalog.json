@@ -77,6 +77,12 @@
             "slot": "hat",
             "file": "crown.png"
           }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "hat",
+            "file": "crown.png"
+          }
         ]
       },
       "display": "display.png"
@@ -153,6 +159,12 @@
           }
         ],
         "jalapeno_double_bass": [
+          {
+            "slot": "face",
+            "file": "sunglasses.png"
+          }
+        ],
+        "jalapeno_bass_guitar": [
           {
             "slot": "face",
             "file": "sunglasses.png"
@@ -322,6 +334,20 @@
           }
         ],
         "jalapeno_double_bass": [
+          {
+            "slot": "clothing_lower",
+            "file": "2_ruffle_skirt.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "1_strapless_top.png"
+          },
+          {
+            "slot": "clothing_lower",
+            "file": "3_sash_bow.png"
+          }
+        ],
+        "jalapeno_bass_guitar": [
           {
             "slot": "clothing_lower",
             "file": "2_ruffle_skirt.png"
@@ -602,6 +628,40 @@
             "replaces": "5_legs_feet",
             "file": "legs_under_boots.png"
           }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "shoes",
+            "file": "2_boot_viewer_right.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "1_boot_viewer_left.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "replaces": "5_legs_feet",
+            "file": "legs_into_boots.png"
+          }
         ]
       },
       "display": "display.png"
@@ -678,6 +738,12 @@
           }
         ],
         "strawberry_standing": [
+          {
+            "slot": "hat",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_bass_guitar": [
           {
             "slot": "hat",
             "file": "hat.png"
@@ -801,6 +867,16 @@
           {
             "slot": "face",
             "file": "monocle.png"
+          }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "monocle",
+            "file": "monocle_lens.png"
+          },
+          {
+            "slot": "face",
+            "file": "monocle_chain.png"
           }
         ]
       },
@@ -1155,6 +1231,36 @@
             "slot": "clothing_over",
             "file": "7_bowtie_buttons.png"
           }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "behind_body",
+            "file": "1_fret_arm.png"
+          },
+          {
+            "slot": "behind_body",
+            "file": "2_fret_sleeve.png"
+          },
+          {
+            "slot": "clothing_torso",
+            "file": "jacket.png"
+          },
+          {
+            "replaces": "6_fret_arm",
+            "file": "no_fret_arm.png"
+          },
+          {
+            "replaces": "9_strum_arm_hand",
+            "file": "strum_arm_hand.png"
+          },
+          {
+            "slot": "sleeves_strum_arm",
+            "file": "3_strum_upper_sleeve.png"
+          },
+          {
+            "slot": "sleeves_strum_arm",
+            "file": "4_strum_forearm_sleeve.png"
+          }
         ]
       },
       "display": "display.png"
@@ -1338,6 +1444,29 @@
             "slot": "shoes",
             "file": "sneakers.png"
           }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "shoes",
+            "file": "1_sneaker.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "flat_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_over_pants",
+            "file": "crossed_with_joggers.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          }
         ]
       },
       "display": "display.png"
@@ -1409,6 +1538,11 @@
           -67,
           -134,
           1134
+        ],
+        "jalapeno_bass_guitar": [
+          -56,
+          -111,
+          1111
         ]
       },
       "art": {
@@ -1481,6 +1615,12 @@
         "jalapeno_double_bass": [
           {
             "slot": "hat_behind_instrument",
+            "file": "shako.png"
+          }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "hat",
             "file": "shako.png"
           }
         ]
@@ -1557,6 +1697,12 @@
         "jalapeno_double_bass": [
           {
             "slot": "hat_behind_instrument",
+            "file": "hat.png"
+          }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "hat",
             "file": "hat.png"
           }
         ]
@@ -1643,6 +1789,12 @@
           }
         ],
         "jalapeno_double_bass": [
+          {
+            "slot": "face",
+            "file": "frames.png"
+          }
+        ],
+        "jalapeno_bass_guitar": [
           {
             "slot": "face",
             "file": "frames.png"
@@ -1940,6 +2092,40 @@
             "replaces": "10_right_arm",
             "file": "bow_forearm_hand.png"
           }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "shirt_sleeves",
+            "file": "sleeve_6_fret_arm.png"
+          },
+          {
+            "replaces": "6_fret_arm",
+            "file": "empty.png"
+          },
+          {
+            "slot": "tee_arm_over",
+            "file": "arm_6_fret_arm.png"
+          },
+          {
+            "slot": "shirt_sleeves",
+            "file": "sleeve_9_strum_arm_hand.png"
+          },
+          {
+            "slot": "tee_arm_over",
+            "file": "strum_upper_arm.png"
+          },
+          {
+            "slot": "tee_sleeve_over",
+            "file": "sleeve_9_strum_arm_hand_beside_shirt.png"
+          },
+          {
+            "replaces": "9_strum_arm_hand",
+            "file": "arm_9_strum_arm_hand.png"
+          },
+          {
+            "slot": "shirt",
+            "file": "tee.png"
+          }
         ]
       }
     },
@@ -2172,6 +2358,44 @@
           {
             "slot": "pants",
             "file": "joggers.png"
+          }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "pants_back",
+            "file": "back.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants_back",
+            "file": "back_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants_foot",
+            "file": "foot.png",
+            "unless_worn": [
+              "lilac_platform_boots",
+              "red_sneakers"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front.png",
+            "unless_worn": [
+              "lilac_platform_boots"
+            ]
+          },
+          {
+            "slot": "pants",
+            "file": "front_short.png",
+            "when_worn": [
+              "lilac_platform_boots"
+            ]
           }
         ]
       }
@@ -2428,6 +2652,50 @@
           {
             "slot": "shoes",
             "file": "straps.png"
+          }
+        ],
+        "jalapeno_bass_guitar": [
+          {
+            "slot": "shoes_under",
+            "file": "soles.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "straps.png",
+            "unless_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_under",
+            "file": "sole_flat.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes",
+            "file": "strap_flat.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid_under",
+            "file": "sole_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
+          },
+          {
+            "slot": "shoes_mid",
+            "file": "strap_tiptoe.png",
+            "when_worn": [
+              "jazzy_joggers"
+            ]
           }
         ]
       }

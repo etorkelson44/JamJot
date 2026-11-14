@@ -44,6 +44,7 @@ flutter:
     - assets/art/avatar_instrument/jalapeno_viola/
     - assets/art/avatar_instrument/jalapeno_acoustic_guitar/
     - assets/art/avatar_instrument/jalapeno_electric_guitar/
+    - assets/art/avatar_instrument/jalapeno_bass_guitar/
     - assets/art/avatar_instrument/jalapeno_ukulele/
     - assets/art/avatar_instrument/jalapeno_flute/
     - assets/art/avatar_instrument/jalapeno_cello/
@@ -64,6 +65,7 @@ flutter:
     - assets/art/accessories/purple_glitter_crown/jalapeno_double_bass/
     - assets/art/accessories/purple_glitter_crown/jalapeno_acoustic_guitar/
     - assets/art/accessories/purple_glitter_crown/jalapeno_electric_guitar/
+    - assets/art/accessories/purple_glitter_crown/jalapeno_bass_guitar/
     - assets/art/accessories/purple_glitter_crown/jalapeno_ukulele/
     - assets/art/accessories/cat_eye_sunglasses/
     - assets/art/accessories/cat_eye_sunglasses/strawberry_standing/
@@ -77,6 +79,7 @@ flutter:
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_double_bass/
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_acoustic_guitar/
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_electric_guitar/
+    - assets/art/accessories/cat_eye_sunglasses/jalapeno_bass_guitar/
     - assets/art/accessories/cat_eye_sunglasses/jalapeno_ukulele/
     - assets/art/accessories/pink_ruffle_dress/
     - assets/art/accessories/pink_ruffle_dress/strawberry_standing/
@@ -90,6 +93,7 @@ flutter:
     - assets/art/accessories/pink_ruffle_dress/jalapeno_double_bass/
     - assets/art/accessories/pink_ruffle_dress/jalapeno_acoustic_guitar/
     - assets/art/accessories/pink_ruffle_dress/jalapeno_electric_guitar/
+    - assets/art/accessories/pink_ruffle_dress/jalapeno_bass_guitar/
     - assets/art/accessories/pink_ruffle_dress/jalapeno_ukulele/
     - assets/art/accessories/lilac_platform_boots/
     - assets/art/accessories/lilac_platform_boots/strawberry_standing/
@@ -103,6 +107,7 @@ flutter:
     - assets/art/accessories/lilac_platform_boots/jalapeno_double_bass/
     - assets/art/accessories/lilac_platform_boots/jalapeno_acoustic_guitar/
     - assets/art/accessories/lilac_platform_boots/jalapeno_electric_guitar/
+    - assets/art/accessories/lilac_platform_boots/jalapeno_bass_guitar/
     - assets/art/accessories/lilac_platform_boots/jalapeno_ukulele/
     - assets/art/accessories/sugar_shrub_shako/
     - assets/art/accessories/sugar_shrub_shako/kiwi_standing/
@@ -114,6 +119,7 @@ flutter:
     - assets/art/accessories/sugar_shrub_shako/jalapeno_flute/
     - assets/art/accessories/sugar_shrub_shako/jalapeno_acoustic_guitar/
     - assets/art/accessories/sugar_shrub_shako/jalapeno_electric_guitar/
+    - assets/art/accessories/sugar_shrub_shako/jalapeno_bass_guitar/
     - assets/art/accessories/sugar_shrub_shako/jalapeno_ukulele/
     - assets/art/accessories/sugar_shrub_shako/jalapeno_cello/
     - assets/art/accessories/sugar_shrub_shako/jalapeno_double_bass/
@@ -130,6 +136,7 @@ flutter:
     - assets/art/accessories/jazzy_joggers/jalapeno_standing/
     - assets/art/accessories/jazzy_joggers/jalapeno_acoustic_guitar/
     - assets/art/accessories/jazzy_joggers/jalapeno_electric_guitar/
+    - assets/art/accessories/jazzy_joggers/jalapeno_bass_guitar/
     - assets/art/accessories/jazzy_joggers/jalapeno_ukulele/
     - assets/art/accessories/jazzy_joggers/jalapeno_violin/
     - assets/art/accessories/jazzy_joggers/jalapeno_viola/
@@ -140,6 +147,7 @@ flutter:
     - assets/art/accessories/serenade_sandals/jalapeno_standing/
     - assets/art/accessories/serenade_sandals/jalapeno_acoustic_guitar/
     - assets/art/accessories/serenade_sandals/jalapeno_electric_guitar/
+    - assets/art/accessories/serenade_sandals/jalapeno_bass_guitar/
     - assets/art/accessories/serenade_sandals/jalapeno_ukulele/
     - assets/art/accessories/serenade_sandals/jalapeno_violin/
     - assets/art/accessories/serenade_sandals/jalapeno_viola/
@@ -156,6 +164,7 @@ flutter:
     - assets/art/accessories/ballad_bucket_hat/jalapeno_flute/
     - assets/art/accessories/ballad_bucket_hat/jalapeno_acoustic_guitar/
     - assets/art/accessories/ballad_bucket_hat/jalapeno_electric_guitar/
+    - assets/art/accessories/ballad_bucket_hat/jalapeno_bass_guitar/
     - assets/art/accessories/ballad_bucket_hat/jalapeno_ukulele/
     - assets/art/accessories/ballad_bucket_hat/jalapeno_cello/
     - assets/art/accessories/ballad_bucket_hat/jalapeno_double_bass/
@@ -165,6 +174,7 @@ flutter:
     - assets/art/accessories/fermata_frames/jalapeno_flute/
     - assets/art/accessories/fermata_frames/jalapeno_acoustic_guitar/
     - assets/art/accessories/fermata_frames/jalapeno_electric_guitar/
+    - assets/art/accessories/fermata_frames/jalapeno_bass_guitar/
     - assets/art/accessories/fermata_frames/jalapeno_ukulele/
     - assets/art/accessories/fermata_frames/jalapeno_cello/
     - assets/art/accessories/fermata_frames/jalapeno_double_bass/
@@ -174,6 +184,7 @@ flutter:
     - assets/art/accessories/tenuto_tee/jalapeno_flute/
     - assets/art/accessories/tenuto_tee/jalapeno_acoustic_guitar/
     - assets/art/accessories/tenuto_tee/jalapeno_electric_guitar/
+    - assets/art/accessories/tenuto_tee/jalapeno_bass_guitar/
     - assets/art/accessories/tenuto_tee/jalapeno_ukulele/
     - assets/art/accessories/tenuto_tee/jalapeno_cello/
     - assets/art/accessories/tenuto_tee/jalapeno_double_bass/
@@ -189,6 +200,7 @@ flutter:
     - assets/art/accessories/black_top_hat/jalapeno_double_bass/
     - assets/art/accessories/black_top_hat/jalapeno_acoustic_guitar/
     - assets/art/accessories/black_top_hat/jalapeno_electric_guitar/
+    - assets/art/accessories/black_top_hat/jalapeno_bass_guitar/
     - assets/art/accessories/black_top_hat/jalapeno_ukulele/
     - assets/art/accessories/gold_monocle/
     - assets/art/accessories/gold_monocle/jalapeno_standing/
@@ -202,6 +214,7 @@ flutter:
     - assets/art/accessories/gold_monocle/jalapeno_double_bass/
     - assets/art/accessories/gold_monocle/jalapeno_acoustic_guitar/
     - assets/art/accessories/gold_monocle/jalapeno_electric_guitar/
+    - assets/art/accessories/gold_monocle/jalapeno_bass_guitar/
     - assets/art/accessories/gold_monocle/jalapeno_ukulele/
     - assets/art/accessories/black_tuxedo/
     - assets/art/accessories/black_tuxedo/jalapeno_standing/
@@ -215,6 +228,7 @@ flutter:
     - assets/art/accessories/black_tuxedo/jalapeno_double_bass/
     - assets/art/accessories/black_tuxedo/jalapeno_acoustic_guitar/
     - assets/art/accessories/black_tuxedo/jalapeno_electric_guitar/
+    - assets/art/accessories/black_tuxedo/jalapeno_bass_guitar/
     - assets/art/accessories/black_tuxedo/jalapeno_ukulele/
     - assets/art/accessories/red_sneakers/
     - assets/art/accessories/red_sneakers/jalapeno_standing/
@@ -228,6 +242,7 @@ flutter:
     - assets/art/accessories/red_sneakers/jalapeno_double_bass/
     - assets/art/accessories/red_sneakers/jalapeno_acoustic_guitar/
     - assets/art/accessories/red_sneakers/jalapeno_electric_guitar/
+    - assets/art/accessories/red_sneakers/jalapeno_bass_guitar/
     - assets/art/accessories/red_sneakers/jalapeno_ukulele/
     - assets/instruments/
     - assets/art/jar/
