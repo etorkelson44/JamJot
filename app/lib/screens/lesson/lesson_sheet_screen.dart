@@ -164,7 +164,7 @@ class LessonSheetScreen extends ConsumerWidget {
                                 ref.invalidate(sheetExpiryProvider(studentId)),
                             child: const Text(
                                 'Could not check the teacher cutoff. Tap to retry.')),
-                      Text('🎵 JamJot practice sheet',
+                      Text('🎵 NoteStar practice sheet',
                           style: text.labelLarge
                               ?.copyWith(color: JamJotColors.inkSoft)),
                       const SizedBox(height: 4),

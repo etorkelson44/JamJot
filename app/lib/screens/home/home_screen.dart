@@ -52,7 +52,7 @@ class HomeScreen extends ConsumerWidget {
           Text(
             isKid
                 ? 'Ready to make some music?'
-                : 'JamJot is under construction — screens light up as they land.',
+                : 'NoteStar is under construction — screens light up as they land.',
             style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
           ),
           const SizedBox(height: 16),

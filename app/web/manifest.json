@@ -1,11 +1,11 @@
 {
-  "name": "JamJot",
-  "short_name": "JamJot",
+  "name": "NoteStar",
+  "short_name": "NoteStar",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#FFFFFF",
-  "description": "JamJot — every minute of music goes in the jar.",
+  "description": "NoteStar — every note counts.",
   "orientation": "any",
   "prefer_related_applications": false,
   "icons": [

@@ -96,7 +96,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           builder: (context) => AlertDialog(
             title: const Text('Connected! 🎉'),
             content: Text(
-                "You're now ${res['student']}'s ${res['instrument']} teacher on JamJot."),
+                "You're now ${res['student']}'s ${res['instrument']} teacher on NoteStar."),
             actions: [
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -296,7 +296,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           Center(child: InstrumentIcon(ti['instrument'] as String?, size: 56)),
           const SizedBox(height: 8),
           Text(
-            "You're invited to teach ${ti['student']} ${ti['instrument']} on JamJot! 🎉",
+            "You're invited to teach ${ti['student']} ${ti['instrument']} on NoteStar! 🎉",
             textAlign: TextAlign.center,
             style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
@@ -340,7 +340,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         children: [
           const Center(child: DancingMaestro(size: 150)),
           const SizedBox(height: 12),
-          Text("You're invited to JamJot! 🎉",
+          Text("You're invited to NoteStar! 🎉",
               textAlign: TextAlign.center,
               style:
                   text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
@@ -387,7 +387,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           const SizedBox(height: 12),
           Text(
             _info!['caregiver_name'] != null
-                ? "Hi ${_info!['caregiver_name']}! You're invited to be ${_info!['student_name']}'s ${(_info!['relationship'] as String?)?.toLowerCase() ?? 'caregiver'} on JamJot! 🎉"
+                ? "Hi ${_info!['caregiver_name']}! You're invited to be ${_info!['student_name']}'s ${(_info!['relationship'] as String?)?.toLowerCase() ?? 'caregiver'} on NoteStar! 🎉"
                 : "You're invited to be one of ${_info!['student_name']}'s caregivers! 🎉",
             textAlign: TextAlign.center,
             style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),

@@ -1123,7 +1123,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       case _Phase.micDenied:
         body = _Message(
           emoji: '🎤',
-          title: 'JamJot needs to hear you!',
+          title: 'NoteStar needs to hear you!',
           body:
               'Practice only counts when it is really heard. Please allow the microphone in your browser and try again.',
           button: 'Try again',

@@ -62,7 +62,7 @@ class _MaestroTourBusState extends State<MaestroTourBus>
     final w = widget.width;
     return Semantics(
       label: widget.semanticsLabel ??
-          'The JamJot tour bus — you are here. '
+          'The NoteStar tour bus — you are here. '
               'Tap to hear Maestro honk hello.',
       button: true,
       child: MouseRegion(

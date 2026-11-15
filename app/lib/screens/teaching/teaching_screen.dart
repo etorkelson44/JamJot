@@ -113,12 +113,12 @@ class TeachingScreen extends ConsumerWidget {
     await showInviteMessageDialog(context,
         link: link,
         recipientName: student.isEmpty ? 'the family' : '$student\'s family',
-        subject: 'Join $who on JamJot',
+        subject: 'Join $who on NoteStar',
         message: '''Hi!
 
-I\'m using JamJot for my music lessons. It helps $who\'s home practice really count: it listens while they play, so only real playing time is counted, and it keeps them motivated with little rewards for finishing assigned songs. Each week you\'ll see what was assigned, and I\'ll be able to see (and hear!) what was practiced before each lesson.
+I\'m using NoteStar for my music lessons. It helps $who\'s home practice really count: it listens while they play, so only real playing time is counted, and it keeps them motivated with little rewards for finishing assigned songs. Each week you\'ll see what was assigned, and I\'ll be able to see (and hear!) what was practiced before each lesson.
 
-Tap this link to join. It works whether or not you already have JamJot:
+Tap this link to join. It works whether or not you already have NoteStar:
 $link
 
 (The link is just for you. It works once and expires in 30 days.)

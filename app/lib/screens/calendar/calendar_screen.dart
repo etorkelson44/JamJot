@@ -92,7 +92,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                    'Subscribe any calendar app to this private link and JamJot lessons & events appear there (updates flow in automatically):'),
+                    'Subscribe any calendar app to this private link and NoteStar lessons & events appear there (updates flow in automatically):'),
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -127,7 +127,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     style: TextStyle(fontSize: 12.5)),
                 const SizedBox(height: 10),
                 Text(
-                  'This link is private but anyone who has it can see your JamJot calendar — share it only with calendar apps you trust.',
+                  'This link is private but anyone who has it can see your NoteStar calendar — share it only with calendar apps you trust.',
                   style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context)

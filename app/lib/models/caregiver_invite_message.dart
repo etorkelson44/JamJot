@@ -28,7 +28,7 @@ String caregiverInviteMessage({
           : 'follow along with their practice, plus: ${allowed.join(', ')}');
   return '''Hi $name!
 
-I set you up as $kidName's $relation on JamJot — the app we use for music practice. You'll be able to $permissionLine.
+I set you up as $kidName's $relation on NoteStar — the app we use for music practice. You'll be able to $permissionLine.
 
 Tap this link, create your free account, and you're in:
 $link

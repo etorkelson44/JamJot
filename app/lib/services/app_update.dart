@@ -113,7 +113,7 @@ class _AppUpdateHostState extends State<AppUpdateHost>
                   padding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
                   child: Row(children: [
                     const Expanded(
-                      child: Text('✨ A new version of JamJot is ready.',
+                      child: Text('✨ A new version of NoteStar is ready.',
                           style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
                     // The app theme gives buttons a wide minimum size, which would

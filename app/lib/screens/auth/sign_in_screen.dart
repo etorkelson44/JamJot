@@ -157,7 +157,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     ],
                     Text(
                       _creating
-                          ? 'Welcome to JamJot!'
+                          ? 'Welcome to NoteStar!'
                           : 'Welcome back!',
                       style: text.headlineSmall
                           ?.copyWith(fontWeight: FontWeight.w700),

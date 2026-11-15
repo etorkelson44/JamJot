@@ -1,9 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/ask_maestro.dart' show TisdaleImprint;
-import '../../widgets/jamjot_card.dart';
 
 void _showHowAccountsWork(BuildContext context) {
   final text = Theme.of(context).textTheme;
@@ -22,7 +23,7 @@ void _showHowAccountsWork(BuildContext context) {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('How JamJot accounts work',
+            Text('How NoteStar accounts work',
                 style:
                     text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
@@ -51,7 +52,7 @@ void _showHowAccountsWork(BuildContext context) {
             ),
             const SizedBox(height: 16),
             Text(
-              'Whichever you are, start with "Let\'s play" — the app asks one simple question after sign-up and takes it from there.',
+              'Whichever you are, pick the button that fits you — the app asks one simple question after sign-up and takes it from there.',
               style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
             ),
             const SizedBox(height: 12),
@@ -120,87 +121,96 @@ class TitleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
+    // NoteStar welcome (2026-11-15), built to the NoteStar canvas: lime
+    // ground, Erika's logo with no frame, white sparkle stars, ink pills.
     return Scaffold(
+      backgroundColor: JamJotColors.marigold,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
-            clipBehavior: Clip.none,
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
-                child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 12, 28, 24),
-          child: Column(
-            children: [
-              // Sign in, tucked at the top for returning families & teachers.
-              Align(
-                alignment: Alignment.topRight,
-                child: TextButton(
-                  onPressed: () => context.go('/signin'),
-                  child: const Text('Sign in',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
-              ),
-              const Spacer(),
-              const SizedBox(height: 16),
-              // NoteStar restyle (2026-11-15): Erika's note-and-star logo
-              // replaces Maestro Marmalade and the JJ monogram here.
-              ClipRRect(
-                borderRadius: BorderRadius.circular(44),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: JamJotColors.marigold,
-                    borderRadius: BorderRadius.circular(44),
-                    border: Border.all(color: JamJotColors.ink, width: 3),
-                  ),
-                  child: Image.asset('assets/art/notestar_logo.png',
-                      width: 200,
-                      height: 200,
-                      semanticLabel: 'JamJot logo: a music note with a star',
-                      errorBuilder: (_, __, ___) =>
-                          const SizedBox(width: 200, height: 200)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text('JamJot',
-                  style: text.displayMedium),
-              const SizedBox(height: 6),
-              Text('Every note counts.',
-                  style: const TextStyle(
-                      fontFamily: JamJotType.cheer,
-                      fontSize: 26,
-                      color: JamJotColors.plum)),
-              const Spacer(),
-              const SizedBox(height: 20),
-              JamJotCard(
-                emoji: '🧑‍🧒',
-                tint: JamJotColors.blueberryTint,
-                title: 'I am a family grown-up',
-                subtitle:
-                    'Set up kid profiles inside one account — connect a teacher or studio anytime.',
-                onTap: () => context.go('/signin?create=1&role=family'),
-              ),
-              const SizedBox(height: 12),
-              JamJotCard(
-                emoji: '🎻',
-                tint: JamJotColors.marigoldTint,
-                title: 'I teach music',
-                subtitle:
-                    'On my own, running a studio, or joining one — all start here.',
-                onTap: () => context.go('/signin?create=1&role=teacher'),
-              ),
-              const SizedBox(height: 6),
-              TextButton(
-                onPressed: () => _showHowAccountsWork(context),
-                child: const Text('How do accounts work?'),
-              ),
-              const SizedBox(height: 10),
-              // The maker's mark, kept quiet.
-              const Center(child: TisdaleImprint(height: 36, opacity: 0.16)),
-              const SizedBox(height: 6),
-            ],
-          ),
+                child: Stack(
+                  children: [
+                    const Positioned(left: 24, top: 70, child: _Sparkle(34)),
+                    const Positioned(right: 28, top: 140, child: _Sparkle(26)),
+                    const Positioned(left: 30, top: 520, child: _Sparkle(24)),
+                    const Positioned(right: 30, top: 495, child: _Sparkle(32)),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 460),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+                          child: Column(
+                            children: [
+                              Align(
+                                alignment: Alignment.topRight,
+                                child: _InkPill(
+                                  label: 'Sign in',
+                                  compact: true,
+                                  onTap: () => context.go('/signin'),
+                                ),
+                              ),
+                              const Spacer(),
+                              Image.asset('assets/art/notestar_logo.png',
+                                  width: 220,
+                                  height: 220,
+                                  fit: BoxFit.contain,
+                                  semanticLabel:
+                                      'NoteStar logo: a music note with a star',
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox(width: 220, height: 220)),
+                              const SizedBox(height: 4),
+                              const Text('NoteStar',
+                                  style: TextStyle(
+                                      fontFamily: JamJotType.display,
+                                      fontSize: 54,
+                                      height: 1,
+                                      letterSpacing: 1,
+                                      color: JamJotColors.ink)),
+                              const SizedBox(height: 12),
+                              const Text('Every note counts.',
+                                  style: TextStyle(
+                                      fontFamily: JamJotType.title,
+                                      fontSize: 19,
+                                      color: JamJotColors.ink)),
+                              const Spacer(),
+                              const SizedBox(height: 28),
+                              _InkPill(
+                                label: "I'm a family grown-up",
+                                onTap: () =>
+                                    context.go('/signin?create=1&role=family'),
+                              ),
+                              const SizedBox(height: 14),
+                              _InkPill(
+                                label: 'I teach music',
+                                light: true,
+                                onTap: () =>
+                                    context.go('/signin?create=1&role=teacher'),
+                              ),
+                              const SizedBox(height: 6),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                    foregroundColor: JamJotColors.ink,
+                                    minimumSize: const Size(48, 48)),
+                                onPressed: () => _showHowAccountsWork(context),
+                                child: const Text('How do accounts work?',
+                                    style: TextStyle(
+                                        fontFamily: JamJotType.title,
+                                        fontSize: 15,
+                                        decoration: TextDecoration.underline)),
+                              ),
+                              const SizedBox(height: 4),
+                              const Center(
+                                  child: TisdaleImprint(
+                                      height: 32, opacity: 0.22)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -209,4 +219,93 @@ class TitleScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Rounded pill button with a 3px ink outline and a hard ink shadow.
+class _InkPill extends StatelessWidget {
+  const _InkPill(
+      {required this.label,
+      required this.onTap,
+      this.light = false,
+      this.compact = false});
+  final String label;
+  final VoidCallback onTap;
+  final bool light;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = light || compact ? Colors.white : JamJotColors.ink;
+    final fg = light || compact ? JamJotColors.ink : Colors.white;
+    return Semantics(
+      button: true,
+      child: Container(
+        width: compact ? null : double.infinity,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: JamJotColors.ink, width: 3),
+          boxShadow: compact
+              ? null
+              : const [
+                  BoxShadow(color: JamJotColors.ink, offset: Offset(4, 4))
+                ],
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(999),
+            onTap: onTap,
+            child: Padding(
+              padding: compact
+                  ? const EdgeInsets.symmetric(horizontal: 18, vertical: 8)
+                  : const EdgeInsets.symmetric(vertical: 16),
+              child: Text(label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontFamily: JamJotType.title,
+                      fontSize: compact ? 15 : 19,
+                      color: fg)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// White five-point star with an ink outline (decorative).
+class _Sparkle extends StatelessWidget {
+  const _Sparkle(this.size);
+  final double size;
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+      child: CustomPaint(size: Size.square(size), painter: _StarPainter()));
+}
+
+class _StarPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+    final path = Path();
+    for (var i = 0; i < 10; i++) {
+      final rr = i.isEven ? r : r * 0.46;
+      final a = -math.pi / 2 + i * math.pi / 5;
+      final p = c + Offset(math.cos(a) * rr, math.sin(a) * rr);
+      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+    }
+    path.close();
+    canvas.drawPath(path, Paint()..color = Colors.white);
+    canvas.drawPath(
+        path,
+        Paint()
+          ..color = JamJotColors.ink
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..strokeJoin = StrokeJoin.round);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

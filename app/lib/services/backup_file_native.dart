@@ -5,7 +5,7 @@ import 'package:file_picker/file_picker.dart';
 Future<bool> saveBackupFile(Uint8List bytes, String name) async {
   final mobile = Platform.isAndroid || Platform.isIOS;
   final path = await FilePicker.platform.saveFile(
-    dialogTitle: 'Save your JamJot backup',
+    dialogTitle: 'Save your NoteStar backup',
     fileName: name,
     type: FileType.custom,
     allowedExtensions: ['zip'],

@@ -163,7 +163,7 @@ class _PinDialogState extends State<_PinDialog> {
         children: [
           if (_passwordMode) ...[
             const Text(
-                'Type the password you sign in to JamJot with — only a grown-up knows it.'),
+                'Type the password you sign in to NoteStar with — only a grown-up knows it.'),
             const SizedBox(height: 8),
             TextField(
               controller: _password,

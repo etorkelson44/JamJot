@@ -300,9 +300,9 @@ class _TeachersTab extends ConsumerWidget {
           JamJotCard(
             emoji: '✉️',
             tint: JamJotColors.marigoldTint,
-            title: 'Invite the teacher to JamJot',
+            title: 'Invite the teacher to NoteStar',
             subtitle:
-                'Not on JamJot yet? Send a ready-written email explaining the app.',
+                'Not on NoteStar yet? Send a ready-written email explaining the app.',
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _emailTeacherInvite(context, name),
           ),
@@ -387,10 +387,10 @@ class _TeachersTab extends ConsumerWidget {
 
   Future<void> _emailTeacherInvite(BuildContext context, String kidName) async {
     const appLink = 'https://jamjot.app/';
-    final subject = 'Would you try JamJot for $kidName\'s music practice?';
+    final subject = 'Would you try NoteStar for $kidName\'s music practice?';
     final body = '''Hi!
 
-We've started using JamJot, an app that makes $kidName's home practice really count: it listens while they play, so only real playing time is counted, records their practice so you can hear exactly how the week went, and keeps them motivated with little rewards for finishing their assigned songs.
+We've started using NoteStar, an app that makes $kidName's home practice really count: it listens while they play, so only real playing time is counted, records their practice so you can hear exactly how the week went, and keeps them motivated with little rewards for finishing their assigned songs.
 
 For you as a teacher, it means: you assign the week's songs with your notes, see (and hear!) exactly what was practiced before each lesson, and can message us through the app.
 
@@ -903,7 +903,7 @@ class _CaregiversTab extends ConsumerWidget {
       await showInviteMessageDialog(context,
           link: link,
           recipientName: name.text.trim(),
-          subject: "You're invited to $kidName's JamJot!",
+          subject: "You're invited to $kidName's NoteStar!",
           message: message,
           initialEmail: email.text.trim());
       ref.invalidate(kidCaregiverInvitesProvider(studentId));
@@ -1473,7 +1473,7 @@ class _InvitesSent extends ConsumerWidget {
     await showInviteMessageDialog(context,
         link: link,
         recipientName: name.isEmpty ? 'them' : name,
-        subject: "You're invited to $kidName's JamJot!",
+        subject: "You're invited to $kidName's NoteStar!",
         message: caregiverInviteMessage(
             name: name.isEmpty ? 'there' : name,
             kidName: kidName,

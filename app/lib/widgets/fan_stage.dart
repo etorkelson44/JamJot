@@ -130,11 +130,11 @@ const venues = [
       lore:
           'A rainbow over fifty thousand cheering fans. Can you hear them?',
       exclusives: ['stadium_scarf', 'crown_headset']),
-  Venue(4000, 'JamJot Stadium', '🫙', Color(0xFFFFECC2), Color(0xFFFFDE8A),
+  Venue(4000, 'NoteStar Stadium', '🫙', Color(0xFFFFECC2), Color(0xFFFFDE8A),
       accent: Color(0xFFFFBE2E),
       motif: '🫙',
       realStage:
-          'The invented finale — JamJot\'s very own mega-stadium, bigger '
+          'The invented finale — NoteStar\'s very own mega-stadium, bigger '
           'than any real one. This stage is yours.',
       lore:
           'The biggest stage there is — and look at the name: it\'s practically yours.',
@@ -302,7 +302,7 @@ class FanStage extends ConsumerWidget {
             style: text.labelSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
         ] else
-          Text('Top of the tour — JamJot Stadium is yours! 🫙',
+          Text('Top of the tour — NoteStar Stadium is yours! 🫙',
               style: text.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
       ],
     );

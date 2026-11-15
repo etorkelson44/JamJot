@@ -19,12 +19,12 @@ const _maestroQA = <(String, String)>[
     'What are fans and venues? 🕶️',
     'Fans come to hear you play — you earn them by finishing songs and '
         'meeting your weekly goals. The more fans, the bigger your stage: '
-        'from The Village Vineguard all the way to JamJot Stadium. Fans never '
+        'from The Village Vineguard all the way to NoteStar Stadium. Fans never '
         'leave, so your venue is yours to keep!'
   ),
   (
     'How does recording work? 🎙️',
-    'Press record on the practice page and just play — JamJot listens for '
+    'Press record on the practice page and just play — NoteStar listens for '
         'real music sound and counts it. Each song needs about a minute of '
         'sound to count as finished. Your recordings are saved so you and '
         'your grown-ups can listen back.'
@@ -52,7 +52,7 @@ const _maestroQA = <(String, String)>[
     'Can we save our data somewhere? 💾',
     'A grown-up can download everything — practice history, lessons and all '
         'the recordings — from their Settings page. It arrives as one tidy '
-        'folder that opens anywhere, no JamJot needed.'
+        'folder that opens anywhere, no NoteStar needed.'
   ),
 ];
 
@@ -146,7 +146,7 @@ class _MaestroSheetState extends State<_MaestroSheet> {
           // His introduction, chat-style.
           _bubble(
               context,
-              '🎼 Well hello there! I\'m Maestro Marmalade — JamJot\'s '
+              '🎼 Well hello there! I\'m Maestro Marmalade — NoteStar\'s '
               'conductor, helper, and number-one fan. Tap a question and '
               'I\'ll explain!'),
           const SizedBox(height: 12),

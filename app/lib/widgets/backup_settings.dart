@@ -71,7 +71,7 @@ class _BackupSettingsState extends ConsumerState<BackupSettings> {
     });
     try {
       final requested = await ref.read(backupFileSaverProvider)(_zip!,
-          'JamJot-backup-${DateFormat('yyyy-MM-dd-HHmmss').format(DateTime.now())}.zip');
+          'NoteStar-backup-${DateFormat('yyyy-MM-dd-HHmmss').format(DateTime.now())}.zip');
       if (!mounted) return;
       setState(() {
         _downloadRequested = requested;
@@ -145,7 +145,7 @@ class _BackupSettingsState extends ConsumerState<BackupSettings> {
             style: text.bodyMedium),
         const SizedBox(height: 6),
         const Text(
-            'Includes the student, lesson and practice information you can access, rewards, recordings and authorized documents and messages. Each ZIP opens without JamJot. Shared documents without file-download permission are listed without their files.'),
+            'Includes the student, lesson and practice information you can access, rewards, recordings and authorized documents and messages. Each ZIP opens without NoteStar. Shared documents without file-download permission are listed without their files.'),
         const SizedBox(height: 12),
         Wrap(spacing: 12, runSpacing: 8, children: [
           FilledButton.icon(
@@ -239,7 +239,7 @@ class BackupReminder extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 6),
               const Text(
-                  'It may be time to save a fresh copy of your JamJot data.'),
+                  'It may be time to save a fresh copy of your NoteStar data.'),
               const SizedBox(height: 8),
               Wrap(spacing: 12, runSpacing: 8, children: [
                 FilledButton(

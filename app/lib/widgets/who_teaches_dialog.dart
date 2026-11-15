@@ -156,10 +156,10 @@ class _WhoTeachesDialogState extends State<_WhoTeachesDialog> {
     return showInviteMessageDialog(context,
         link: link,
         recipientName: teacher == 'there' ? 'your teacher' : teacher,
-        subject: 'Join $kid\'s $instrument lessons on JamJot',
+        subject: 'Join $kid\'s $instrument lessons on NoteStar',
         message: '''Hi $teacher!
 
-$kid and I have started using JamJot, an app that makes home practice really count: it listens while they play, so only real playing time is counted, and it keeps them motivated with little rewards for finishing their assigned songs.
+$kid and I have started using NoteStar, an app that makes home practice really count: it listens while they play, so only real playing time is counted, and it keeps them motivated with little rewards for finishing their assigned songs.
 
 I\'d love to connect you as $kid\'s $instrument teacher. You can assign each week\'s songs and see (and hear!) what was practiced before each lesson. A teacher account is free and takes about two minutes. Tap this link to join and you\'ll be connected right away:
 $link
@@ -193,7 +193,7 @@ $link
                     title: Text(
                         (e['teachers'] as Map?)?['display_name'] as String? ??
                             'Teacher'),
-                    subtitle: const Text('Already connected on JamJot'),
+                    subtitle: const Text('Already connected on NoteStar'),
                   ),
                 const RadioListTile<String>(
                   value: 'new',
@@ -205,7 +205,7 @@ $link
                     contentPadding: EdgeInsets.zero,
                     value: _onJamJot,
                     onChanged: (v) => setState(() => _onJamJot = v),
-                    title: const Text('My teacher is already on JamJot'),
+                    title: const Text('My teacher is already on NoteStar'),
                   ),
                   if (_onJamJot)
                     TextField(
@@ -231,7 +231,7 @@ $link
                       onChanged: (v) => setState(() => _sendInvite = v ?? true),
                       title: const Text('Get an invitation link for them'),
                       subtitle: const Text(
-                          'They join JamJot and this instrument fills in automatically.'),
+                          'They join NoteStar and this instrument fills in automatically.'),
                     ),
                     if (_sendInvite)
                       TextField(

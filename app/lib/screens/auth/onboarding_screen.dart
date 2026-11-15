@@ -34,7 +34,7 @@ class OnboardingScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('How will you use JamJot?',
+                  Text('How will you use NoteStar?',
                       style: text.headlineSmall
                           ?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),

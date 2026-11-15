@@ -66,8 +66,8 @@ String lessonReportHtml(
     body.write(
         '</tbody></table><p class="note">Manual entries without song details count toward the weekly total; they are not assigned to an individual song.</p></section>');
   }
-  return '''<!doctype html><html><head><meta charset="utf-8"><title>${htmlText(studentName)} — JamJot lesson sheet</title>
+  return '''<!doctype html><html><head><meta charset="utf-8"><title>${htmlText(studentName)} — NoteStar lesson sheet</title>
 <style>@page{size:auto;margin:16mm}body{font-family:Arial,sans-serif;color:#26323E;line-height:1.45;max-width:850px;margin:24px auto}h1{font-size:26px}h2{font-size:21px;margin-top:28px}h3{font-size:16px}p{margin:6px 0}table{border-collapse:collapse;width:100%;margin-top:12px}th,td{text-align:left;border-bottom:1px solid #bbb;padding:8px;vertical-align:top}thead{display:table-header-group}tr,li{break-inside:avoid}.note{font-size:12px}button{padding:12px 20px;font:inherit}@media print{button{display:none}body{margin:0}section+section{break-before:page}}</style></head><body><button onclick="window.print()">Print / Save as PDF</button>
-<h1>${htmlText(studentName)}'s JamJot lesson sheet</h1><p>Updated ${htmlText(generatedAt.toString().split('.').first)}</p>
-<p class="note">Practice snapshot valid until ${htmlText(validUntil.toString().split('.').first)} (local time). Reopen JamJot for an updated sheet after this time. A saved or printed copy does not update automatically.</p>$body</body></html>''';
+<h1>${htmlText(studentName)}'s NoteStar lesson sheet</h1><p>Updated ${htmlText(generatedAt.toString().split('.').first)}</p>
+<p class="note">Practice snapshot valid until ${htmlText(validUntil.toString().split('.').first)} (local time). Reopen NoteStar for an updated sheet after this time. A saved or printed copy does not update automatically.</p>$body</body></html>''';
 }

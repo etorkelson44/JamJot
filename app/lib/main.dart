@@ -66,7 +66,7 @@ Future<void> main() async {
   } catch (e, st) {
     // The app couldn't even start (say the backend couldn't be reached):
     // show the jammed-up page instead of a blank one.
-    debugPrint('JamJot could not start: $e\n$st');
+    debugPrint('NoteStar could not start: $e\n$st');
     runApp(const JammedApp());
     return;
   }
@@ -111,7 +111,7 @@ class JammedApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'JamJot',
+        title: 'NoteStar',
         debugShowCheckedModeBanner: false,
         // A plain theme on purpose: the app's own theme fetches web fonts.
         theme: ThemeData(useMaterial3: true),
@@ -353,7 +353,7 @@ class _JamJotAppState extends ConsumerState<JamJotApp>
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'JamJot',
+      title: 'NoteStar',
       debugShowCheckedModeBanner: false,
       // Skin follows who's driving: kid profile active → The Jam Stand;
       // grown-up (caregiver/teacher) → Calm Studio. Erika's picks, Nov 3 2026.

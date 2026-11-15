@@ -473,7 +473,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           ],
 
           // ------------------------------------------------ JamJot stand
-          _standHeader(text, '🚚', 'JamJot stand'),
+          _standHeader(text, '🚚', 'NoteStar stand'),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -486,7 +486,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'The JamJot stand is closed while the band gets ready '
+                  'The NoteStar stand is closed while the band gets ready '
                   'for the World Tour! New treasures are on the way. 🚌🎸',
                   style: text.bodyMedium,
                 ),

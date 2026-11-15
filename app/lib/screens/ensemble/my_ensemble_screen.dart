@@ -966,7 +966,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('The JamJot World Tour',
+                    Text('The NoteStar World Tour',
                         style: text.titleSmall
                             ?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 2),
