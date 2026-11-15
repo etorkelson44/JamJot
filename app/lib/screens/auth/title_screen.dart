@@ -141,13 +141,13 @@ class TitleScreen extends StatelessWidget {
                               const SizedBox(height: 56),
                               const Spacer(),
                               Image.asset('assets/art/notestar_logo.png',
-                                  width: 220,
-                                  height: 220,
+                                  width: 240,
+                                  height: 240,
                                   fit: BoxFit.contain,
                                   semanticLabel:
                                       'NoteStar logo: a music note with a star',
                                   errorBuilder: (_, __, ___) =>
-                                      const SizedBox(width: 220, height: 220)),
+                                      const SizedBox(width: 240, height: 240)),
                               const SizedBox(height: 4),
                               const Text('NoteStar',
                                   style: TextStyle(
