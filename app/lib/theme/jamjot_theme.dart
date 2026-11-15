@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// JamJot design tokens — the single source of truth for the app's look.
+/// 2026-11-15: NoteStar restyle (Erika): star lime #CFFF92, marker ink #111111,
+/// white ground, neon violet #9B30FF accent; Fredoka headings, Nunito Sans
+/// body; pill buttons and round ink-outlined cards for kids and grown-ups.
+/// Token names are kept so every screen picks up the new look.
 /// Blueberry + Marigold scheme chosen 2026-10-29 (see mockup canvas).
 ///
 /// 2026-11-03: two skins chosen by Erika from the Style Menu:
@@ -15,26 +19,26 @@ import 'package:google_fonts/google_fonts.dart';
 /// = Jam Stand; grown-up driving = Calm Studio).
 abstract final class JamJotColors {
   // Ground & ink
-  static const cream = Color(0xFFFAF6EE); // warm paper background
-  static const ink = Color(0xFF26323E); // deep ink navy — text, borders
-  static const inkSoft = Color(0xFF5B6670); // secondary text
-  static const neutral = Color(0xFFEFE8DA); // quiet fills
-  static const outline = Color(0xFF9AA4AD); // dashed/disabled borders
+  static const cream = Color(0xFFFFFFFF); // NoteStar: stark white ground
+  static const ink = Color(0xFF111111); // NoteStar marker ink — text, borders
+  static const inkSoft = Color(0xFF4A4A4A); // secondary text
+  static const neutral = Color(0xFFF1F1EC); // quiet fills
+  static const outline = Color(0xFF9A9A9A); // dashed/disabled borders
 
   // Blueberry — progress, growth, calm (replaced teal)
-  static const blueberry = Color(0xFF4A5FAE);
-  static const blueberryDark = Color(0xFF36467F);
-  static const blueberryLight = Color(0xFF9AA9DC);
-  static const blueberryTint = Color(0xFFE7EBF8);
+  static const blueberry = Color(0xFF9B30FF); // NoteStar neon violet
+  static const blueberryDark = Color(0xFF7A1FD1);
+  static const blueberryLight = Color(0xFFC99BFF);
+  static const blueberryTint = Color(0xFFF0E0FF);
 
   // Marigold — the dopamine color: rewards, streaks, celebration. Use scarcely.
-  static const marigold = Color(0xFFFFBE2E);
-  static const marigoldTint = Color(0xFFFFF2CF);
+  static const marigold = Color(0xFFCFFF92); // NoteStar star lime
+  static const marigoldTint = Color(0xFFE6FFC4);
 
   // Plum — the berry currency & special accents
-  static const plum = Color(0xFF6C4A91);
-  static const plumDark = Color(0xFF523770);
-  static const plumTint = Color(0xFFEEE7F6);
+  static const plum = Color(0xFF9B30FF);
+  static const plumDark = Color(0xFF7A1FD1);
+  static const plumTint = Color(0xFFF0E0FF);
 
   // Leaf green — berry stems & botanical bits only (not a UI color)
   static const leaf = Color(0xFF3E7C4A);
@@ -43,39 +47,39 @@ abstract final class JamJotColors {
   static const recording = Color(0xFFC7452F);
 
   // Stage (the one dark scene — fan celebrations)
-  static const stage = Color(0xFF1B242E);
+  static const stage = Color(0xFF111111);
 }
 
 /// "The Jam Stand" — kid-screen palette (Style Menu P7).
 /// Warm paper & crate-wood neutrals that stay quiet so photo-real fruit
 /// characters are the most vivid thing on screen.
 abstract final class JamStand {
-  static const paper = Color(0xFFF8F3E9); // page background
-  static const ink = Color(0xFF2E2A26); // warm near-black
-  static const inkSoft = Color(0xFF6B6257);
-  static const crate = Color(0xFFB98A5A); // wood / label borders
-  static const leafy = Color(0xFF7A9E6E); // produce green
-  static const amber = Color(0xFFE8A23D); // the "go" color (primary action)
-  static const brick = Color(0xFFC96F4A); // warm accent
-  static const label = Color(0xFFFFF8E7); // paper-label card fill
-  static const amberTint = Color(0xFFFFE3B3); // nav indicator
+  static const paper = Color(0xFFFFFFFF); // page background
+  static const ink = Color(0xFF111111); // marker ink
+  static const inkSoft = Color(0xFF4A4A4A);
+  static const crate = Color(0xFF111111); // card borders (ink)
+  static const leafy = Color(0xFF9B30FF); // neon violet accent
+  static const amber = Color(0xFFCFFF92); // the "go" color (primary action): star lime
+  static const brick = Color(0xFF9B30FF); // accent
+  static const label = Color(0xFFFFFFFF); // card fill
+  static const amberTint = Color(0xFFCFFF92); // nav indicator
 }
 
 /// "Calm Studio" — parent & teacher palette (Style Menu P9).
 /// Near-monochrome, one blueberry accent: organized, quiet, trustworthy.
 abstract final class CalmStudio {
-  static const base = Color(0xFFF7F5F1); // page background
-  static const ink = Color(0xFF26323E);
-  static const slate = Color(0xFF5B6670);
-  static const blueberry = Color(0xFF4A5FAE); // the one accent
-  static const tint = Color(0xFFE7EBF8);
-  static const gold = Color(0xFFFFBE2E); // kept for rare highlights
+  static const base = Color(0xFFFFFFFF); // page background
+  static const ink = Color(0xFF111111);
+  static const slate = Color(0xFF4A4A4A);
+  static const blueberry = Color(0xFF9B30FF); // the one accent (neon violet)
+  static const tint = Color(0xFFF0E0FF);
+  static const gold = Color(0xFFCFFF92); // star lime, rare highlights
 }
 
 abstract final class JamJotShape {
-  static const cardRadius = 20.0;
-  static const buttonRadius = 18.0;
-  static const chipRadius = 12.0;
+  static const cardRadius = 24.0;
+  static const buttonRadius = 100.0;
+  static const chipRadius = 100.0;
   static const border = BorderSide(color: JamJotColors.ink, width: 2);
 
   /// The signature "sticker tilt" — apply to at most 1–2 elements per screen.
@@ -84,8 +88,8 @@ abstract final class JamJotShape {
   // Per-skin radii (R1 extra-round for kids, R3 gentle for grown-ups)
   static const kidCardRadius = 28.0;
   static const kidButtonRadius = 100.0; // pill
-  static const grownupCardRadius = 12.0;
-  static const grownupButtonRadius = 10.0; // soft square
+  static const grownupCardRadius = 24.0;
+  static const grownupButtonRadius = 100.0; // pill
 }
 
 enum JamJotSkin { kid, grownup }
@@ -106,7 +110,7 @@ ThemeData _jamStandTheme() {
   // Baloo 2 for headings & fun moments; Nunito Sans for everything readable.
   TextStyle? heading(TextStyle? s, double? size) => s == null
       ? null
-      : GoogleFonts.baloo2(
+      : GoogleFonts.fredoka(
           textStyle: s,
           fontSize: size,
           fontWeight: FontWeight.w700,
@@ -189,13 +193,13 @@ ThemeData _jamStandTheme() {
 
 /// Grown-up skin — Calm Studio.
 ThemeData _calmStudioTheme() {
-  final base = GoogleFonts.sourceSans3TextTheme().apply(
+  final base = GoogleFonts.nunitoSansTextTheme().apply(
     bodyColor: CalmStudio.ink,
     displayColor: CalmStudio.ink,
   );
   TextStyle? heading(TextStyle? s) => s == null
       ? null
-      : GoogleFonts.varelaRound(
+      : GoogleFonts.fredoka(
           textStyle: s,
           fontWeight: FontWeight.w600,
           color: CalmStudio.ink,
@@ -234,10 +238,10 @@ ThemeData _calmStudioTheme() {
     // C2 quiet shadow cards: no border, one soft shadow, gentle corners.
     cardTheme: CardThemeData(
       color: Colors.white,
-      elevation: 1.5,
-      shadowColor: const Color(0x3326323E),
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(JamJotShape.grownupCardRadius),
+        side: const BorderSide(color: CalmStudio.ink, width: 2),
       ),
       margin: EdgeInsets.zero,
     ),
@@ -256,7 +260,7 @@ ThemeData _calmStudioTheme() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: CalmStudio.ink,
-        side: const BorderSide(color: CalmStudio.slate, width: 1.5),
+        side: const BorderSide(color: CalmStudio.ink, width: 2),
         minimumSize: const Size.fromHeight(48),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(JamJotShape.grownupButtonRadius),
@@ -266,7 +270,7 @@ ThemeData _calmStudioTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
-      indicatorColor: CalmStudio.tint,
+      indicatorColor: JamStand.amberTint,
       labelTextStyle: WidgetStatePropertyAll(
         textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
       ),
