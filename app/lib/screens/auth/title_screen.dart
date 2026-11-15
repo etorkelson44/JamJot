@@ -157,7 +157,7 @@ class TitleScreen extends StatelessWidget {
                                       letterSpacing: 1,
                                       color: JamJotColors.ink)),
                               const SizedBox(height: 12),
-                              const Text('Practice. Play. Shine.',
+                              const Text('Practice. Progress. Shine.',
                                   style: TextStyle(
                                       fontFamily: JamJotType.title,
                                       fontSize: 19,
