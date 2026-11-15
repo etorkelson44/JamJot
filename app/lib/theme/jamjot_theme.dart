@@ -92,6 +92,13 @@ abstract final class JamJotShape {
   static const grownupButtonRadius = 100.0; // pill
 }
 
+/// Font families bundled in assets/fonts (see pubspec.yaml).
+class JamJotType {
+  static const display = 'Juicebox'; // all-caps, chunky: big headlines
+  static const title = 'Birdie'; // rounded geometric: titles, buttons
+  static const cheer = 'Sundae'; // script: short celebration lines only
+}
+
 enum JamJotSkin { kid, grownup }
 
 ThemeData buildJamJotTheme([JamJotSkin skin = JamJotSkin.grownup]) {
@@ -107,15 +114,21 @@ ThemeData _jamStandTheme() {
     bodyColor: JamStand.ink,
     displayColor: JamStand.ink,
   );
-  // Baloo 2 for headings & fun moments; Nunito Sans for everything readable.
-  TextStyle? heading(TextStyle? s, double? size) => s == null
-      ? null
-      : GoogleFonts.fredoka(
-          textStyle: s,
-          fontSize: size,
-          fontWeight: FontWeight.w700,
-          color: JamStand.ink,
-        );
+  // 2026-11-15 type (Erika's Work by Taylor fonts): Juicebox for big
+  // headlines, Birdie for titles and buttons, Nunito Sans stays for reading.
+  TextStyle? heading(TextStyle? s, double? size) => s?.copyWith(
+        fontFamily: JamJotType.display,
+        fontSize: size,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.5,
+        color: JamStand.ink,
+      );
+  TextStyle? title(TextStyle? s) => s?.copyWith(
+        fontFamily: JamJotType.title,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.3,
+        color: JamStand.ink,
+      );
   final textTheme = base.copyWith(
     displayLarge: heading(base.displayLarge, null),
     displayMedium: heading(base.displayMedium, null),
@@ -123,8 +136,9 @@ ThemeData _jamStandTheme() {
     headlineLarge: heading(base.headlineLarge, null),
     headlineMedium: heading(base.headlineMedium, null),
     headlineSmall: heading(base.headlineSmall, null),
-    titleLarge: heading(base.titleLarge, null),
-    titleMedium: base.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+    titleLarge: title(base.titleLarge),
+    titleMedium: title(base.titleMedium),
+    labelLarge: title(base.labelLarge),
   );
 
   return ThemeData(
@@ -197,21 +211,29 @@ ThemeData _calmStudioTheme() {
     bodyColor: CalmStudio.ink,
     displayColor: CalmStudio.ink,
   );
-  TextStyle? heading(TextStyle? s) => s == null
-      ? null
-      : GoogleFonts.fredoka(
-          textStyle: s,
-          fontWeight: FontWeight.w600,
-          color: CalmStudio.ink,
-        );
+  // Grown-ups: Juicebox only for the biggest display lines; Birdie for
+  // headings, titles and buttons; Nunito Sans for reading.
+  TextStyle? display(TextStyle? s) => s?.copyWith(
+        fontFamily: JamJotType.display,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.5,
+        color: CalmStudio.ink,
+      );
+  TextStyle? heading(TextStyle? s) => s?.copyWith(
+        fontFamily: JamJotType.title,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.2,
+        color: CalmStudio.ink,
+      );
   final textTheme = base.copyWith(
-    displayLarge: heading(base.displayLarge),
-    displayMedium: heading(base.displayMedium),
-    displaySmall: heading(base.displaySmall),
+    displayLarge: display(base.displayLarge),
+    displayMedium: display(base.displayMedium),
+    displaySmall: display(base.displaySmall),
     headlineLarge: heading(base.headlineLarge),
     headlineMedium: heading(base.headlineMedium),
     headlineSmall: heading(base.headlineSmall),
     titleLarge: heading(base.titleLarge),
+    labelLarge: heading(base.labelLarge),
   );
 
   return ThemeData(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../theme/jamjot_theme.dart';
-import '../../widgets/dancing_maestro.dart';
 import '../../widgets/ask_maestro.dart' show TisdaleImprint;
 import '../../widgets/jamjot_card.dart';
 
@@ -145,49 +144,33 @@ class TitleScreen extends StatelessWidget {
               ),
               const Spacer(),
               const SizedBox(height: 16),
-              // Maestro Marmalade, in his tuxedo with his pencil baton,
-              // welcomes everyone with a little dance.
-              const DancingMaestro(
-                  size: 170, asset: 'assets/mascot/maestro_tux.png'),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // The acrylic JJ monogram — official placeholder logo (Nov 4, 2026).
-                  Image.asset('assets/mascot/jj_logo.png',
-                      height: 52,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-                  const SizedBox(width: 10),
-                  Text('JamJot',
-                      style: text.displayMedium?.copyWith(
-                          fontWeight: FontWeight.w700, letterSpacing: -2)),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text('Every minute of music goes in the jar',
-                  style: text.titleMedium
-                      ?.copyWith(color: JamJotColors.inkSoft)),
-              const SizedBox(height: 14),
-              Transform.rotate(
-                angle: JamJotShape.stickerTilt,
+              // NoteStar restyle (2026-11-15): Erika's note-and-star logo
+              // replaces Maestro Marmalade and the JJ monogram here.
+              ClipRRect(
+                borderRadius: BorderRadius.circular(44),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
-                    color: JamJotColors.marigoldTint,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: JamJotColors.ink, width: 1.5),
+                    color: JamJotColors.marigold,
+                    borderRadius: BorderRadius.circular(44),
+                    border: Border.all(color: JamJotColors.ink, width: 3),
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.mic_none, size: 15),
-                    const SizedBox(width: 6),
-                    Text('Real practice, really heard',
-                        style: text.labelMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
-                  ]),
+                  child: Image.asset('assets/art/notestar_logo.png',
+                      width: 200,
+                      height: 200,
+                      semanticLabel: 'JamJot logo: a music note with a star',
+                      errorBuilder: (_, __, ___) =>
+                          const SizedBox(width: 200, height: 200)),
                 ),
               ),
+              const SizedBox(height: 20),
+              Text('JamJot',
+                  style: text.displayMedium),
+              const SizedBox(height: 6),
+              Text('Every note counts.',
+                  style: const TextStyle(
+                      fontFamily: JamJotType.cheer,
+                      fontSize: 26,
+                      color: JamJotColors.plum)),
               const Spacer(),
               const SizedBox(height: 20),
               JamJotCard(

@@ -35,6 +35,18 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Work by Taylor (Taylor Penton) fonts, Standard License (<50 employees):
+  # app and webfont embedding allowed; do not redistribute the files.
+  fonts:
+    - family: Juicebox
+      fonts:
+        - asset: assets/fonts/TAYJuiceboxRegular.otf
+    - family: Birdie
+      fonts:
+        - asset: assets/fonts/TAYBirdieRegular.otf
+    - family: Sundae
+      fonts:
+        - asset: assets/fonts/TAYSundaeRegular.otf
   assets:
     - assets/mascot/
     - assets/art/
