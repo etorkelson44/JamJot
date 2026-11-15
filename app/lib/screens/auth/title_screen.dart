@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -122,7 +120,7 @@ class TitleScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // NoteStar welcome (2026-11-15), built to the NoteStar canvas: lime
-    // ground, Erika's logo with no frame, white sparkle stars, ink pills.
+    // ground, Erika's logo with no frame, ink pills.
     return Scaffold(
       backgroundColor: JamJotColors.marigold,
       body: SafeArea(
@@ -133,10 +131,6 @@ class TitleScreen extends StatelessWidget {
               child: IntrinsicHeight(
                 child: Stack(
                   children: [
-                    const Positioned(left: 24, top: 70, child: _Sparkle(34)),
-                    const Positioned(right: 28, top: 140, child: _Sparkle(26)),
-                    const Positioned(left: 30, top: 520, child: _Sparkle(24)),
-                    const Positioned(right: 30, top: 495, child: _Sparkle(32)),
                     Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 460),
@@ -144,14 +138,7 @@ class TitleScreen extends StatelessWidget {
                           padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
                           child: Column(
                             children: [
-                              Align(
-                                alignment: Alignment.topRight,
-                                child: _InkPill(
-                                  label: 'Sign in',
-                                  compact: true,
-                                  onTap: () => context.go('/signin'),
-                                ),
-                              ),
+                              const SizedBox(height: 56),
                               const Spacer(),
                               Image.asset('assets/art/notestar_logo.png',
                                   width: 220,
@@ -170,7 +157,7 @@ class TitleScreen extends StatelessWidget {
                                       letterSpacing: 1,
                                       color: JamJotColors.ink)),
                               const SizedBox(height: 12),
-                              const Text('Every note counts.',
+                              const Text('Practice. Play. Shine.',
                                   style: TextStyle(
                                       fontFamily: JamJotType.title,
                                       fontSize: 19,
@@ -208,6 +195,15 @@ class TitleScreen extends StatelessWidget {
                             ],
                           ),
                         ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 16,
+                      child: _InkPill(
+                        label: 'Sign in',
+                        compact: true,
+                        onTap: () => context.go('/signin'),
                       ),
                     ),
                   ],
@@ -272,40 +268,4 @@ class _InkPill extends StatelessWidget {
       ),
     );
   }
-}
-
-/// White five-point star with an ink outline (decorative).
-class _Sparkle extends StatelessWidget {
-  const _Sparkle(this.size);
-  final double size;
-  @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-      child: CustomPaint(size: Size.square(size), painter: _StarPainter()));
-}
-
-class _StarPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final r = size.width / 2;
-    final path = Path();
-    for (var i = 0; i < 10; i++) {
-      final rr = i.isEven ? r : r * 0.46;
-      final a = -math.pi / 2 + i * math.pi / 5;
-      final p = c + Offset(math.cos(a) * rr, math.sin(a) * rr);
-      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
-    }
-    path.close();
-    canvas.drawPath(path, Paint()..color = Colors.white);
-    canvas.drawPath(
-        path,
-        Paint()
-          ..color = JamJotColors.ink
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.5
-          ..strokeJoin = StrokeJoin.round);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
