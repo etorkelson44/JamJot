@@ -3,8 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// JamJot design tokens — the single source of truth for the app's look.
 /// 2026-11-15: NoteStar restyle (Erika): star lime #CFFF92, marker ink #111111,
-/// white ground, neon violet #9B30FF accent; Fredoka headings, Nunito Sans
-/// body; pill buttons and round ink-outlined cards for kids and grown-ups.
+/// white ground, electric blue #3B85F5 main accent (dark #2B6CD9 for small
+/// text), pink #FF4F9A for celebrations (both replaced neon violet, Erika
+/// 2026-11-15 16:45); Juicebox/Birdie headings, Nunito Sans body; pill buttons and round ink-outlined cards for kids and grown-ups.
 /// Token names are kept so every screen picks up the new look.
 /// Blueberry + Marigold scheme chosen 2026-10-29 (see mockup canvas).
 ///
@@ -26,19 +27,20 @@ abstract final class JamJotColors {
   static const outline = Color(0xFF9A9A9A); // dashed/disabled borders
 
   // Blueberry — progress, growth, calm (replaced teal)
-  static const blueberry = Color(0xFF9B30FF); // NoteStar neon violet
-  static const blueberryDark = Color(0xFF7A1FD1);
-  static const blueberryLight = Color(0xFFC99BFF);
-  static const blueberryTint = Color(0xFFF0E0FF);
+  static const blueberry = Color(0xFF3B85F5); // NoteStar electric blue (main accent)
+  static const blueberryDark = Color(0xFF2B6CD9); // blue for small text/links on white
+  static const blueberryLight = Color(0xFF8DB8FA);
+  static const blueberryTint = Color(0xFFE3EEFE);
 
   // Marigold — the dopamine color: rewards, streaks, celebration. Use scarcely.
   static const marigold = Color(0xFFCFFF92); // NoteStar star lime
   static const marigoldTint = Color(0xFFE6FFC4);
 
   // Plum — the berry currency & special accents
-  static const plum = Color(0xFF9B30FF);
-  static const plumDark = Color(0xFF7A1FD1);
-  static const plumTint = Color(0xFFF0E0FF);
+  static const plum = Color(0xFFFF4F9A); // NoteStar pink (celebrations)
+  static const plumDark = Color(0xFFD6246F); // pink for small text on white
+  static const plumLight = Color(0xFFFF9CC5);
+  static const plumTint = Color(0xFFFFE3EF);
 
   // Leaf green — berry stems & botanical bits only (not a UI color)
   static const leaf = Color(0xFF3E7C4A);
@@ -58,9 +60,9 @@ abstract final class JamStand {
   static const ink = Color(0xFF111111); // marker ink
   static const inkSoft = Color(0xFF4A4A4A);
   static const crate = Color(0xFF111111); // card borders (ink)
-  static const leafy = Color(0xFF9B30FF); // neon violet accent
+  static const leafy = Color(0xFF3B85F5); // electric blue accent
   static const amber = Color(0xFFCFFF92); // the "go" color (primary action): star lime
-  static const brick = Color(0xFF9B30FF); // accent
+  static const brick = Color(0xFFFF4F9A); // pink accent
   static const label = Color(0xFFFFFFFF); // card fill
   static const amberTint = Color(0xFFCFFF92); // nav indicator
 }
@@ -71,8 +73,8 @@ abstract final class CalmStudio {
   static const base = Color(0xFFFFFFFF); // page background
   static const ink = Color(0xFF111111);
   static const slate = Color(0xFF4A4A4A);
-  static const blueberry = Color(0xFF9B30FF); // the one accent (neon violet)
-  static const tint = Color(0xFFF0E0FF);
+  static const blueberry = Color(0xFF3B85F5); // main accent (electric blue)
+  static const tint = Color(0xFFE3EEFE);
   static const gold = Color(0xFFCFFF92); // star lime, rare highlights
 }
 
@@ -245,7 +247,7 @@ ThemeData _calmStudioTheme() {
       tertiary: CalmStudio.gold,
       surface: Colors.white,
       error: JamJotColors.recording,
-      onPrimary: Colors.white,
+      onPrimary: CalmStudio.ink,
       onSecondary: Colors.white,
       onSurface: CalmStudio.ink,
     ),
@@ -271,13 +273,16 @@ ThemeData _calmStudioTheme() {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: CalmStudio.blueberry,
-        foregroundColor: Colors.white,
+        foregroundColor: CalmStudio.ink, // ink on electric blue reads best
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(JamJotShape.grownupButtonRadius),
         ),
         textStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: JamJotColors.blueberryDark),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
