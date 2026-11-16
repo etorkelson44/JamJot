@@ -86,37 +86,23 @@ class LetterAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveKey =
-        starterDefault ? studentAvatarKey(avatarKey) : avatarKey;
-    final art = berryArt(effectiveKey, size * 0.84);
-    if (art != null) {
-      return Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: JamJotColors.blueberryTint,
-          shape: BoxShape.circle,
-          border: Border.all(color: JamJotColors.ink, width: 2),
-        ),
-        child: art,
-      );
-    }
+    // NoteStar (2026-11-15): the food characters are retired. Kids get
+    // their initial on star lime; grown-ups keep the quiet grey circle.
     final letter = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
     return Container(
       width: size,
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: JamJotColors.neutral,
+        color: starterDefault ? JamJotColors.marigold : JamJotColors.neutral,
         shape: BoxShape.circle,
         border: Border.all(color: JamJotColors.ink, width: 2),
       ),
       child: Text(
         letter,
         style: TextStyle(
+          fontFamily: JamJotType.display,
           fontSize: size * 0.42,
-          fontWeight: FontWeight.w700,
           color: JamJotColors.ink,
         ),
       ),

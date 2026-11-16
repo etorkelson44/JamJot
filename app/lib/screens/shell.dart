@@ -12,8 +12,8 @@ import '../widgets/letter_avatar.dart';
 import '../widgets/coin_pouch.dart';
 
 /// The bottom-tab shell. Tabs follow who's signed in:
-/// kids:      Home · Practice · Market · Calendar
-/// grown-ups: Home · Library · Market · Calendar
+/// kids:      Home · Practice · Recordings · Shop · Calendar
+/// grown-ups: Home · Library · Shop · Calendar
 /// (Grown-ups don't practice themselves — each kid's practice lives on
 /// that kid's page, where off-app practices can be logged too.)
 class AppShell extends ConsumerStatefulWidget {
@@ -21,9 +21,10 @@ class AppShell extends ConsumerStatefulWidget {
 
   final StatefulNavigationShell shell;
 
-  // Branch order in the router: 0 home, 1 practice, 2 library, 3 market,
-  // 4 calendar, 5 ensemble.
-  static const _kidBranches = [0, 1, 5, 3, 4];
+  // Branch order in the router: 0 home, 1 practice, 2 library, 3 market
+  // (the Shop), 4 calendar, 5 ensemble (retired from the tabs, NoteStar
+  // 2026-11-15), 6 recordings & albums.
+  static const _kidBranches = [0, 1, 6, 3, 4];
   static const _grownUpBranches = [0, 2, 3, 4];
 
   @override
@@ -70,9 +71,9 @@ class _AppShellState extends ConsumerState<AppShell> {
             NavigationDestination(
                 icon: Icon(JamJotIcons.practice), label: 'Practice'),
             NavigationDestination(
-                icon: Icon(Icons.theater_comedy_outlined), label: 'Ensemble'),
+                icon: Icon(Icons.album_outlined), label: 'Recordings'),
             NavigationDestination(
-                icon: Icon(JamJotIcons.market), label: 'Market'),
+                icon: Icon(JamJotIcons.market), label: 'Shop'),
             NavigationDestination(
                 icon: Icon(JamJotIcons.calendar), label: 'Calendar'),
           ]
@@ -81,7 +82,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             NavigationDestination(
                 icon: Icon(Icons.library_music_outlined), label: 'Library'),
             NavigationDestination(
-                icon: Icon(JamJotIcons.market), label: 'Market'),
+                icon: Icon(JamJotIcons.market), label: 'Shop'),
             NavigationDestination(
                 icon: Icon(JamJotIcons.calendar), label: 'Calendar'),
           ];
@@ -111,7 +112,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       if (guard != null && !await guard()) return;
                       if (!context.mounted) return;
                     }
-                    shell.goBranch(3); // the Market
+                    shell.goBranch(3); // the Shop
                   },
                 ),
                 const SizedBox(width: 8),
@@ -227,9 +228,9 @@ class _JarChip extends ConsumerWidget {
         ref.watch(berryBalanceProvider(studentId!)).valueOrNull;
     return Semantics(
       button: true,
-      label: 'Jam Jar, ${balance ?? 0} coins. Open the Market',
+      label: '${balance ?? 0} coins. Open the Shop',
       child: Tooltip(
-        message: 'Your Jam Jar · open the Market',
+        message: 'Your coins · open the Shop',
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: onTap,

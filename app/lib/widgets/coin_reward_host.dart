@@ -7,6 +7,7 @@ import '../services/sound_gate.dart';
 import '../state/coin_rewards.dart';
 import 'coin_pouch.dart';
 import 'jam_jar_art.dart';
+import 'notestar_art.dart';
 
 /// One listener above the router prevents duplicate sounds from retained tabs
 /// and keeps rewards visible even when a completion dialog covers the header.
@@ -135,6 +136,18 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
                             ? 56
                             : jarCornerRect!.width,
                         onDone: _finish)))),
+      // NoteStar (2026-11-15): the paper piano jumps for joy when coins land.
+      if (sid != null && _earned > 0 && animate)
+        Positioned(
+            left: 0,
+            right: 0,
+            bottom: 90,
+            child: IgnorePointer(
+                child: Center(
+                    child: PianoDance(
+                        key: ValueKey('celebrate$_sequence'),
+                        move: PianoMove.celebrate,
+                        width: 190)))),
       if (sid != null && _earned > 0 && !animate)
         Positioned(
             top: 8,

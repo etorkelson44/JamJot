@@ -14,7 +14,6 @@ import '../../services/supabase_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/coin_pouch.dart';
-import '../../widgets/fan_stage.dart';
 import '../../widgets/stickers.dart';
 
 /// Every stand this person may browse.
@@ -153,7 +152,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             title: Text('${item['emoji']} It\'s yours!'),
             content: Text(item['kind'] == 'avatar'
                 ? 'You\'re wearing it now — check your profile!'
-                : 'It\'s on your Shelf. Show a grown-up so they can make it happen!'),
+                : 'It\'s in your rewards list. Show a grown-up so they can make it happen!'),
             actions: [
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -177,7 +176,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text(
-                'Could not confirm the purchase. Check My Shelf before trying again.')));
+                'Could not confirm the purchase. Check your rewards list before trying again.')));
       }
     } finally {
       if (mounted) setState(() => _buying = false);
@@ -232,7 +231,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             borderRadius: BorderRadius.circular(JamJotShape.cardRadius),
             side: JamJotShape.border,
           ),
-          title: const Text('Stock your stand'),
+          title: const Text('Add rewards to your shop'),
           content: SizedBox(
             width: 440,
             child: SingleChildScrollView(
@@ -295,7 +294,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
-              child: const Text('Put it on the stand'),
+              child: const Text('Add to my shop'),
             ),
           ],
         ),
@@ -317,7 +316,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text(
-                'Could not stock that — only primary caregivers (or caregivers given the reward permission) can stock the family stand.')));
+                'Could not add that. Only primary caregivers (or caregivers given the reward permission) can stock the Home shop.')));
       }
     }
   }
@@ -440,7 +439,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         children: [
           Row(children: [
             Expanded(
-              child: Text("Farmers' Market",
+              child: Text("Shop",
                   style: text.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.w700)),
             ),
@@ -451,7 +450,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           ]),
           const SizedBox(height: 4),
           Text(
-            'Practice fills your Jam Jar — spend your coins at the stands!',
+            'Finish songs and meet your daily goal to earn coins. Spend them on real rewards from home or your teacher.',
             style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
           ),
           if (iAmGrownUp && kids.length > 1) ...[
@@ -467,36 +466,9 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                 ),
             ]),
           ],
-          if (shopperId != null) ...[
-            const SizedBox(height: 12),
-            FanStage(studentId: shopperId, compact: true),
-          ],
-
-          // ------------------------------------------------ JamJot stand
-          _standHeader(text, '🚚', 'NoteStar stand'),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: JamJotColors.outline, width: 1.5),
-            ),
-            child: Row(children: [
-              Image.asset('assets/mascot/maestro_tux.png', width: 44),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'The NoteStar stand is closed while the band gets ready '
-                  'for the World Tour! New treasures are on the way. 🚌🎸',
-                  style: text.bodyMedium,
-                ),
-              ),
-            ]),
-          ),
-
           // ----------------------------------------------- Teacher stands
           if (teacherItems.isNotEmpty || teacher != null)
-            _standHeader(text, '🎵', "Teacher's stand",
+            _standHeader(text, '🎵', "Studio shop",
                 action: teacher == null
                     ? null
                     : TextButton.icon(
@@ -508,14 +480,14 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         label: const Text('Stock'),
                       )),
           if (teacher != null && teacherItems.isEmpty)
-            Text('Your stand is empty — stock rewards your students can earn!',
+            Text('Your Studio shop is empty. Add rewards your students can earn (it is optional).',
                 style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
           for (final i in teacherItems)
             _itemTile(i, shopperId, mine: i['owner_id'] == uid),
 
           // ------------------------------------------- My Grownups' stand
           if (kids.isNotEmpty || familyItems.isNotEmpty)
-            _standHeader(text, '🏡', "My Grownups' stand",
+            _standHeader(text, '🏡', "Home shop",
                 action: iAmGrownUp
                     ? TextButton.icon(
                         style: TextButton.styleFrom(
@@ -529,17 +501,17 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           if (familyItems.isEmpty && kids.isNotEmpty)
             Text(
                 iAmGrownUp
-                    ? 'Nothing stocked yet — add rewards your kids can save up for (tap Stock for ready-made ideas).'
-                    : 'Ask your grown-up to stock their stand with rewards!',
+                    ? 'Nothing here yet. Add rewards your kids can save up for (tap Stock for ready-made ideas). The Home shop is optional.'
+                    : 'Ask your grown-up to add rewards to the Home shop!',
                 style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
           for (final i in familyItems)
             _itemTile(i, shopperId, mine: i['owner_id'] == uid),
 
           // ------------------------------------------------------ My Shelf
           if (shopperId != null) ...[
-            _standHeader(text, '🧺', "${shopper!['display_name']}'s Shelf"),
+            _standHeader(text, '🧺', "${shopper!['display_name']}'s rewards"),
             if (purchases.isEmpty)
-              Text('Nothing bought yet — the stands await!',
+              Text('Nothing bought yet.',
                   style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
             for (final p in purchases)
               Builder(builder: (context) {

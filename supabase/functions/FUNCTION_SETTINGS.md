@@ -9,3 +9,5 @@ Source for all 15 deployed functions is in this folder. Deployed settings that t
   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` are provided automatically by Supabase.
 - Storage buckets the functions and policies expect: `recordings` and `scores` (private).
 - `scan-diag` is retired (does nothing) and `storage-diag` is a diagnostic; both can be skipped on a rebuild.
+- `fan-share` (2026-11-15, NoteStar): verify_jwt = true; sends a weekly album to a kid's Superfans (Resend when `RESEND_API_KEY` is set, otherwise returns links for the app's mail fallback).
+- `fan-page` (2026-11-15, NoteStar): verify_jwt = false; the album link's secret token is the key. Shows the album and accepts fan mail (pending until a grown-up approves unless review is off).

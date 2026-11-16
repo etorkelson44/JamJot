@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/superfans_panel.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,7 +46,7 @@ class KidDetailScreen extends ConsumerWidget {
     final name = kid['display_name'] as String;
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: Text(name),
@@ -55,6 +56,7 @@ class KidDetailScreen extends ConsumerWidget {
             Tab(text: 'Teachers'),
             Tab(text: 'Practices'),
             Tab(text: 'Caregivers'),
+            Tab(text: 'Superfans'),
           ]),
         ),
         body: TabBarView(children: [
@@ -80,6 +82,7 @@ class KidDetailScreen extends ConsumerWidget {
             Expanded(child: PracticeHistoryList(studentId: studentId)),
           ]),
           _CaregiversTab(studentId: studentId),
+          SuperfansPanel(kid: kid),
         ]),
       ),
     );

@@ -50,6 +50,7 @@ flutter:
   assets:
     - assets/mascot/
     - assets/art/
+    - assets/art/notestar/
     - assets/art/avatar_instrument/
     - assets/art/avatar_instrument/jalapeno_violin/
     - assets/art/avatar_instrument/jalapeno_piano/

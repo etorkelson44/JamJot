@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'notestar_art.dart';
 import 'package:intl/intl.dart';
 import '../models/calendar_entry.dart';
-import 'ask_maestro.dart' show MaestroSearching;
 
 /// All profile views share the calendar structure and inherit their own theme.
 class CalendarViews extends StatefulWidget {
@@ -406,13 +406,10 @@ class _CalendarViewsState extends State<CalendarViews>
               child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 480),
                   child: Column(children: [
-                    Semantics(
-                        label:
-                            'Maestro Marmalade searching with his magnifying glass',
-                        child: const MaestroSearching(size: 170)),
+                    const PianoPal(pose: PianoPose.pointing, width: 190),
                     const SizedBox(height: 20),
                     Text(
-                        'I’ve searched every measure… no jams on the calendar yet!',
+                        'Nothing on the calendar yet!',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 12),

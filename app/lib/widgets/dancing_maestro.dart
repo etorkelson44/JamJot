@@ -1,8 +1,7 @@
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'notestar_art.dart';
 
-import 'jar_logo.dart';
 
 /// Maestro Marmalade, doing a little dance once when the screen loads:
 /// a happy hop with a side-to-side wiggle, then settling into place.
@@ -42,25 +41,7 @@ class _DancingMaestroState extends State<DancingMaestro>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value;
-        // Wiggle: a few side-to-side tilts that fade out as the dance ends.
-        final wiggle = math.sin(t * math.pi * 6) * 0.10 * (1 - t);
-        // Hop: two little jumps that also settle down.
-        final hop = (math.sin(t * math.pi * 4).abs()) * 14 * (1 - t);
-        return Transform.translate(
-          offset: Offset(0, -hop),
-          child: Transform.rotate(angle: wiggle, child: child),
-        );
-      },
-      child: Image.asset(
-        widget.asset ?? 'assets/mascot/maestro.png',
-        height: widget.size,
-        errorBuilder: (_, __, ___) => JarLogo(size: widget.size),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      // NoteStar (2026-11-15): the paper piano replaces Maestro.
+      PianoDance(move: PianoMove.danceDisco, width: widget.size * 1.3);
 }

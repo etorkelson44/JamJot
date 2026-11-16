@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../widgets/notestar_art.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
@@ -23,7 +24,6 @@ import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/coin_pouch.dart';
 import '../../widgets/pin_dialog.dart';
-import '../../widgets/performing_avatar.dart';
 import '../../widgets/fan_stage.dart';
 import '../../widgets/score_frame.dart';
 import '../../widgets/stickers.dart';
@@ -1627,9 +1627,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // The kid's own avatar performs on their instrument while the
-        // timer listens (JJ-012/JJ-014).
-        PerformingAvatar(size: avatarSize, instrument: _instrument),
+        // NoteStar (2026-11-15): the paper piano dances while the timer
+        // listens and waves while it's paused.
+        _live
+            ? PianoDance(move: PianoMove.danceWave, width: avatarSize * 1.2)
+            : PianoPal(pose: PianoPose.waving, width: avatarSize * 1.2),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -1781,13 +1783,13 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           final s2 = ref.watch(activeStudentProvider);
           return s2 == null
               ? const SizedBox.shrink()
-              : FanIndicator(studentId: s2['id'] as String);
+              : Center(child: FanCount(studentId: s2['id'] as String));
         }),
         const SizedBox(height: 10),
         // Just the kid's musician resting at their instrument — stoplight,
         // timer and the playing animation live only in the expanded song
         // view now (founder-directed 2026-11-05).
-        Center(child: PerformingAvatar(size: 128, instrument: _instrument)),
+        const Center(child: PianoPal(pose: PianoPose.oneHandWave, width: 170)),
         const SizedBox(height: 10),
         _songs.isEmpty
             ? Center(
@@ -1909,10 +1911,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           ),
       ],
     );
-    return student == null
-        ? list
-        : VenueBackdrop(
-            studentId: student['id'] as String, showAvatar: false, child: list);
+    return list;
   }
 
   /// This song's practice-minutes suggestion: the teacher's number if set,
@@ -2235,7 +2234,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: JamJotColors.ink, width: 2),
             ),
-            child: CoinLabel('+$_berries coins in your Jam Jar!',
+            child: CoinLabel('+$_berries coins!',
                 style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           ),
           if (_goalMet)

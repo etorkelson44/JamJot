@@ -36,7 +36,7 @@ class JammedUp extends StatelessWidget {
   static const String directionsLost =
       'That page has wandered off. Tap Back to start.';
 
-  static const String artAsset = 'assets/mascot/maestro_jammed.png';
+  static const String artAsset = 'assets/art/notestar/piano_pointing.png';
 
   static final ButtonStyle _primary = FilledButton.styleFrom(
     backgroundColor: JamStand.amber,
@@ -202,7 +202,7 @@ class JammedUp extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 460),
             child: Semantics(
               container: true,
-              label: 'Maestro Marmalade looks worried. $message',
+              label: message,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

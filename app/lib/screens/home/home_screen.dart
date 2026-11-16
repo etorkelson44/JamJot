@@ -1,19 +1,14 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
-import '../../state/wardrobe.dart';
-import '../../widgets/dressed_avatar.dart';
-import '../../widgets/letter_avatar.dart' show studentAvatarKey;
 import '../../widgets/coin_pouch.dart';
-import '../../widgets/fan_stage.dart';
 import '../profile/my_profile_screen.dart' show PermissionChangeNotices;
 import '../../widgets/jamjot_card.dart';
-import '../../widgets/ask_maestro.dart';
 import '../../widgets/instrument_icon.dart';
+import '../../widgets/notestar_art.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -51,17 +46,31 @@ class HomeScreen extends ConsumerWidget {
           ),
           Text(
             isKid
-                ? 'Ready to make some music?'
-                : 'NoteStar is under construction — screens light up as they land.',
+                ? 'Ready to shine?'
+                : 'Here is what is happening in your studio and at home.',
             style: text.bodyMedium?.copyWith(color: JamJotColors.inkSoft),
           ),
           const SizedBox(height: 16),
           if (isKid) ...[
-            Center(child: _HomeAvatar(student: active)),
-            const SizedBox(height: 16),
-            // Which stage they're playing (the venue itself is the page
-            // background behind everything).
-            FanIndicator(studentId: active['id'] as String),
+            // NoteStar (2026-11-15): the paper piano greets kids, with
+            // cut-paper stars around him and the fan count underneath.
+            SizedBox(
+              height: 210,
+              child: Stack(alignment: Alignment.center, children: const [
+                Positioned(left: 8, top: 10, child: PaperAccent('star_big_lime', size: 44)),
+                Positioned(right: 14, top: 0, child: PaperAccent('moon_blue', size: 46)),
+                Positioned(right: 0, bottom: 34, child: PaperAccent('star_small_violet', size: 34)),
+                Positioned(left: 20, bottom: 26, child: PaperAccent('dot_pink', size: 22)),
+                PianoPal(pose: PianoPose.oneHandWave, width: 230),
+              ]),
+            ),
+            const SizedBox(height: 8),
+            Center(child: FanCount(studentId: active['id'] as String, big: true)),
+            const SizedBox(height: 4),
+            Center(
+              child: Text('Finish songs and practices to grow your fans!',
+                  style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
+            ),
             const SizedBox(height: 16),
             JamJotCard(
               leading: instrumentIcon(
@@ -78,7 +87,7 @@ class HomeScreen extends ConsumerWidget {
                           .titleSmall
                           ?.copyWith(fontWeight: FontWeight.w700))
                   : null,
-              subtitle: 'Tap to start a practice session!',
+              subtitle: "Let's practice!",
               tint: JamJotColors.blueberryTint,
               onTap: () => context.go('/practice'),
             ),
@@ -90,55 +99,36 @@ class HomeScreen extends ConsumerWidget {
               return JamJotCard(
                 leading: const JamCoin(size: 28),
                 title: balance == null
-                    ? 'Jam Jar'
-                    : '$balance coin${balance == 1 ? '' : 's'} in your Jam Jar',
+                    ? 'Coins'
+                    : '$balance coin${balance == 1 ? '' : 's'}',
                 subtitle: balance == null || balance == 0
-                    ? 'Finish songs in practice to earn your first coins!'
-                    : "Spend them at the Farmers' Market!",
-                tint: JamJotColors.plumTint,
+                    ? 'Finish a song or meet your daily goal to earn coins.'
+                    : 'Spend them on rewards from home or your teacher.',
+                tint: JamJotColors.marigoldTint,
                 onTap: () => context.go('/market'),
               );
             }),
             const SizedBox(height: 12),
-            Consumer(builder: (context, ref, _) {
-              final fans = ref
-                  .watch(fanTotalProvider(active['id'] as String))
-                  .valueOrNull;
-              return JamJotCard(
-                emoji: '🕶️',
-                title: fans == null || fans == 0
-                    ? 'Your crowd'
-                    : '$fans fan${fans == 1 ? '' : 's'} cheering for you',
-                subtitle: fans == null || fans == 0
-                    ? 'Finish songs in practice to win your first fans!'
-                    : 'Every finished song brings more fans to your stage.',
-                tint: JamJotColors.marigoldTint,
-              );
-            }),
+            JamJotCard(
+              leading: const PaperAccent('star_big_blue', size: 34),
+              title: 'Recordings & albums',
+              subtitle: 'Hear how far you have come this week.',
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/recordings'),
+            ),
             const SizedBox(height: 12),
             Consumer(builder: (context, ref, _) {
               final chats = ref.watch(myChatsProvider).valueOrNull ?? [];
               if (chats.isEmpty) return const SizedBox.shrink();
-              return Column(children: [
-                JamJotCard(
-                  emoji: '💬',
-                  tint: JamJotColors.blueberryTint,
-                  title: 'Messages',
-                  subtitle: 'Chat with your teacher (grown-ups can see it).',
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.go('/messages'),
-                ),
-                const SizedBox(height: 12),
-              ]);
+              return JamJotCard(
+                emoji: '💬',
+                tint: JamJotColors.blueberryTint,
+                title: 'Messages',
+                subtitle: 'Chat with your teacher (grown-ups can see it).',
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go('/messages'),
+              );
             }),
-            JamJotCard(
-              emoji: '📼',
-              title: 'My practices',
-              subtitle: 'Listen back and see how far you have come.',
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go(
-                  '/history?student=${active['id']}&name=${Uri.encodeComponent(active['display_name'] as String)}'),
-            ),
           ] else ...[
             const PermissionChangeNotices(),
             Consumer(builder: (context, ref, _) {
@@ -217,62 +207,11 @@ class HomeScreen extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go('/account'),
             ),
-            const SizedBox(height: 12),
-            const JamJotCard(
-              emoji: '🏗️',
-              title: 'Coming next',
-              subtitle:
-                  'Calendar & scheduled lessons → the berry Market → song recognition.',
-              tint: JamJotColors.marigoldTint,
-            ),
           ],
         ],
       ),
     );
-    final body = isKid
-        ? VenueBackdrop(studentId: active['id'] as String, child: page)
-        : page;
-    // Maestro Marmalade is always one tap away on the main page.
-    return Stack(children: [body, const AskMaestroTab()]);
-  }
-}
-
-
-/// The kid's own dressed avatar greets them on their landing page,
-/// bobbing gently (Maestro still lives in the Ask tab).
-class _HomeAvatar extends ConsumerStatefulWidget {
-  const _HomeAvatar({required this.student});
-  final Map<String, dynamic> student;
-  @override
-  ConsumerState<_HomeAvatar> createState() => _HomeAvatarState();
-}
-
-class _HomeAvatarState extends ConsumerState<_HomeAvatar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _bob = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 2400))
-    ..repeat();
-
-  @override
-  void dispose() {
-    _bob.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final sid = widget.student['id'] as String;
-    final avatarKey = studentAvatarKey(widget.student['avatar_key'] as String?);
-    final outfit = ref.watch(wardrobeProvider(sid)).outfitFor(avatarKey);
-    return AnimatedBuilder(
-      animation: _bob,
-      builder: (context, child) => Transform.translate(
-        offset: Offset(0, math.sin(_bob.value * 2 * math.pi) * 4),
-        child: Transform.rotate(
-            angle: math.sin(_bob.value * 2 * math.pi + 0.8) * 0.03,
-            child: child),
-      ),
-      child: DressedAvatar(avatarKey: avatarKey, outfit: outfit, size: 140),
-    );
+    // NoteStar: plain white ground (no venue backdrop, no Maestro tab).
+    return page;
   }
 }
