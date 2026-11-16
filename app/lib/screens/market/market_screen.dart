@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../services/sound_effects.dart';
 import '../../models/market_avatars.dart';
+import '../../widgets/notestar_art.dart';
 import '../../widgets/letter_avatar.dart';
 import '../../widgets/dressed_avatar.dart';
 import '../../state/wardrobe.dart';
@@ -438,6 +439,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
           Row(children: [
+            const PaperAccent('star_big_blue', size: 34),
+            const SizedBox(width: 8),
             Expanded(
               child: Text("Shop",
                   style: text.headlineSmall
@@ -480,7 +483,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         label: const Text('Stock'),
                       )),
           if (teacher != null && teacherItems.isEmpty)
-            Text('Your Studio shop is empty. Add rewards your students can earn (it is optional).',
+            Text(
+                'Your Studio shop is empty. Add rewards your students can earn (it is optional).',
                 style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft)),
           for (final i in teacherItems)
             _itemTile(i, shopperId, mine: i['owner_id'] == uid),
@@ -593,5 +597,3 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     );
   }
 }
-
-

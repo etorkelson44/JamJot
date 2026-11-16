@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../widgets/alien_fans.dart';
 import '../../widgets/notestar_art.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -786,7 +787,6 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       _awardsLabel[id] = gated
           ? '🔒 rewards unlock when a grown-up confirms the written part'
           : '+$berries stars · 👽+$fans';
-      if (fans > 0 && berries == 0) playSound('cheer');
       final sid = _lesson?['student_id'] as String? ??
           ref.read(activeStudentProvider)?['id'] as String?;
       if (sid != null) {
@@ -806,6 +806,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     }
     if (!saved) return;
     if (!mounted) return;
+    // New fans arrive with a cheer (the crowd hops in the dialog below).
+    if (fans > 0) playSound('cheer');
     await _practiceDialog<void>(
       builder: (context) => AlertDialog(
         scrollable: true,
@@ -818,7 +820,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(child: StickerBadge(randomOf(successStickers), size: 104)),
+            Center(
+                child: fans > 0
+                    ? const AlienCrowd(width: 240)
+                    : StickerBadge(randomOf(successStickers), size: 104)),
             const SizedBox(height: 8),
             if (berries > 0)
               CoinLabel('+$berries stars',
@@ -2217,6 +2222,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                 '$_songsDone song${_songsDone == 1 ? '' : 's'} finished',
                 style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           ),
+        if (_fans > 0) const AlienCrowd(width: 260),
         if (_fans > 0)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),

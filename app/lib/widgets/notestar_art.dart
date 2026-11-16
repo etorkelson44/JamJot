@@ -65,11 +65,11 @@ class PianoDance extends StatelessWidget {
   }
 }
 
-/// A small cut-paper decoration (star, moon, sparkle, dot).
+/// A small cut-paper decoration (star, moon, dot).
 class PaperAccent extends StatelessWidget {
   const PaperAccent(this.name, {super.key, this.size = 40});
   final String
-      name; // e.g. 'star_big_pink', 'moon_blue', 'sparkle_burst_1_blue'
+      name; // e.g. 'star_big_pink', 'moon_blue', 'dot_lime'
   final double size;
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
@@ -204,7 +204,7 @@ class StarCluster extends StatelessWidget {
               Positioned(
                   right: 0,
                   top: 0,
-                  child: PaperAccent('sparkle_burst_4_pink', size: width * .2)),
+                  child: PaperAccent('star_big_pink', size: width * .2)),
               Positioned(
                   right: width * .06,
                   bottom: 0,
@@ -216,64 +216,6 @@ class StarCluster extends StatelessWidget {
               StarBounce(size: width * .7, animate: animate),
             ]),
       );
-}
-
-/// A one-shot celebration: the star-note pops up with sparkles, then fades.
-/// Used when coins land on pages that aren't about one instrument.
-class StarPop extends StatefulWidget {
-  const StarPop({super.key, this.size = 150});
-  final double size;
-  @override
-  State<StarPop> createState() => _StarPopState();
-}
-
-class _StarPopState extends State<StarPop> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1600))
-    ..forward();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (MediaQuery.of(context).disableAnimations)
-      return const SizedBox.shrink();
-    final s = widget.size;
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (_, __) {
-        final v = _c.value;
-        final pop = Curves.elasticOut.transform((v / .55).clamp(0, 1));
-        final fade = v < .75 ? 1.0 : (1 - (v - .75) / .25);
-        final spread = Curves.easeOut.transform((v / .6).clamp(0, 1));
-        Widget burst(String name, double dx, double dy, double sz) =>
-            Transform.translate(
-                offset: Offset(dx * s * .55 * spread, dy * s * .5 * spread),
-                child: PaperAccent(name, size: sz));
-        return Opacity(
-          opacity: fade.clamp(0, 1),
-          child: SizedBox(
-            width: s * 1.6,
-            height: s * 1.4,
-            child: Stack(alignment: Alignment.center, children: [
-              burst('sparkle_burst_1_blue', -1, -.8, s * .28),
-              burst('sparkle_burst_4_pink', 1, -.7, s * .28),
-              burst('star_small_violet', -1.1, .5, s * .18),
-              burst('dot_lime', 1.1, .6, s * .12),
-              Transform.scale(
-                  scale: .3 + .7 * pop,
-                  child: Image.asset('assets/art/notestar_logo.png',
-                      width: s, height: s, fit: BoxFit.contain)),
-            ]),
-          ),
-        );
-      },
-    );
-  }
 }
 
 /// The kid's instrument character when it exists (only the piano so far),

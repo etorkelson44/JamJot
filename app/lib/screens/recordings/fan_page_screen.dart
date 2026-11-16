@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../services/supabase_service.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/alien_fans.dart';
 import '../../widgets/notestar_art.dart';
 import '../../widgets/recording_player.dart';
 
@@ -40,7 +41,9 @@ class _FanPageScreenState extends State<FanPageScreen> {
 
   Future<void> _load() async {
     try {
-      final r = await http.get(_fn.replace(queryParameters: {'t': widget.token}), headers: _headers);
+      final r = await http.get(
+          _fn.replace(queryParameters: {'t': widget.token}),
+          headers: _headers);
       final d = jsonDecode(r.body) as Map<String, dynamic>;
       if (r.statusCode != 200) throw d['error'] ?? 'Not found';
       setState(() {
@@ -48,7 +51,8 @@ class _FanPageScreenState extends State<FanPageScreen> {
         _name.text = (d['fan_name'] as String?) ?? '';
       });
     } catch (e) {
-      setState(() => _error = e is String ? e : 'This album link could not be opened.');
+      setState(() =>
+          _error = e is String ? e : 'This album link could not be opened.');
     }
   }
 
@@ -58,7 +62,11 @@ class _FanPageScreenState extends State<FanPageScreen> {
     try {
       final r = await http.post(_fn,
           headers: _headers,
-          body: jsonEncode({'t': widget.token, 'name': _name.text.trim(), 'message': _msg.text.trim()}));
+          body: jsonEncode({
+            't': widget.token,
+            'name': _name.text.trim(),
+            'message': _msg.text.trim()
+          }));
       final d = jsonDecode(r.body) as Map<String, dynamic>;
       if (r.statusCode != 200) throw d['error'] ?? 'error';
       setState(() {
@@ -69,8 +77,8 @@ class _FanPageScreenState extends State<FanPageScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e is String ? e : 'Could not send right now.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e is String ? e : 'Could not send right now.')));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -93,7 +101,8 @@ class _FanPageScreenState extends State<FanPageScreen> {
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       const StarBounce(size: 140, animate: false),
                       const SizedBox(height: 12),
-                      Text(_error!, style: text.titleMedium, textAlign: TextAlign.center),
+                      Text(_error!,
+                          style: text.titleMedium, textAlign: TextAlign.center),
                     ]),
                   )
                 : a == null
@@ -104,13 +113,16 @@ class _FanPageScreenState extends State<FanPageScreen> {
                                 width: 90, semanticLabel: 'NoteStar')),
                         const SizedBox(height: 8),
                         Text('${a['kid_name']} made you an album!',
-                            style: text.headlineSmall, textAlign: TextAlign.center),
+                            style: text.headlineSmall,
+                            textAlign: TextAlign.center),
                         Text(a['album_title'] as String? ?? '',
-                            style: text.titleMedium, textAlign: TextAlign.center),
+                            style: text.titleMedium,
+                            textAlign: TextAlign.center),
                         const SizedBox(height: 6),
                         Text(
                             'Hear how each song sounded at the start of the week, and how it sounds after a week of practice.',
-                            style: text.bodyMedium, textAlign: TextAlign.center),
+                            style: text.bodyMedium,
+                            textAlign: TextAlign.center),
                         const SizedBox(height: 16),
                         for (final s in (a['songs'] as List).cast<Map>()) ...[
                           Container(
@@ -118,25 +130,32 @@ class _FanPageScreenState extends State<FanPageScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: JamJotColors.ink, width: 2),
+                              border:
+                                  Border.all(color: JamJotColors.ink, width: 2),
                             ),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(s['title'] as String, style: text.titleLarge),
-                              if (s['first_url'] != null) ...[
-                                const SizedBox(height: 8),
-                                Text('First take', style: text.titleSmall),
-                                RecordingPlayer(url: s['first_url'] as String),
-                              ],
-                              if (s['last_url'] != null) ...[
-                                const SizedBox(height: 8),
-                                Row(children: [
-                                  const PaperAccent('star_big_pink', size: 22),
-                                  const SizedBox(width: 6),
-                                  Text('Last take', style: text.titleSmall),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(s['title'] as String,
+                                      style: text.titleLarge),
+                                  if (s['first_url'] != null) ...[
+                                    const SizedBox(height: 8),
+                                    Text('First take', style: text.titleSmall),
+                                    RecordingPlayer(
+                                        url: s['first_url'] as String),
+                                  ],
+                                  if (s['last_url'] != null) ...[
+                                    const SizedBox(height: 8),
+                                    Row(children: [
+                                      const PaperAccent('star_big_pink',
+                                          size: 22),
+                                      const SizedBox(width: 6),
+                                      Text('Last take', style: text.titleSmall),
+                                    ]),
+                                    RecordingPlayer(
+                                        url: s['last_url'] as String),
+                                  ],
                                 ]),
-                                RecordingPlayer(url: s['last_url'] as String),
-                              ],
-                            ]),
                           ),
                           const SizedBox(height: 12),
                         ],
@@ -146,33 +165,47 @@ class _FanPageScreenState extends State<FanPageScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: JamJotColors.ink, width: 2),
+                            border:
+                                Border.all(color: JamJotColors.ink, width: 2),
                           ),
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                            Text('Send ${a['kid_name']} fan mail', style: text.titleLarge),
-                            const SizedBox(height: 8),
-                            TextField(
-                                controller: _name,
-                                decoration: const InputDecoration(labelText: 'Your name')),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _msg,
-                              maxLength: 1000,
-                              minLines: 3,
-                              maxLines: 6,
-                              decoration: const InputDecoration(
-                                  labelText: 'Your note',
-                                  hintText: 'I could hear how hard you worked on that song!'),
-                            ),
-                            const SizedBox(height: 8),
-                            FilledButton(
-                                onPressed: _sending ? null : _send,
-                                child: Text(_sending ? 'Sending…' : 'Send fan mail')),
-                            if (_sentNote != null) ...[
-                              const SizedBox(height: 8),
-                              Text(_sentNote!, style: text.bodyMedium, textAlign: TextAlign.center),
-                            ],
-                          ]),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const Center(
+                                    child: AlienCrowd(
+                                        width: 240, cheering: false)),
+                                const SizedBox(height: 8),
+                                Text('Send ${a['kid_name']} fan mail',
+                                    style: text.titleLarge),
+                                const SizedBox(height: 8),
+                                TextField(
+                                    controller: _name,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Your name')),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: _msg,
+                                  maxLength: 1000,
+                                  minLines: 3,
+                                  maxLines: 6,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Your note',
+                                      hintText:
+                                          'I could hear how hard you worked on that song!'),
+                                ),
+                                const SizedBox(height: 8),
+                                FilledButton(
+                                    onPressed: _sending ? null : _send,
+                                    child: Text(_sending
+                                        ? 'Sending…'
+                                        : 'Send fan mail')),
+                                if (_sentNote != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(_sentNote!,
+                                      style: text.bodyMedium,
+                                      textAlign: TextAlign.center),
+                                ],
+                              ]),
                         ),
                       ]),
           ),

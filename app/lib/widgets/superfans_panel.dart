@@ -7,6 +7,7 @@ import '../services/supabase_service.dart';
 import '../state/albums.dart';
 import '../state/app_state.dart';
 import '../theme/jamjot_theme.dart';
+import 'alien_fans.dart';
 import 'notestar_art.dart';
 
 /// Grown-up controls for a kid's Superfans (NoteStar, 2026-11-15):
@@ -31,7 +32,10 @@ class _SuperfansPanelState extends ConsumerState<SuperfansPanel> {
       builder: (ctx) => AlertDialog(
         title: const Text('Add a Superfan'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Name (e.g. Grandma Jo)')),
+          TextField(
+              controller: name,
+              decoration:
+                  const InputDecoration(labelText: 'Name (e.g. Grandma Jo)')),
           const SizedBox(height: 8),
           TextField(
               controller: email,
@@ -39,8 +43,12 @@ class _SuperfansPanelState extends ConsumerState<SuperfansPanel> {
               decoration: const InputDecoration(labelText: 'Email')),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Add')),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Add')),
         ],
       ),
     );
@@ -48,18 +56,20 @@ class _SuperfansPanelState extends ConsumerState<SuperfansPanel> {
     final n = name.text.trim(), e = email.text.trim();
     if (n.isEmpty || !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(e)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please enter a name and a real email address.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Please enter a name and a real email address.')));
       }
       return;
     }
     try {
-      await JamJotBackend.client.from('fans').insert({'student_id': _sid, 'name': n, 'email': e});
+      await JamJotBackend.client
+          .from('fans')
+          .insert({'student_id': _sid, 'name': n, 'email': e});
       ref.invalidate(superfansProvider(_sid));
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Only caregivers can add Superfans.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Only caregivers can add Superfans.')));
       }
     }
   }
@@ -71,20 +81,29 @@ class _SuperfansPanelState extends ConsumerState<SuperfansPanel> {
         title: Text('Remove ${f['name']}?'),
         content: const Text('Album links already sent to them stop working.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Keep')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Remove')),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Keep')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Remove')),
         ],
       ),
     );
     if (ok != true) return;
-    await JamJotBackend.client.from('fans').delete().eq('id', f['id'] as String);
+    await JamJotBackend.client
+        .from('fans')
+        .delete()
+        .eq('id', f['id'] as String);
     ref.invalidate(superfansProvider(_sid));
   }
 
   Future<void> _setReview(bool v) async {
     setState(() => _review = v);
     try {
-      await JamJotBackend.client.from('students').update({'fan_mail_review': v}).eq('id', _sid);
+      await JamJotBackend.client
+          .from('students')
+          .update({'fan_mail_review': v}).eq('id', _sid);
       ref.invalidate(myStudentsProvider);
     } catch (_) {
       setState(() => _review = !v);
@@ -109,8 +128,10 @@ class _SuperfansPanelState extends ConsumerState<SuperfansPanel> {
     final pending = mail.where((m) => m['status'] == 'pending').toList();
     final review = _review ?? (widget.kid['fan_mail_review'] as bool? ?? true);
     return ListView(padding: const EdgeInsets.all(20), children: [
+      const Center(child: AlienCrowd(width: 240, cheering: false)),
+      const SizedBox(height: 8),
       Row(children: [
-        const PaperAccent('star_big_pink', size: 40),
+        const PaperAccent('star_big_pink', size: 32),
         const SizedBox(width: 10),
         Expanded(child: Text("$name's Superfans", style: text.titleLarge)),
       ]),
@@ -127,12 +148,16 @@ class _SuperfansPanelState extends ConsumerState<SuperfansPanel> {
           title: Text(f['name'] as String),
           subtitle: Text(f['email'] as String),
           trailing: IconButton(
-              tooltip: 'Remove', icon: const Icon(Icons.close), onPressed: () => _remove(f)),
+              tooltip: 'Remove',
+              icon: const Icon(Icons.close),
+              onPressed: () => _remove(f)),
         ),
       Align(
         alignment: Alignment.centerLeft,
         child: OutlinedButton.icon(
-            onPressed: _add, icon: const Icon(Icons.add), label: const Text('Add a Superfan')),
+            onPressed: _add,
+            icon: const Icon(Icons.add),
+            label: const Text('Add a Superfan')),
       ),
       const Divider(height: 32),
       SwitchListTile(
@@ -140,7 +165,8 @@ class _SuperfansPanelState extends ConsumerState<SuperfansPanel> {
         value: review,
         onChanged: _setReview,
         title: const Text('Let me read fan mail first'),
-        subtitle: Text('Notes wait here until you approve them, then $name sees them.'),
+        subtitle: Text(
+            'Notes wait here until you approve them, then $name sees them.'),
       ),
       if (pending.isNotEmpty) ...[
         const SizedBox(height: 8),
@@ -149,17 +175,24 @@ class _SuperfansPanelState extends ConsumerState<SuperfansPanel> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('From ${m['fan_name']} · ${DateFormat.MMMd().format(DateTime.parse(m['created_at'] as String).toLocal())}',
-                    style: text.titleSmall),
-                const SizedBox(height: 4),
-                Text(m['message'] as String),
-                Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  TextButton(onPressed: () => _mark(m, 'hidden'), child: const Text('Hide')),
-                  const SizedBox(width: 8),
-                  FilledButton(onPressed: () => _mark(m, 'approved'), child: Text('Show $name')),
-                ]),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'From ${m['fan_name']} · ${DateFormat.MMMd().format(DateTime.parse(m['created_at'] as String).toLocal())}',
+                        style: text.titleSmall),
+                    const SizedBox(height: 4),
+                    Text(m['message'] as String),
+                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      TextButton(
+                          onPressed: () => _mark(m, 'hidden'),
+                          child: const Text('Hide')),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                          onPressed: () => _mark(m, 'approved'),
+                          child: Text('Show $name')),
+                    ]),
+                  ]),
             ),
           ),
       ],

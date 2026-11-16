@@ -7,6 +7,7 @@ import '../../services/supabase_service.dart';
 import '../../state/albums.dart';
 import '../../state/app_state.dart';
 import '../../theme/jamjot_theme.dart';
+import '../../widgets/alien_fans.dart';
 import '../../widgets/notestar_art.dart';
 import '../../widgets/recording_player.dart';
 import '../../widgets/send_email.dart';
@@ -159,7 +160,7 @@ class _NextAlbumCard extends StatelessWidget {
         border: Border.all(color: JamJotColors.ink, width: 2),
       ),
       child: Row(children: [
-        const PaperAccent('sparkle_burst_1_blue', size: 44),
+        const PaperAccent('moon_blue', size: 44),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
@@ -611,9 +612,7 @@ class FanMailList extends ConsumerWidget {
     if (mail.isEmpty) {
       return ListView(padding: const EdgeInsets.all(24), children: [
         const SizedBox(height: 12),
-        Center(
-            child: InstrumentPal(
-                instruments: _kidInstruments(ref, studentId), width: 170)),
+        const Center(child: AlienCrowd(width: 260, cheering: false)),
         const SizedBox(height: 8),
         Text('No fan mail yet',
             style: text.titleLarge, textAlign: TextAlign.center),
@@ -638,7 +637,8 @@ class FanMailList extends ConsumerWidget {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const PaperAccent('star_big_pink', size: 26),
+                Image.asset('assets/art/notestar/fan_alien.png',
+                    width: 30, height: 30, excludeFromSemantics: true),
                 const SizedBox(width: 8),
                 Expanded(
                     child:
