@@ -102,7 +102,9 @@ class FanCount extends ConsumerWidget {
           border: Border.all(color: JamJotColors.ink, width: 2),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          PaperAccent('star_big_pink', size: big ? 34 : 24),
+          ExcludeSemantics(
+              child: Image.asset('assets/art/notestar/fan_alien.png',
+                  width: big ? 34 : 24, height: big ? 34 : 24)),
           const SizedBox(width: 6),
           Text(n,
               style: (big ? text.headlineSmall : text.titleMedium)?.copyWith(

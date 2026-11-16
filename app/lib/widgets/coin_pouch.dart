@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/app_state.dart';
-import 'jam_jar_art.dart';
+import 'star_currency.dart';
 
 /// The official JJ coin, trimmed tight — used anywhere a coin is shown.
 class JamCoin extends StatelessWidget {
   const JamCoin({super.key, this.size = 20});
   final double size;
   @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-      child: Image.asset('assets/art/jam_coin.png',
-          width: size, height: size, fit: BoxFit.contain));
+  Widget build(BuildContext context) =>
+      ExcludeSemantics(child: StarIcon(size: size));
 }
 
 class CoinLabel extends StatelessWidget {
@@ -33,33 +32,8 @@ class CoinPrice extends StatelessWidget {
   const CoinPrice(this.price, {super.key});
   final int price;
   @override
-  Widget build(BuildContext context) => CoinLabel('$price coins',
+  Widget build(BuildContext context) => CoinLabel('$price stars',
       style: const TextStyle(fontWeight: FontWeight.w800));
-}
-
-/// A little pile of coins resting inside the glass, sized to sit in the
-/// clear band under the JAM label. Shown only when the jar isn't empty.
-class _CoinsInside extends StatelessWidget {
-  const _CoinsInside({required this.jarWidth});
-  final double jarWidth;
-  @override
-  Widget build(BuildContext context) {
-    final c = jarWidth * 0.22;
-    return Opacity(
-      opacity: 0.88, // a touch dimmed, as if seen through the glass
-      child: SizedBox(
-        width: jarWidth * 0.62,
-        height: c * 1.5,
-        child: Stack(alignment: Alignment.bottomCenter, children: [
-          Positioned(left: 0, bottom: 0, child: JamCoin(size: c)),
-          Positioned(right: 0, bottom: 0, child: JamCoin(size: c)),
-          Positioned(
-              bottom: c * 0.45,
-              child: Transform.rotate(angle: -0.2, child: JamCoin(size: c))),
-        ]),
-      ),
-    );
-  }
 }
 
 /// The resting Jam Jar for the market and adult child details (kids see the
@@ -77,11 +51,11 @@ class JamJar extends ConsumerWidget {
     final size = big ? 84.0 : 64.0;
     return Semantics(
         label:
-            'Jam Jar, ${balance == null ? 'balance loading' : '$balance coins'}',
+            'star count, ${balance == null ? 'balance loading' : '$balance coins'}',
         child: ExcludeSemantics(
             child: SizedBox(
                 width: size,
-                height: size * kJarImageH / kJarImageW + 4,
+                height: size * 236 / 239 + 4,
                 child: Align(
                     alignment: Alignment.topCenter,
                     child: JarStill(balance: balance, width: size)))));
@@ -97,34 +71,9 @@ class JarStill extends StatelessWidget {
   final int? balance;
   final double width;
   @override
-  Widget build(BuildContext context) {
-    final height = width * kJarImageH / kJarImageW;
-    final count = balance;
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Stack(children: [
-        Image.asset('assets/art/jar/closed.webp',
-            width: width, height: height, fit: BoxFit.fill),
-        if (count != null && count > 0)
-          // The coins live in the clear glass BELOW the label: this clip is
-          // that band, so a tall pile disappears behind the label instead
-          // of floating in front of it.
-          Positioned(
-            left: width * 0.12,
-            right: width * 0.12,
-            top: height * 0.741,
-            bottom: height * 0.065,
-            child: ClipRect(
-              child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: _CoinsInside(jarWidth: width)),
-            ),
-          ),
-        positionedJarCount(count == null ? 'JAM' : '$count', width),
-      ]),
-    );
-  }
+  Widget build(BuildContext context) =>
+      // NoteStar (2026-11-16): the star with its count replaces the jar.
+      StarStill(balance: balance, width: width);
 }
 
 /// The little jar in the corner, where the earn-coins flight starts and
@@ -194,9 +143,9 @@ class FallingCoinJar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!animate) {
       return ExcludeSemantics(
-          child: JarStill(balance: startCount + earned, width: size));
+          child: StarStill(balance: startCount + earned, width: size));
     }
-    return JarFlight(
+    return StarFlight(
         startCount: startCount,
         earned: earned,
         cornerCenter: cornerCenter,

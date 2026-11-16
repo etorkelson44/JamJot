@@ -6,8 +6,7 @@ import '../state/app_state.dart';
 import '../services/sound_gate.dart';
 import '../state/coin_rewards.dart';
 import 'coin_pouch.dart';
-import 'jam_jar_art.dart';
-import 'notestar_art.dart';
+import 'star_currency.dart';
 
 /// One listener above the router prevents duplicate sounds from retained tabs
 /// and keeps rewards visible even when a completion dialog covers the header.
@@ -66,7 +65,7 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
       _sequence++;
       _startCount = math.max(0, (balance ?? _earned) - _earned);
     });
-    final timeline = JarTimeline(start: _startCount, earn: _earned);
+    final timeline = StarTimeline(start: _startCount, earn: _earned);
     if (soundGate.allows('coins')) {
       ref.read(coinSoundPlayerProvider)(animate ? timeline.tickDelays : [0]);
     }
@@ -125,27 +124,15 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
             child: IgnorePointer(
                 child: Semantics(
                     liveRegion: true,
-                    label: '$_earned coins earned',
-                    child: FallingCoinJar(
+                    label: '$_earned stars earned',
+                    child: StarFlight(
                         key: ValueKey(_sequence),
-                        animate: true,
                         startCount: _startCount,
                         earned: _earned,
                         cornerCenter: jarCornerRect?.center,
-                        cornerWidth: jarCornerRect == null
-                            ? 56
-                            : jarCornerRect!.width,
+                        cornerWidth:
+                            jarCornerRect == null ? 56 : jarCornerRect!.width,
                         onDone: _finish)))),
-      // NoteStar (2026-11-15): the star-note pops with sparkles when coins land.
-      if (sid != null && _earned > 0 && animate)
-        Positioned(
-            left: 0,
-            right: 0,
-            bottom: 90,
-            child: IgnorePointer(
-                child: Center(
-                    child: StarPop(
-                        key: ValueKey('celebrate$_sequence'), size: 140)))),
       if (sid != null && _earned > 0 && !animate)
         Positioned(
             top: 8,
@@ -157,7 +144,7 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
                 alignment: Alignment.topCenter,
                 child: Semantics(
                   liveRegion: true,
-                  label: '$_earned coins earned',
+                  label: '$_earned stars earned',
                   child: Material(
                     color: Theme.of(context).colorScheme.surface,
                     shape: RoundedRectangleBorder(
@@ -169,12 +156,10 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
                       child: Padding(
                           padding: const EdgeInsets.fromLTRB(12, 4, 8, 12),
                           child: Row(children: [
-                            FallingCoinJar(
+                            StarStill(
                                 key: ValueKey(_sequence),
-                                animate: false,
-                                startCount: _startCount,
-                                earned: _earned,
-                                size: 72),
+                                balance: _startCount + _earned,
+                                width: 64),
                             const SizedBox(width: 10),
                             Expanded(
                                 child: ExcludeSemantics(
@@ -183,13 +168,13 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                  Text('+$_earned coins!',
+                                  Text('+$_earned stars!',
                                       style: text.titleLarge),
-                                  Text('A little more jam in your jar.',
+                                  Text('Your star count is growing.',
                                       style: text.bodyMedium),
                                 ]))),
                             Semantics(
-                                label: 'Dismiss coin reward',
+                                label: 'Dismiss star reward',
                                 button: true,
                                 child: IconButton(
                                     onPressed: () {

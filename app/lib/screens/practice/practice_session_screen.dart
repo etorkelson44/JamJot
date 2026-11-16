@@ -785,7 +785,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       _earnedFans += fans;
       _awardsLabel[id] = gated
           ? '🔒 rewards unlock when a grown-up confirms the written part'
-          : '+$berries coins · 🕶️+$fans';
+          : '+$berries stars · 👽+$fans';
       if (fans > 0 && berries == 0) playSound('cheer');
       final sid = _lesson?['student_id'] as String? ??
           ref.read(activeStudentProvider)?['id'] as String?;
@@ -821,11 +821,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             Center(child: StickerBadge(randomOf(successStickers), size: 104)),
             const SizedBox(height: 8),
             if (berries > 0)
-              CoinLabel('+$berries coins',
+              CoinLabel('+$berries stars',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w700)),
             if (fans > 0)
-              Text('🕶️ +$fans fans join your crowd!',
+              Text('👽 +$fans fans join your crowd!',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w700)),
             if (berries == 0 && fans == 0)
@@ -924,7 +924,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         ),
         title: const Text('🎉 Extra practice banked!'),
         content: Text(fans > 0
-            ? '🕶️ +$fans bonus fans for coming back to this song!'
+            ? '👽 +$fans bonus fans for coming back to this song!'
             : 'Saved! Your rewards tally up at the end.'),
         actions: [
           FilledButton(
@@ -1344,7 +1344,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         ),
         title: const Text('Lesson day is coming! 🎵'),
         content: Text(
-            'These songs are still waiting for their turn this week:\n\n$names$more\n\nFinish each one for +5 coins — and when every song on the list has been played this week, the Full Setlist bonus lands: +10 coins and 🕶️+10 fans!'),
+            'These songs are still waiting for their turn this week:\n\n$names$more\n\nFinish each one for +5 stars — and when every song on the list has been played this week, the Full Setlist bonus lands: +10 stars and 👽+10 fans!'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -1497,13 +1497,13 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       _earnedFans += fans;
       final aid = song['id'] as String;
       if (berries > 0 || fans > 0) {
-        _awardsLabel[aid] = '+$berries coins · 🕶️+$fans';
+        _awardsLabel[aid] = '+$berries stars · 👽+$fans';
         playSound('cheer');
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(berries > 0 || fans > 0
-              ? 'Written work confirmed ✓ — +$berries coins and +$fans fans unlocked!'
+              ? 'Written work confirmed ✓ — +$berries stars and +$fans fans unlocked!'
               : 'Written work confirmed ✓')));
     } catch (_) {
       _showProblem(
@@ -1829,8 +1829,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                         _songs
                                 .every((s) =>
                                     _coveredWeek.contains(s['id']))
-                            ? '⭐ Full setlist this week — every song practiced! (+10 coins · 🕶️+10)'
-                            : 'Setlist this week: ${_songs.where((s) => _coveredWeek.contains(s['id'])).length} of ${_songs.length} songs ⭐ — play them all for +10 coins & 🕶️+10!',
+                            ? '⭐ Full setlist this week — every song practiced! (+10 stars · 👽+10)'
+                            : 'Setlist this week: ${_songs.where((s) => _coveredWeek.contains(s['id'])).length} of ${_songs.length} songs ⭐ — play them all for +10 stars & 👽+10!',
                         style: text.labelSmall
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
@@ -2227,7 +2227,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: JamJotColors.ink, width: 2),
               ),
-              child: Text('🕶️ +$_fans new fans in your crowd!',
+              child: Text('👽 +$_fans new fans in your crowd!',
                   style:
                       text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             ),
@@ -2240,7 +2240,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: JamJotColors.ink, width: 2),
             ),
-            child: CoinLabel('+$_berries coins!',
+            child: CoinLabel('+$_berries stars!',
                 style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           ),
           if (_goalMet)

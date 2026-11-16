@@ -99,10 +99,10 @@ class HomeScreen extends ConsumerWidget {
               return JamJotCard(
                 leading: const JamCoin(size: 28),
                 title: balance == null
-                    ? 'Coins'
-                    : '$balance coin${balance == 1 ? '' : 's'}',
+                    ? 'Stars'
+                    : '$balance star${balance == 1 ? '' : 's'}',
                 subtitle: balance == null || balance == 0
-                    ? 'Finish a song or meet your daily goal to earn coins.'
+                    ? 'Finish a song or meet your daily goal to earn stars.'
                     : 'Spend them on rewards from home or your teacher.',
                 tint: JamJotColors.marigoldTint,
                 onTap: () => context.go('/market'),

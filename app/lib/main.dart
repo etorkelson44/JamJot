@@ -34,6 +34,7 @@ import 'state/app_state.dart';
 import 'widgets/coin_reward_host.dart';
 import 'widgets/jammed_up.dart';
 import 'screens/recordings/recordings_screen.dart';
+import 'screens/demo/notestar_demo_screen.dart';
 import 'screens/recordings/fan_page_screen.dart';
 import 'services/supabase_service.dart';
 import 'theme/jamjot_theme.dart';
@@ -168,6 +169,7 @@ final _router = GoRouter(
           loc != '/gate' &&
           loc != '/invite' &&
           loc != '/fan' &&
+          loc != '/demo' &&
           loc != '/reset-password') {
         // Remember where they were: if their session is still fresh, the
         // gate sends them straight back instead of the profile picker.
@@ -187,7 +189,7 @@ final _router = GoRouter(
       return _confirmationLanding();
     }
     final signedIn = JamJotBackend.signedIn;
-    const public = {'/', '/signin', '/invite', '/jammed', '/fan'};
+    const public = {'/', '/signin', '/invite', '/jammed', '/fan', '/demo'};
     if (!signedIn && !public.contains(loc)) return '/';
     if (signedIn && (loc == '/' || loc == '/signin')) return '/gate';
     return null;
@@ -215,6 +217,8 @@ final _router = GoRouter(
         path: '/fan',
         builder: (_, state) =>
             FanPageScreen(token: state.uri.queryParameters['t'] ?? '')),
+    // Preview only (notestar-look): watch the stars and the alien fans.
+    GoRoute(path: '/demo', builder: (_, __) => const NoteStarDemoScreen()),
     GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
     GoRoute(
         path: '/add-student', builder: (_, __) => const AddStudentScreen()),

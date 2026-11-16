@@ -228,9 +228,9 @@ class _JarChip extends ConsumerWidget {
         ref.watch(berryBalanceProvider(studentId!)).valueOrNull;
     return Semantics(
       button: true,
-      label: '${balance ?? 0} coins. Open the Shop',
+      label: '${balance ?? 0} stars. Open the Shop',
       child: Tooltip(
-        message: 'Your coins · open the Shop',
+        message: 'Your stars · open the Shop',
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: onTap,

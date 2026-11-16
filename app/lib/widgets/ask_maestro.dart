@@ -10,13 +10,13 @@ import 'conducting_maestro.dart';
 /// preset questions and answers. (Support tickets arrive here later.)
 const _maestroQA = <(String, String)>[
   (
-    'How do I earn coins? 🪙',
-    'Every minute of real practice sound earns coins, and finishing a song '
+    'How do I earn stars? ⭐',
+    'Every minute of real practice sound earns stars, and finishing a song '
         'earns a bonus! Spend them at the Market on new band members and '
         'closet pieces.'
   ),
   (
-    'What are fans and venues? 🕶️',
+    'What are fans and venues? 👽',
     'Fans come to hear you play — you earn them by finishing songs and '
         'meeting your weekly goals. The more fans, the bigger your stage: '
         'from The Village Vineguard all the way to NoteStar Stadium. Fans never '
@@ -38,7 +38,7 @@ const _maestroQA = <(String, String)>[
   ),
   (
     'How do I get new avatars and outfits? 🧺',
-    'Visit the Market! Band members cost coins and bring their own '
+    'Visit the Market! Band members cost stars and bring their own '
         'accessories with them. Some special pieces only unlock when you '
         'play a certain venue — check the Tour to see what\'s coming.'
   ),

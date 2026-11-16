@@ -30,7 +30,7 @@ final practiceHistoryProvider = FutureProvider.autoDispose
         .from(table)
         .select('session_id, assignment_id, amount')
         .eq('student_id', studentId);
-    final emoji = table == 'berry_ledger' ? '🪙' : '🕶️';
+    final emoji = table == 'berry_ledger' ? '⭐' : '👽';
     for (final r in ledger) {
       final sessionId = r['session_id'] as String?;
       if (sessionId != null) {
@@ -129,10 +129,10 @@ class PracticeHistoryList extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(action == 'minutes'
-                          ? 'These minutes will replace the recording minutes for goals, coins and fans. The recordings stay available.'
+                          ? 'These minutes will replace the recording minutes for goals, stars and fans. The recordings stay available.'
                           : action == 'automatic_minutes'
                               ? 'Goals and rewards will use the remaining recorded practice again.'
-                              : 'This removes ${action == 'delete_session' ? 'the entire session and its recordings' : action == 'delete_song' ? 'this song practice and its recordings' : 'this recording and its counted minutes'}. Goals, coins and fans will adjust. This cannot be undone.'),
+                              : 'This removes ${action == 'delete_session' ? 'the entire session and its recordings' : action == 'delete_song' ? 'this song practice and its recordings' : 'this recording and its counted minutes'}. Goals, stars and fans will adjust. This cannot be undone.'),
                       const SizedBox(height: 12),
                       if (action == 'minutes')
                         TextField(
@@ -144,7 +144,7 @@ class PracticeHistoryList extends ConsumerWidget {
                         ),
                       const SizedBox(height: 8),
                       const Text(
-                          'Previously bought rewards stay owned. If a correction reduces the Jam Jar below zero, future coins cover the difference.'),
+                          'Previously bought rewards stay owned. If a correction reduces the star count below zero, future stars cover the difference.'),
                     ]),
                 actions: [
                   TextButton(
@@ -375,7 +375,7 @@ class _SessionCard extends StatelessWidget {
           const SizedBox(height: 4),
           if (totalRewards != null)
             Text(
-                '${totalRewards![0]} coins · ${totalRewards![1]} fans credited',
+                '${totalRewards![0]} stars · ${totalRewards![1]} fans credited',
                 style: text.bodySmall),
           if (session['manual_override_seconds'] != null)
             Text('$soundMinutes min credited by a grown-up · recordings kept',

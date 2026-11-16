@@ -232,7 +232,7 @@ Future<void> removeInstrumentFlow(BuildContext context, WidgetRef ref,
     builder: (context) => AlertDialog(
       title: const Text('Are you sure?'),
       content: Text(
-          'This permanently deletes ${item.instrument} and every ${item.instrument} lesson, assignment and goal saved for $name. It cannot be undone and the data cannot be brought back.\n\nScores in your library are not affected, and coins and rewards already earned are kept.'),
+          'This permanently deletes ${item.instrument} and every ${item.instrument} lesson, assignment and goal saved for $name. It cannot be undone and the data cannot be brought back.\n\nScores in your library are not affected, and stars and rewards already earned are kept.'),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context, false),

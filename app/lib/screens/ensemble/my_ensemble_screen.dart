@@ -142,7 +142,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                         text.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                     overflow: TextOverflow.ellipsis),
               ),
-              Text('🪙 $coins   🕶️ $fans',
+              Text('⭐ $coins   👽 $fans',
                   style: text.titleSmall?.copyWith(
                       fontWeight: FontWeight.w800, color: JamJotColors.ink)),
             ]),
@@ -498,7 +498,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                 : accessoryCatalog.isEmpty
                 ? 'The costume department is sewing a whole new wardrobe '
                     'for the World Tour — arriving soon! 🧵'
-                : 'Everything you own dresses ANY band member. 🪙 $coins to spend.',
+                : 'Everything you own dresses ANY band member. ⭐ $coins to spend.',
             style: text.bodySmall?.copyWith(color: const Color(0xFFE8D7C3))),
         const SizedBox(height: 8),
         // A real wardrobe: a wooden case with shelves, four smaller
@@ -808,7 +808,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                   overflow: TextOverflow.ellipsis,
                   style: text.labelSmall)
             else
-              Text('🪙 ${acc.price}',
+              Text('⭐ ${acc.price}',
                   style: text.labelSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: affordable
@@ -902,7 +902,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
               child: const Text('See the Tour 🗺️'),
             ),
           ] else ...[
-            Text('🪙 ${acc.price} — you have $coins',
+            Text('⭐ ${acc.price} — you have $coins',
                 style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             ClipRRect(
@@ -922,7 +922,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                   Navigator.pop(sheet);
                   setState(() => _ghost = null);
                 },
-                child: Text('Add to closet — ${acc.price} 🪙'),
+                child: Text('Add to closet — ${acc.price} ⭐'),
               )
             else
               FilledButton(
@@ -1036,7 +1036,7 @@ class _MyEnsembleScreenState extends ConsumerState<MyEnsembleScreen>
                         else if (played)
                           const Text('🎫')
                         else
-                          Text('🕶️ ${v.minFans}',
+                          Text('👽 ${v.minFans}',
                               style: text.labelSmall
                                   ?.copyWith(fontWeight: FontWeight.w800)),
                       ]),

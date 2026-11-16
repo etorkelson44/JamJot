@@ -93,7 +93,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             const SizedBox(height: 12),
           ],
           Text(
-              'Spend ${item['price']} coins on this?${item['kind'] == 'avatar' ? ' You\'ll wear it right away!' : ' A grown-up hands it over once it\'s bought.'}'),
+              'Spend ${item['price']} stars on this?${item['kind'] == 'avatar' ? ' You\'ll wear it right away!' : ' A grown-up hands it over once it\'s bought.'}'),
         ]),
         actions: [
           TextButton(
@@ -102,7 +102,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
-            child: CoinLabel('Buy for ${item['price']} coins'),
+            child: CoinLabel('Buy for ${item['price']} stars'),
           ),
         ],
       ),
@@ -281,7 +281,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                     controller: price,
                     keyboardType: TextInputType.number,
                     decoration:
-                        const InputDecoration(labelText: 'Price in coins'),
+                        const InputDecoration(labelText: 'Price in stars'),
                   ),
                 ],
               ),
@@ -450,7 +450,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           ]),
           const SizedBox(height: 4),
           Text(
-            'Finish songs and meet your daily goal to earn coins. Spend them on real rewards from home or your teacher.',
+            'Finish songs and meet your daily goal to earn stars. Spend them on real rewards from home or your teacher.',
             style: text.bodySmall?.copyWith(color: JamJotColors.inkSoft),
           ),
           if (iAmGrownUp && kids.length > 1) ...[

@@ -265,7 +265,7 @@ class FanStage extends ConsumerWidget {
                     style:
                         text.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
                 Text(
-                  '🕶️ $fans fan${fans == 1 ? '' : 's'} ever • +$weekly this week${possible > 0 ? ' (of ~$possible possible)' : ''}',
+                  '👽 $fans fan${fans == 1 ? '' : 's'} ever • +$weekly this week${possible > 0 ? ' (of ~$possible possible)' : ''}',
                   style: text.bodySmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
@@ -445,8 +445,8 @@ class FanIndicator extends ConsumerWidget {
                       text.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
               Text(
                 next == null
-                    ? '🕶️ $fans fans — top of the tour!'
-                    : '🕶️ $fans fan${fans == 1 ? '' : 's'} • ${next.minFans - fans} more to ${next.name} ${next.scene}',
+                    ? '👽 $fans fans — top of the tour!'
+                    : '👽 $fans fan${fans == 1 ? '' : 's'} • ${next.minFans - fans} more to ${next.name} ${next.scene}',
                 style: text.labelSmall?.copyWith(color: JamJotColors.inkSoft),
               ),
               if (next != null) ...[

@@ -35,7 +35,7 @@ Future<void> logOfflinePractice(BuildContext context, WidgetRef ref,
           children: [
             Text(
               'For practicing that happened without the app — it counts toward history, stre'
-              'aks, coins and fans just like a recorded session.',
+              'aks, stars and fans just like a recorded session.',
               style: TextStyle(fontSize: 12.5, color: JamJotColors.inkSoft),
             ),
             const SizedBox(height: 10),
@@ -107,7 +107,7 @@ Future<void> logOfflinePractice(BuildContext context, WidgetRef ref,
       ref.invalidate(sheetLessonsProvider(sid));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: CoinLabel(
-              'Logged! $name earned ${data['coins']} coins${(data['fans'] as num? ?? 0) > 0 ? ' and 🕶️ ${data['fans']} fans' : ''}.')));
+              'Logged! $name earned ${data['coins']} stars${(data['fans'] as num? ?? 0) > 0 ? ' and 👽 ${data['fans']} fans' : ''}.')));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text((data['error'] as String?) ??

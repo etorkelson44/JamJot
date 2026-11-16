@@ -14,7 +14,7 @@ class SoundEffectOption {
 /// The keys match the names passed to playSound / playCoinPings.
 const soundEffectOptions = <SoundEffectOption>[
   SoundEffectOption(
-      'coins', 'Coin jingle', 'Plays as coins drop into the Jam Jar.'),
+      'coins', 'Star jingle', 'Plays as stars drop into the star count.'),
   SoundEffectOption(
       'cheer', 'Crowd cheer', 'When a song is finished and fans cheer.'),
   SoundEffectOption(

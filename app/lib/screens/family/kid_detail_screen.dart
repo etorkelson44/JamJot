@@ -161,7 +161,7 @@ class _OverviewTab extends ConsumerWidget {
           runSpacing: 8,
           children: [
             JamJar(studentId: kid['id'] as String),
-            _statChip('🕶️ ${fans ?? '…'} fans'),
+            _statChip('👽 ${fans ?? '…'} fans'),
             if (progress != null)
               _statChip(
                   '📅 ${progress['days']} day${progress['days'] == 1 ? '' : 's'} this week'),

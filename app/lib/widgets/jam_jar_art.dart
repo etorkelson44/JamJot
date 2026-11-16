@@ -406,7 +406,7 @@ class _JarFlightState extends State<JarFlight>
                   top: center.dy + centerW * kJarImageH / kJarImageW / 2 + 12,
                   child: Opacity(
                       opacity: caption,
-                      child: Text('+${widget.earned} coins!',
+                      child: Text('+${widget.earned} stars!',
                           textAlign: TextAlign.center,
                           style: (text.headlineMedium ?? const TextStyle())
                               .copyWith(
