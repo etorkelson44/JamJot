@@ -406,7 +406,7 @@ class _CalendarViewsState extends State<CalendarViews>
               child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 480),
                   child: Column(children: [
-                    const PianoPal(pose: PianoPose.pointing, width: 190),
+                    const StarCluster(width: 190),
                     const SizedBox(height: 20),
                     Text(
                         'Nothing on the calendar yet!',

@@ -136,7 +136,7 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
                             ? 56
                             : jarCornerRect!.width,
                         onDone: _finish)))),
-      // NoteStar (2026-11-15): the paper piano jumps for joy when coins land.
+      // NoteStar (2026-11-15): the star-note pops with sparkles when coins land.
       if (sid != null && _earned > 0 && animate)
         Positioned(
             left: 0,
@@ -144,10 +144,8 @@ class _CoinRewardHostState extends ConsumerState<CoinRewardHost>
             bottom: 90,
             child: IgnorePointer(
                 child: Center(
-                    child: PianoDance(
-                        key: ValueKey('celebrate$_sequence'),
-                        move: PianoMove.celebrate,
-                        width: 190)))),
+                    child: StarPop(
+                        key: ValueKey('celebrate$_sequence'), size: 140)))),
       if (sid != null && _earned > 0 && !animate)
         Positioned(
             top: 8,

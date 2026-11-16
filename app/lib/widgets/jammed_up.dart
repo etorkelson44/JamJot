@@ -36,7 +36,7 @@ class JammedUp extends StatelessWidget {
   static const String directionsLost =
       'That page has wandered off. Tap Back to start.';
 
-  static const String artAsset = 'assets/art/notestar/piano_pointing.png';
+  static const String artAsset = 'assets/art/notestar_logo.png';
 
   static final ButtonStyle _primary = FilledButton.styleFrom(
     backgroundColor: JamStand.amber,

@@ -51,7 +51,9 @@ class PianoDance extends StatelessWidget {
     // Respect "reduce motion": show a still pose instead.
     if (MediaQuery.of(context).disableAnimations) {
       return PianoPal(
-          pose: move == PianoMove.celebrate ? PianoPose.pointing : PianoPose.waving,
+          pose: move == PianoMove.celebrate
+              ? PianoPose.pointing
+              : PianoPose.waving,
           width: width);
     }
     return Image.asset(_pianoMoveAsset[move]!,
@@ -66,12 +68,15 @@ class PianoDance extends StatelessWidget {
 /// A small cut-paper decoration (star, moon, sparkle, dot).
 class PaperAccent extends StatelessWidget {
   const PaperAccent(this.name, {super.key, this.size = 40});
-  final String name; // e.g. 'star_big_pink', 'moon_blue', 'sparkle_burst_1_blue'
+  final String
+      name; // e.g. 'star_big_pink', 'moon_blue', 'sparkle_burst_1_blue'
   final double size;
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
       child: Image.asset('assets/art/notestar/$name.png',
-          width: size, height: size, fit: BoxFit.contain,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => SizedBox(width: size, height: size)));
 }
 
@@ -100,13 +105,198 @@ class FanCount extends ConsumerWidget {
           PaperAccent('star_big_pink', size: big ? 34 : 24),
           const SizedBox(width: 6),
           Text(n,
-              style: (big ? text.headlineSmall : text.titleMedium)
-                  ?.copyWith(fontFamily: JamJotType.display, letterSpacing: .5)),
+              style: (big ? text.headlineSmall : text.titleMedium)?.copyWith(
+                  fontFamily: JamJotType.display, letterSpacing: .5)),
           const SizedBox(width: 6),
           Text(fans == 1 ? 'fan' : 'fans',
               style: text.titleSmall?.copyWith(fontFamily: JamJotType.title)),
         ]),
       ),
     );
+  }
+}
+
+/// True when one of these instruments is a piano or keyboard. The piano
+/// character only shows up on piano pages (founder-directed 2026-11-15).
+bool playsPiano(Iterable<String?> instruments) => instruments.any((i) {
+      final s = (i ?? '').toLowerCase();
+      return s.contains('piano') ||
+          s.contains('keyboard') ||
+          s.contains('keys');
+    });
+
+/// The NoteStar star-note logo with a gentle bob, for pages that aren't
+/// about one instrument (loading, calendar, errors, Home). Still when
+/// "reduce motion" is on.
+class StarBounce extends StatefulWidget {
+  const StarBounce({super.key, this.size = 120, this.animate = true});
+  final double size;
+  final bool animate;
+  @override
+  State<StarBounce> createState() => _StarBounceState();
+}
+
+class _StarBounceState extends State<StarBounce>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1400));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final still = !widget.animate || MediaQuery.of(context).disableAnimations;
+    if (still) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final logo = Image.asset('assets/art/notestar_logo.png',
+        width: widget.size,
+        height: widget.size,
+        fit: BoxFit.contain,
+        gaplessPlayback: true,
+        semanticLabel: 'NoteStar',
+        errorBuilder: (_, __, ___) =>
+            SizedBox(width: widget.size, height: widget.size));
+    return AnimatedBuilder(
+      animation: _c,
+      child: logo,
+      builder: (_, child) {
+        final t = Curves.easeInOut.transform(_c.value);
+        return Transform.translate(
+            offset: Offset(0, -widget.size * .06 * t),
+            child: Transform.rotate(angle: (t - .5) * .12, child: child));
+      },
+    );
+  }
+}
+
+/// The star-note logo with paper accents around it: the "no character"
+/// picture for empty states and Home.
+class StarCluster extends StatelessWidget {
+  const StarCluster({super.key, this.width = 180, this.animate = false});
+  final double width;
+  final bool animate;
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: width,
+        height: width * .9,
+        child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Positioned(
+                  left: 0,
+                  top: width * .08,
+                  child: PaperAccent('moon_blue', size: width * .2)),
+              Positioned(
+                  right: 0,
+                  top: 0,
+                  child: PaperAccent('sparkle_burst_4_pink', size: width * .2)),
+              Positioned(
+                  right: width * .06,
+                  bottom: 0,
+                  child: PaperAccent('star_small_violet', size: width * .14)),
+              Positioned(
+                  left: width * .1,
+                  bottom: width * .04,
+                  child: PaperAccent('dot_pink', size: width * .08)),
+              StarBounce(size: width * .7, animate: animate),
+            ]),
+      );
+}
+
+/// A one-shot celebration: the star-note pops up with sparkles, then fades.
+/// Used when coins land on pages that aren't about one instrument.
+class StarPop extends StatefulWidget {
+  const StarPop({super.key, this.size = 150});
+  final double size;
+  @override
+  State<StarPop> createState() => _StarPopState();
+}
+
+class _StarPopState extends State<StarPop> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1600))
+    ..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.of(context).disableAnimations)
+      return const SizedBox.shrink();
+    final s = widget.size;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, __) {
+        final v = _c.value;
+        final pop = Curves.elasticOut.transform((v / .55).clamp(0, 1));
+        final fade = v < .75 ? 1.0 : (1 - (v - .75) / .25);
+        final spread = Curves.easeOut.transform((v / .6).clamp(0, 1));
+        Widget burst(String name, double dx, double dy, double sz) =>
+            Transform.translate(
+                offset: Offset(dx * s * .55 * spread, dy * s * .5 * spread),
+                child: PaperAccent(name, size: sz));
+        return Opacity(
+          opacity: fade.clamp(0, 1),
+          child: SizedBox(
+            width: s * 1.6,
+            height: s * 1.4,
+            child: Stack(alignment: Alignment.center, children: [
+              burst('sparkle_burst_1_blue', -1, -.8, s * .28),
+              burst('sparkle_burst_4_pink', 1, -.7, s * .28),
+              burst('star_small_violet', -1.1, .5, s * .18),
+              burst('dot_lime', 1.1, .6, s * .12),
+              Transform.scale(
+                  scale: .3 + .7 * pop,
+                  child: Image.asset('assets/art/notestar_logo.png',
+                      width: s, height: s, fit: BoxFit.contain)),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The kid's instrument character when it exists (only the piano so far),
+/// otherwise the NoteStar star. [dancing] uses [move]; otherwise [pose].
+class InstrumentPal extends StatelessWidget {
+  const InstrumentPal({
+    super.key,
+    required this.instruments,
+    this.pose = PianoPose.waving,
+    this.move = PianoMove.danceWave,
+    this.dancing = false,
+    this.width = 180,
+  });
+  final Iterable<String?> instruments;
+  final PianoPose pose;
+  final PianoMove move;
+  final bool dancing;
+  final double width;
+  @override
+  Widget build(BuildContext context) {
+    if (playsPiano(instruments)) {
+      return dancing
+          ? PianoDance(move: move, width: width)
+          : PianoPal(pose: pose, width: width);
+    }
+    return StarCluster(width: width, animate: dancing);
   }
 }

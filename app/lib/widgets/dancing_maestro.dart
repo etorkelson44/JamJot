@@ -42,6 +42,7 @@ class _DancingMaestroState extends State<DancingMaestro>
 
   @override
   Widget build(BuildContext context) =>
-      // NoteStar (2026-11-15): the paper piano replaces Maestro.
-      PianoDance(move: PianoMove.danceDisco, width: widget.size * 1.3);
+      // NoteStar (2026-11-15): the star-note with paper accents replaces
+      // Maestro; the piano only appears on piano pages.
+      StarCluster(width: widget.size, animate: true);
 }

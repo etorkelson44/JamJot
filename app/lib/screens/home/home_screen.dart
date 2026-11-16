@@ -52,8 +52,8 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           if (isKid) ...[
-            // NoteStar (2026-11-15): the paper piano greets kids, with
-            // cut-paper stars around him and the fan count underneath.
+            // NoteStar (2026-11-15): the star-note greets kids (Home isn't
+            // about one instrument), with the fan count underneath.
             SizedBox(
               height: 210,
               child: Stack(alignment: Alignment.center, children: const [
@@ -61,7 +61,7 @@ class HomeScreen extends ConsumerWidget {
                 Positioned(right: 14, top: 0, child: PaperAccent('moon_blue', size: 46)),
                 Positioned(right: 0, bottom: 34, child: PaperAccent('star_small_violet', size: 34)),
                 Positioned(left: 20, bottom: 26, child: PaperAccent('dot_pink', size: 22)),
-                PianoPal(pose: PianoPose.oneHandWave, width: 230),
+                StarBounce(size: 170),
               ]),
             ),
             const SizedBox(height: 8),

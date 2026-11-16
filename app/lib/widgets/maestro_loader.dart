@@ -35,9 +35,10 @@ class _MaestroLoaderState extends State<MaestroLoader>
 
   @override
   Widget build(BuildContext context) {
-    // NoteStar (2026-11-15): the paper piano dances while the app thinks.
+    // NoteStar (2026-11-15): the star-note bobs while the app thinks. The
+    // piano only appears on piano pages.
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      PianoDance(move: PianoMove.danceWave, width: widget.size * 1.3),
+      StarBounce(size: widget.size),
       if (widget.label != null) ...[
         const SizedBox(height: 8),
         Text(widget.label!, style: Theme.of(context).textTheme.bodyMedium),

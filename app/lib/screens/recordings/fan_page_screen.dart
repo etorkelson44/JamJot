@@ -91,13 +91,13 @@ class _FanPageScreenState extends State<FanPageScreen> {
                 ? Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const PianoPal(pose: PianoPose.pointing, width: 180),
+                      const StarBounce(size: 140, animate: false),
                       const SizedBox(height: 12),
                       Text(_error!, style: text.titleMedium, textAlign: TextAlign.center),
                     ]),
                   )
                 : a == null
-                    ? const PianoDance(width: 180)
+                    ? const Center(child: StarBounce(size: 140))
                     : ListView(padding: const EdgeInsets.all(20), children: [
                         Center(
                             child: Image.asset('assets/art/notestar_logo.png',

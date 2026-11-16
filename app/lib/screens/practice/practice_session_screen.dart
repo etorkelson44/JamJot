@@ -1627,11 +1627,13 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // NoteStar (2026-11-15): the paper piano dances while the timer
-        // listens and waves while it's paused.
-        _live
-            ? PianoDance(move: PianoMove.danceWave, width: avatarSize * 1.2)
-            : PianoPal(pose: PianoPose.waving, width: avatarSize * 1.2),
+        // NoteStar (2026-11-15): on a piano page the paper piano dances while
+        // the timer listens and waves while it's paused; other instruments
+        // get the star-note until their characters exist.
+        InstrumentPal(
+            instruments: [_instrument],
+            dancing: _live,
+            width: avatarSize * 1.2),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -1789,7 +1791,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         // Just the kid's musician resting at their instrument — stoplight,
         // timer and the playing animation live only in the expanded song
         // view now (founder-directed 2026-11-05).
-        const Center(child: PianoPal(pose: PianoPose.oneHandWave, width: 170)),
+        Center(
+            child: InstrumentPal(
+                instruments: [_instrument],
+                pose: PianoPose.oneHandWave,
+                width: 170)),
         const SizedBox(height: 10),
         _songs.isEmpty
             ? Center(
