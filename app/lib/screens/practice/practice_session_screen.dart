@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../../widgets/alien_fans.dart';
+import '../../widgets/mission_complete.dart';
 import '../../widgets/notestar_art.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -201,7 +202,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
             ? '✍️ needs a grown-up ✓'
             : null;
     return [
-      kind == 'both' ? '✍️🎹 Written & instrument play' : '✍️ Written assignment',
+      kind == 'both'
+          ? '✍️🎹 Written & instrument play'
+          : '✍️ Written assignment',
       if (status != null) status,
     ];
   }
@@ -216,6 +219,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       if (pages.isNotEmpty) 'p. $pages',
     ].join(' ');
   }
+
   int _songSeconds(String id) => (_soundMsBySong[id] ?? 0) ~/ 1000;
 
   @override
@@ -250,11 +254,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         if (mounted) setState(() => _phase = _Phase.closed);
         return;
       }
-      _instrument = practiceInstrumentFor(
-          student, ref.read(activeInstrumentProvider));
+      _instrument =
+          practiceInstrumentFor(student, ref.read(activeInstrumentProvider));
       final lesson = await ref.read(currentInstrumentLessonProvider(
-              (student['id'] as String, _instrument))
-          .future);
+          (student['id'] as String, _instrument)).future);
       _lesson = lesson;
       _songs =
           (lesson?['assignments'] as List?)?.cast<Map<String, dynamic>>() ?? [];
@@ -300,9 +303,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       // weekly setlist layer (founder-approved 2026-11-05). Written-only
       // songs count once a caregiver has confirmed them.
       try {
-        final since = DateTime.tryParse(
-                _lesson?['week_start'] as String? ?? '') ??
-            DateTime.now().subtract(const Duration(days: 7));
+        final since =
+            DateTime.tryParse(_lesson?['week_start'] as String? ?? '') ??
+                DateTime.now().subtract(const Duration(days: 7));
         final segs = await JamJotBackend.client
             .from('session_segments')
             .select('assignment_id, sessions!inner(student_id, started_at)')
@@ -1011,7 +1014,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         _sessionSaved = true;
       });
       setUnloadGuard(false);
-      if (((data['berries'] as num?)?.toInt() ?? 0) <= 0) playSound('fanfare');
+      if (data['goal_met'] == true) {
+        playSound('cheer');
+      } else if (((data['berries'] as num?)?.toInt() ?? 0) <= 0) {
+        playSound('fanfare');
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _phase = _Phase.practicing);
@@ -1269,9 +1276,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     }
     final finishIsGoal =
         songId != null && songId != '_freeplay' && goalSec == 0;
-    final green = finishIsGoal
-        ? _done.contains(songId)
-        : goalSec > 0 && sec >= goalSec;
+    final green =
+        finishIsGoal ? _done.contains(songId) : goalSec > 0 && sec >= goalSec;
     final yellow = !green && sec >= _minSongSeconds;
     // Founder art (2026-11-05): the real photo stoplight replaces the three
     // painted dots. One image per state; a short crossfade on switches.
@@ -1301,9 +1307,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   /// (founder-directed 2026-11-05).
   Future<void> _maybeNudgeSetlist() async {
     if (_songs.isEmpty) return;
-    final untouched = _songs
-        .where((s) => !_coveredWeek.contains(s['id'] as String))
-        .toList();
+    final untouched =
+        _songs.where((s) => !_coveredWeek.contains(s['id'] as String)).toList();
     if (untouched.isEmpty) return;
     // "Near": the next calendar lesson is within 48 hours, or the lesson
     // week is in its last two days.
@@ -1311,10 +1316,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     final sid = ref.read(activeStudentProvider)?['id'] as String?;
     if (sid != null) {
       try {
-        final sched =
-            await ref.read(lessonScheduleProvider(sid).future);
-        final nextAt = DateTime.tryParse(
-            (sched['next']?['starts_at'] as String?) ?? '');
+        final sched = await ref.read(lessonScheduleProvider(sid).future);
+        final nextAt =
+            DateTime.tryParse((sched['next']?['starts_at'] as String?) ?? '');
         if (nextAt != null &&
             nextAt.toLocal().difference(DateTime.now()).inHours <= 48) {
           near = true;
@@ -1333,13 +1337,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     if (prefs.getBool(key) == true) return;
     await prefs.setBool(key, true);
     if (!mounted) return;
-    final names = untouched
-        .take(4)
-        .map((s) => '🎼 ${s['title']}')
-        .join('\n');
-    final more = untouched.length > 4
-        ? '\n…and ${untouched.length - 4} more'
-        : '';
+    final names = untouched.take(4).map((s) => '🎼 ${s['title']}').join('\n');
+    final more =
+        untouched.length > 4 ? '\n…and ${untouched.length - 4} more' : '';
     await _practiceDialog<void>(
       builder: (context) => AlertDialog(
         scrollable: true,
@@ -1482,9 +1482,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         }
       }
       for (final sess in sessions) {
-        final data = Map<String, dynamic>.from(await JamJotBackend.client.rpc(
-            'settle_practice_session',
-            params: {'p_session_id': sess}));
+        final data = Map<String, dynamic>.from(await JamJotBackend.client
+            .rpc('settle_practice_session', params: {'p_session_id': sess}));
         berries += (data['berries'] as num?)?.toInt() ?? 0;
         fans += (data['fans'] as num?)?.toInt() ?? 0;
       }
@@ -1578,8 +1577,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                     : 'Add more ($pageCount added)'),
               ),
               FilledButton(
-                onPressed:
-                    pageCount == 0 ? null : () => _submitWritten(song),
+                onPressed: pageCount == 0 ? null : () => _submitWritten(song),
                 child: const Text('Mark written work done'),
               ),
             ]),
@@ -1627,8 +1625,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               : 'Almost there!';
     }
     final showMark = _minuteMarkAt != null &&
-        DateTime.now().difference(_minuteMarkAt!) <
-            const Duration(seconds: 3);
+        DateTime.now().difference(_minuteMarkAt!) < const Duration(seconds: 3);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -1831,9 +1828,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
-                        _songs
-                                .every((s) =>
-                                    _coveredWeek.contains(s['id']))
+                        _songs.every((s) => _coveredWeek.contains(s['id']))
                             ? '⭐ Full setlist this week — every song practiced! (+10 stars · 👽+10)'
                             : 'Setlist this week: ${_songs.where((s) => _coveredWeek.contains(s['id'])).length} of ${_songs.length} songs ⭐ — play them all for +10 stars & 👽+10!',
                         style: text.labelSmall
@@ -1844,8 +1839,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                     for (final song in nextUp) ...[
                       _SongTile(
                         title: song['title'] as String,
-                        weeklyDone:
-                            _coveredWeek.contains(song['id'] as String),
+                        weeklyDone: _coveredWeek.contains(song['id'] as String),
                         goalMetOverride: _suggestedMinutes(song) == 0
                             ? _done.contains(song['id'])
                             : null,
@@ -1884,9 +1878,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                         return _SongTile(
                           title: song['title'] as String,
                           weeklyDone: _coveredWeek.contains(id),
-                          goalMetOverride: _suggestedMinutes(song) == 0
-                              ? true
-                              : null,
+                          goalMetOverride:
+                              _suggestedMinutes(song) == 0 ? true : null,
                           note: parts.isEmpty
                               ? (song['song_note'] as String? ?? '')
                               : parts.join(' • '),
@@ -1970,16 +1963,19 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           ]),
           Padding(
               padding: const EdgeInsets.only(left: 48, bottom: 12),
-              child: Wrap(spacing: 16, runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center, children: [
-                // Static goal only — no progress timers or stoplight here
-                // (founder-directed 2026-11-05).
-                Text(
-                    "Goal: ${target > 0 ? "$target ${target == 1 ? 'minute' : 'minutes'}" : 'finish it'}"
-                    "${_bookPage(song).isEmpty ? '' : ' • 📖 ${_bookPage(song)}'}",
-                    style:
-                        text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-              ])),
+              child: Wrap(
+                  spacing: 16,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    // Static goal only — no progress timers or stoplight here
+                    // (founder-directed 2026-11-05).
+                    Text(
+                        "Goal: ${target > 0 ? "$target ${target == 1 ? 'minute' : 'minutes'}" : 'finish it'}"
+                        "${_bookPage(song).isEmpty ? '' : ' • 📖 ${_bookPage(song)}'}",
+                        style: text.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w700)),
+                  ])),
           _writtenPanel(song, text),
         ]);
 
@@ -2205,6 +2201,39 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     final nextInstrument = sid == null
         ? null
         : ref.watch(nextInstrumentProvider((sid, _instrument))).valueOrNull;
+    if (_goalMet) {
+      // NoteStar (2026-11-17): daily goal met -> "Mission complete!"
+      return SingleChildScrollView(
+        child: Column(children: [
+          const SizedBox(height: 8),
+          MissionComplete(
+              minutes: _minutes,
+              goalMinutes: goal,
+              stars: _berries,
+              fans: _fans),
+          const SizedBox(height: 16),
+          if (nextInstrument != null) ...[
+            FilledButton.icon(
+              onPressed: () => ref
+                  .read(activeInstrumentProvider.notifier)
+                  .state = nextInstrument,
+              icon: instrumentIcon(nextInstrument, size: 22),
+              label: Text('Next up: $nextInstrument'),
+            ),
+            const SizedBox(height: 8),
+          ],
+          FilledButton(
+            onPressed: () => context.go('/home'),
+            child: const Text('Back to my stage'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: () => setState(() => _phase = _Phase.practicing),
+            child: const Text('Keep practicing today'),
+          ),
+        ]),
+      );
+    }
     return Column(
       children: [
         const Spacer(),
@@ -2265,8 +2294,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         const Spacer(),
         if (nextInstrument != null) ...[
           FilledButton.icon(
-            onPressed: () =>
-                ref.read(activeInstrumentProvider.notifier).state = nextInstrument,
+            onPressed: () => ref.read(activeInstrumentProvider.notifier).state =
+                nextInstrument,
             icon: instrumentIcon(nextInstrument, size: 22),
             label: Text('Next up: $nextInstrument'),
           ),
@@ -2341,9 +2370,8 @@ class _SongTile extends StatelessWidget {
                         child: Text(title,
                             style: text.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
-                                decoration: done
-                                    ? TextDecoration.lineThrough
-                                    : null)),
+                                decoration:
+                                    done ? TextDecoration.lineThrough : null)),
                       ),
                       // The weekly star: this song was practiced at least
                       // once during this lesson week.

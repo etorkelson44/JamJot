@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/sound_effects.dart';
 import '../../theme/jamjot_theme.dart';
 import '../../widgets/alien_fans.dart';
+import '../../widgets/mission_complete.dart';
 import '../../widgets/star_currency.dart';
 
 /// Preview-only page (notestar-look branch) so the founder can watch the
@@ -60,6 +61,29 @@ class _NoteStarDemoScreenState extends State<NoteStarDemoScreen> {
                   onPressed: () => _play(25),
                   child: const Text('Earn 25 stars')),
             ]),
+            const SizedBox(height: 28),
+            Text('Daily goal met', style: text.titleLarge),
+            const SizedBox(height: 8),
+            FilledButton(
+                onPressed: () {
+                  playSound('cheer');
+                  showDialog<void>(
+                    context: context,
+                    builder: (_) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      insetPadding: const EdgeInsets.all(16),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const MissionComplete(
+                            minutes: 16, goalMinutes: 15, stars: 10, fans: 5),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Close')),
+                      ]),
+                    ),
+                  );
+                },
+                child: const Text('Show "Mission complete!"')),
             const SizedBox(height: 28),
             Text('Your alien fans', style: text.titleLarge),
             const SizedBox(height: 8),
